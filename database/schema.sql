@@ -1,0 +1,111 @@
+CREATE DATABASE IF NOT EXISTS retail_inventory;
+USE retail_inventory;
+
+CREATE TABLE users (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  email VARCHAR(160) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('Super Admin', 'Employee') NOT NULL DEFAULT 'Employee',
+  status ENUM('Aktif', 'Nonaktif') NOT NULL DEFAULT 'Aktif',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE suppliers (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(160) NOT NULL,
+  phone VARCHAR(40),
+  address TEXT,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE products (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  supplier_id BIGINT UNSIGNED NULL,
+  category VARCHAR(120) NOT NULL,
+  name VARCHAR(180) NOT NULL,
+  unit VARCHAR(40) NOT NULL,
+  unit_content DECIMAL(14,2) NOT NULL DEFAULT 1,
+  base_price DECIMAL(14,2) NOT NULL DEFAULT 0,
+  stock DECIMAL(14,2) NOT NULL DEFAULT 0,
+  min_stock DECIMAL(14,2) NOT NULL DEFAULT 0,
+  cost_price DECIMAL(14,2) NOT NULL DEFAULT 0,
+  sale_price DECIMAL(14,2) NOT NULL DEFAULT 0,
+  photo_path VARCHAR(255),
+  barcode VARCHAR(120),
+  qr_code VARCHAR(120),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+);
+
+CREATE TABLE purchases (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  supplier_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  invoice_number VARCHAR(120),
+  invoice_photo_path VARCHAR(255),
+  total DECIMAL(14,2) NOT NULL DEFAULT 0,
+  purchased_at DATE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE purchase_details (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  purchase_id BIGINT UNSIGNED NOT NULL,
+  product_id BIGINT UNSIGNED NOT NULL,
+  quantity DECIMAL(14,2) NOT NULL,
+  unit_price DECIMAL(14,2) NOT NULL,
+  subtotal DECIMAL(14,2) NOT NULL,
+  FOREIGN KEY (purchase_id) REFERENCES purchases(id),
+  FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+CREATE TABLE price_history (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  product_id BIGINT UNSIGNED NOT NULL,
+  purchase_id BIGINT UNSIGNED NULL,
+  purchase_price DECIMAL(14,2) NOT NULL,
+  net_weight DECIMAL(14,2),
+  cost_price DECIMAL(14,2) NOT NULL,
+  recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (product_id) REFERENCES products(id),
+  FOREIGN KEY (purchase_id) REFERENCES purchases(id)
+);
+
+CREATE TABLE repacking (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  source_product_id BIGINT UNSIGNED NOT NULL,
+  target_product_id BIGINT UNSIGNED NULL,
+  gross_weight DECIMAL(14,2) NOT NULL,
+  shrinkage DECIMAL(14,2) NOT NULL DEFAULT 0,
+  net_weight DECIMAL(14,2) NOT NULL,
+  cost_per_kg DECIMAL(14,2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (source_product_id) REFERENCES products(id),
+  FOREIGN KEY (target_product_id) REFERENCES products(id)
+);
+
+CREATE TABLE sales (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  product_id BIGINT UNSIGNED NOT NULL,
+  quantity DECIMAL(14,2) NOT NULL,
+  cost_price DECIMAL(14,2) NOT NULL,
+  sale_price DECIMAL(14,2) NOT NULL,
+  profit DECIMAL(14,2) NOT NULL,
+  sold_at DATE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+CREATE TABLE activity_logs (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NULL,
+  activity TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);

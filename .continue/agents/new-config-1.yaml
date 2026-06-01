@@ -1,0 +1,9 @@
+name: Nurul Iman Coding Assistant
+version: 1.0.0
+schema: v1
+
+models:
+  - name: Gemini 2.5 Flash
+    provider: gemini
+    model: gemini-2.5-flash
+    apiKey: AIzaSyAEZ2Fdr77K07NL8Okjd2hJuaYorJpU5EI

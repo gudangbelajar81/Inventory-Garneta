@@ -1,0 +1,232 @@
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(187, 247, 208, 0.72), transparent 34rem),
+    radial-gradient(circle at top right, rgba(251, 146, 60, 0.22), transparent 30rem),
+    linear-gradient(135deg, #f7fee7 0%, #f8fafc 48%, #fff7ed 100%);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.nav-link.active {
+  background: linear-gradient(135deg, #dcfce7, #fed7aa);
+  color: #166534;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(34, 197, 94, 0.16);
+}
+
+.module-card {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.soft-panel {
+  border: 1px solid rgba(34, 197, 94, 0.16);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(240, 253, 244, 0.96), rgba(255, 247, 237, 0.94));
+}
+
+.btn-gradient {
+  background: linear-gradient(135deg, #22c55e, #fb923c);
+  color: #ffffff;
+  box-shadow: 0 12px 22px rgba(34, 197, 94, 0.22);
+}
+
+.btn-gradient:hover {
+  filter: brightness(0.97);
+}
+
+.input-field {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.62rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
+}
+
+.mobile-nav {
+  display: none;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.sales-report-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.6fr) minmax(280px, 0.4fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.compact-calendar .calendar-empty,
+.compact-calendar .calendar-day {
+  aspect-ratio: 1 / 1;
+  min-height: 42px;
+  border-radius: 8px;
+}
+
+.calendar-empty {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.calendar-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  padding: 0.38rem;
+  text-align: left;
+  overflow: hidden;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.calendar-day::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.9;
+  z-index: 0;
+}
+
+.calendar-day.has-profit::before {
+  background: linear-gradient(135deg, rgba(187, 247, 208, 0.9), rgba(254, 215, 170, 0.72));
+}
+
+.calendar-day.no-profit::before {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(241, 245, 249, 0.72));
+}
+
+.calendar-day:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 197, 94, 0.34);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+}
+
+.calendar-date-number,
+.calendar-profit-pill {
+  position: relative;
+  z-index: 1;
+}
+
+.calendar-date-number {
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.calendar-profit-pill {
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0.12rem 0.3rem;
+  color: #166534;
+  font-size: 0.56rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.calendar-day.no-profit .calendar-profit-pill {
+  color: #94a3b8;
+}
+
+.sales-chart {
+  display: flex;
+  align-items: end;
+  gap: 0.22rem;
+  height: 260px;
+  border-radius: 8px;
+  background:
+    linear-gradient(to top, rgba(148, 163, 184, 0.14) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(240, 253, 244, 0.86), rgba(255, 247, 237, 0.84));
+  background-size: 100% 25%;
+  padding: 0.75rem;
+  overflow-x: auto;
+}
+
+.sales-chart-bar {
+  position: relative;
+  flex: 1 0 9px;
+  min-width: 9px;
+  max-width: 18px;
+  border-radius: 999px 999px 4px 4px;
+  background: linear-gradient(180deg, #fb923c, #22c55e);
+  box-shadow: 0 8px 18px rgba(34, 197, 94, 0.22);
+  transition: transform 160ms ease, filter 160ms ease;
+}
+
+.sales-chart-bar:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.04);
+}
+
+.sales-chart-bar span {
+  position: absolute;
+  bottom: -1.15rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #64748b;
+  font-size: 0.58rem;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .content-area {
+    padding-bottom: 88px;
+  }
+
+  .mobile-nav {
+    display: grid;
+  }
+
+  .sales-report-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-calendar .calendar-empty,
+  .compact-calendar .calendar-day {
+    min-height: 48px;
+  }
+
+  .calendar-day {
+    padding: 0.42rem;
+  }
+
+  .calendar-profit-pill {
+    font-size: 0.56rem;
+    padding: 0.12rem 0.28rem;
+  }
+}

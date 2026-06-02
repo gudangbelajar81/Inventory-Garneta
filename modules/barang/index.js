@@ -1,11 +1,12 @@
 import { add, formatCurrency, list, remove, update } from "../../assets/js/api.js";
 import { can } from "../../assets/js/auth.js";
+import { recordPriceHistory } from "../../assets/js/priceHistory.js";
 import { table } from "../../assets/components/table.js";
 
 const unitOptions = ["sak", "karton/dus", "jligen", "kg", "liter", "pcs"];
 
-export function render() {
-  const products = list("products");
+export async function render() {
+  const products = await list("products");
 
   return `
     <section class="space-y-5">
@@ -96,8 +97,8 @@ function productForm() {
   `;
 }
 
-export function afterRender() {
-  const products = list("products");
+export async function afterRender() {
+  const products = await list("products");
   const form = document.querySelector("#product-form");
   const title = document.querySelector("#product-form-title");
   const saveButton = document.querySelector("#save-product-button");
@@ -156,17 +157,17 @@ export function afterRender() {
   });
 
   document.querySelectorAll(".delete-product").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const product = products.find((item) => item.id === Number(button.dataset.id));
       const confirmed = confirm(`Hapus barang "${product?.name ?? "ini"}"?`);
       if (!confirmed) return;
 
-      remove("products", button.dataset.id);
+      await remove("products", button.dataset.id);
       location.reload();
     });
   });
 
-  form?.addEventListener("submit", (event) => {
+  form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(form);
     const basePrice = Number(formData.get("basePrice"));
@@ -185,9 +186,11 @@ export function afterRender() {
 
     const id = formData.get("id");
     if (id) {
-      update("products", id, product);
+      await update("products", id, product);
+      recordPriceHistory({ ...product, id }, "barang");
     } else {
-      add("products", product);
+      const savedProduct = await add("products", product);
+      recordPriceHistory(savedProduct, "barang");
     }
 
     location.reload();

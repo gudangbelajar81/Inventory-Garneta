@@ -1,9 +1,9 @@
 import { formatCurrency, getDashboardStats, list } from "../../assets/js/api.js";
 import { table } from "../../assets/components/table.js";
 
-export function render() {
-  const stats = getDashboardStats();
-  const logs = list("activityLogs");
+export async function render() {
+  const stats = await getDashboardStats();
+  const logs = await list("activityLogs");
   const cards = [
     ["Total Barang", stats.totalProducts, "linear-gradient(135deg, #dcfce7, #f0fdf4)"],
     ["Total Supplier", stats.totalSuppliers, "linear-gradient(135deg, #ffedd5, #fff7ed)"],

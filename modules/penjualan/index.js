@@ -79,10 +79,10 @@ function salesCalendar(reports) {
           ${getMonthLabel()}
         </button>
       </div>
-      <div class="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-500">
+      <div class="calendar-week-row grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-500">
         ${weekDays.map((day) => `<div class="py-2">${day}</div>`).join("")}
       </div>
-      <div class="grid grid-cols-7 gap-2">
+      <div class="calendar-strip">
         ${Array.from({ length: firstDay }, () => `<div class="calendar-empty"></div>`).join("")}
         ${days.map((date) => {
           const report = byDate[date] ?? { totalProfit: 0, transactionCount: 0 };
@@ -110,49 +110,6 @@ function salesCalendar(reports) {
   `;
 }
 
-function salesChart(reports) {
-  const visibleReports = [...reports].reverse();
-  const maxProfit = Math.max(...visibleReports.map((report) => report.totalProfit), 1);
-  const monthProfit = reports.reduce((sum, row) => sum + row.totalProfit, 0);
-  const canViewProfit = can("view_profit");
-
-  return `
-    <div class="module-card p-4">
-      <div class="mb-4">
-        <h3 class="font-bold">Grafik Penjualan</h3>
-        <p class="text-sm text-slate-500">Pergerakan keuntungan harian bulan ini.</p>
-      </div>
-      <div class="mb-4 rounded-md bg-gradient-to-br from-green-100 to-orange-100 p-4">
-        <p class="text-sm font-semibold text-slate-600">Akumulasi Bulan Ini</p>
-        <p class="mt-1 text-2xl font-bold text-green-800">${canViewProfit ? formatCurrency(monthProfit) : "-"}</p>
-      </div>
-      <div class="sales-chart" aria-label="Grafik keuntungan harian">
-        ${visibleReports.map((report) => {
-          const height = Math.max((report.totalProfit / maxProfit) * 100, report.totalProfit > 0 ? 10 : 3);
-          const day = Number(report.date.slice(-2));
-
-          return `
-            <button
-              class="sales-chart-bar"
-              style="height: ${height}%"
-              title="${report.date}: ${canViewProfit ? formatCurrency(report.totalProfit) : "-"}"
-              data-date="${report.date}"
-              data-profit="${report.totalProfit}"
-            >
-              <span>${day}</span>
-            </button>
-          `;
-        }).join("")}
-      </div>
-      <div class="mt-3 flex items-center justify-between text-xs font-semibold text-slate-500">
-        <span>1</span>
-        <span>${getMonthLabel()}</span>
-        <span>${visibleReports.length}</span>
-      </div>
-    </div>
-  `;
-}
-
 function normalizeSale(sale) {
   const qty = Number(sale.qty ?? 0);
   const unitSold = Number(sale.unitSold ?? qty);
@@ -170,9 +127,16 @@ function normalizeSale(sale) {
   };
 }
 
-export function render() {
-  const sales = list("sales").map(normalizeSale);
-  const products = list("products");
+function applyCurrentReportDate(sales) {
+  return sales.map((sale) => ({
+    ...sale,
+    date: today()
+  }));
+}
+
+export async function render() {
+  const sales = applyCurrentReportDate((await list("sales")).map(normalizeSale));
+  const products = await list("products");
   const reports = dailyReport(sales);
   const canInputSales = can("manage_sales") || can("input_sales");
 
@@ -181,15 +145,11 @@ export function render() {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-xl font-bold">Penjualan</h2>
-          <p class="text-sm text-slate-500">Gunakan tombol untuk berganti antara laporan harian dan input penjualan.</p>
-        </div>
-        <div class="flex rounded-lg border border-green-100 bg-white p-1 shadow-sm">
-          <button class="sales-tab rounded-md px-4 py-2 text-sm font-semibold" data-target="sales-report">Laporan Harian</button>
-          <button class="sales-tab rounded-md px-4 py-2 text-sm font-semibold" data-target="sales-input">Input Penjualan</button>
+          <p class="text-sm text-slate-500">Laporan harian dan input penjualan berada dalam satu halaman.</p>
         </div>
       </div>
 
-      <div id="sales-report" class="sales-panel space-y-5">
+      <div class="space-y-5">
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div class="module-card p-4">
             <p class="text-sm text-slate-500">Total Hari</p>
@@ -209,13 +169,10 @@ export function render() {
           </div>
         </div>
 
-        <div class="sales-report-grid">
-          ${salesCalendar(reports)}
-          ${salesChart(reports)}
-        </div>
+        ${salesCalendar(reports)}
       </div>
 
-      <div id="sales-input" class="sales-panel hidden">
+      <div>
         ${canInputSales ? inputTable(sales, products) : `<div class="rounded-md bg-orange-50 p-4 text-sm text-orange-700">Role ini tidak memiliki izin input penjualan.</div>`}
       </div>
     </section>
@@ -223,12 +180,14 @@ export function render() {
 }
 
 function inputTable(sales, products) {
+  const columns = salesInputColumns();
+
   return `
     <div class="module-card p-4">
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 class="font-bold">Daftar Inputan Penjualan</h3>
-          <p class="text-sm text-slate-500">Tambah baris baru atau perbaiki data yang sudah ada.</p>
+          <p class="text-sm text-slate-500">Data tetap tersimpan sampai diedit atau dihapus. Tanggal otomatis mengikuti hari berjalan untuk laporan.</p>
         </div>
         <button id="add-sale-row" class="btn-gradient rounded-md px-4 py-2 text-sm font-semibold">Tambah Baris</button>
       </div>
@@ -236,34 +195,52 @@ function inputTable(sales, products) {
         ${salesForm(products)}
       </div>
       <div class="mt-4">
-        ${table([
-          { key: "date", label: "Tanggal" },
-          { key: "product", label: "Nama Barang" },
-          { key: "unitSold", label: "Unit Terjual" },
-          { key: "unitContent", label: "Isi/Unit" },
-          { key: "qty", label: "Banyak Terjual" },
-          { key: "profitPerUnit", label: "Profit/Unit", render: (row) => can("view_profit") ? formatCurrency(row.profitPerUnit) : "-" },
-          { key: "profit", label: "Keuntungan", render: (row) => can("view_profit") ? formatCurrency(row.profit) : "-" },
-          { key: "actions", label: "Aksi", render: (row) => `
-            <div class="flex flex-wrap gap-2">
-              <button class="edit-sale rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700" data-id="${row.id}">Edit</button>
-              <button class="delete-sale rounded-md border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700" data-id="${row.id}">Hapus</button>
-            </div>
-          ` }
-        ], sales)}
+        ${table(columns, sales)}
       </div>
     </div>
   `;
 }
 
+function salesInputColumns() {
+  const columns = [
+    { key: "date", label: "Tanggal" },
+    { key: "product", label: "Nama Barang" },
+    { key: "unitSold", label: "Unit Terjual" },
+    { key: "unitContent", label: "Isi/Unit" },
+    { key: "qty", label: "Banyak Terjual" }
+  ];
+
+  if (can("view_profit")) {
+    columns.push(
+      { key: "profitPerUnit", label: "Profit/Unit", render: (row) => formatCurrency(row.profitPerUnit) },
+      { key: "profit", label: "Keuntungan", render: (row) => formatCurrency(row.profit) }
+    );
+  }
+
+  columns.push({
+    key: "actions",
+    label: "Aksi",
+    render: (row) => `
+      <div class="flex flex-wrap gap-2">
+        <button class="edit-sale rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700" data-id="${row.id}">Edit</button>
+        <button class="delete-sale rounded-md border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700" data-id="${row.id}">Hapus</button>
+      </div>
+    `
+  });
+
+  return columns;
+}
+
 function salesForm(products) {
+  const canViewProfit = can("view_profit");
+
   return `
     <form id="sales-form" class="soft-panel grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-4">
       <input type="hidden" name="id" />
       <input type="hidden" name="product" />
       <label class="block">
         <span class="text-sm font-semibold">Tanggal</span>
-        <input name="date" class="input-field mt-1" type="date" value="${today()}" required />
+        <input name="date" class="input-field mt-1 bg-slate-100" type="date" value="${today()}" readonly required />
       </label>
       <label class="block">
         <span class="text-sm font-semibold">Nama Barang</span>
@@ -282,18 +259,27 @@ function salesForm(products) {
         <span class="text-sm font-semibold">Isi/Unit</span>
         <input name="unitContent" class="input-field mt-1 bg-slate-100" type="number" min="1" step="0.01" value="1" readonly />
       </label>
-      <label class="block">
-        <span class="text-sm font-semibold">Profit/Unit</span>
-        <input name="profitPerUnit" class="input-field mt-1 bg-slate-100" type="number" min="0" step="1" value="0" readonly />
-      </label>
+      ${canViewProfit ? `
+        <label class="block">
+          <span class="text-sm font-semibold">Profit/Unit</span>
+          <input name="profitPerUnit" class="input-field mt-1 bg-slate-100" type="number" min="0" step="1" value="0" readonly />
+        </label>
+      ` : `<input name="profitPerUnit" type="hidden" value="0" />`}
       <label class="block">
         <span class="text-sm font-semibold">Banyak Terjual</span>
         <input name="qty" class="input-field mt-1 bg-slate-100" type="number" min="0" step="0.01" value="1" readonly />
       </label>
-      <label class="block">
-        <span class="text-sm font-semibold">Keuntungan</span>
-        <input name="profit" class="input-field mt-1 bg-slate-100" type="number" min="0" step="1" value="0" readonly />
-      </label>
+      ${canViewProfit ? `
+        <label class="block">
+          <span class="text-sm font-semibold">Keuntungan</span>
+          <input name="profit" class="input-field mt-1 bg-slate-100" type="number" min="0" step="1" value="0" readonly />
+        </label>
+      ` : `
+        <input name="profit" type="hidden" value="0" />
+        <div class="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-500">
+          Keuntungan dikunci untuk Super Admin.
+        </div>
+      `}
       <div class="flex items-end gap-2 md:col-span-2 xl:col-span-4">
         <button id="cancel-sale-edit" type="button" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Batal</button>
         <button id="save-sale-button" class="btn-gradient rounded-md px-4 py-2 text-sm font-semibold">Simpan Baris</button>
@@ -302,27 +288,12 @@ function salesForm(products) {
   `;
 }
 
-export function afterRender() {
-  const sales = list("sales").map(normalizeSale);
-  const products = list("products");
+export async function afterRender() {
+  const sales = applyCurrentReportDate((await list("sales")).map(normalizeSale));
+  const products = await list("products");
   const editor = document.querySelector("#sale-editor");
   const form = document.querySelector("#sales-form");
   const saveButton = document.querySelector("#save-sale-button");
-
-  const showPanel = (targetId) => {
-    document.querySelectorAll(".sales-panel").forEach((panel) => {
-      panel.classList.toggle("hidden", panel.id !== targetId);
-    });
-    document.querySelectorAll(".sales-tab").forEach((button) => {
-      button.classList.toggle("btn-gradient", button.dataset.target === targetId);
-      button.classList.toggle("text-slate-600", button.dataset.target !== targetId);
-    });
-  };
-
-  document.querySelectorAll(".sales-tab").forEach((button) => {
-    button.addEventListener("click", () => showPanel(button.dataset.target));
-  });
-  showPanel("sales-report");
 
   const result = document.querySelector("#calendar-result");
   document.querySelectorAll(".calendar-day").forEach((button) => {
@@ -349,19 +320,6 @@ export function afterRender() {
       <p class="mt-1 text-2xl font-bold text-green-700">${can("view_profit") ? formatCurrency(profit) : "-"}</p>
       <p class="mt-1 text-sm text-slate-500">Total keuntungan selama 1 bulan berjalan.</p>
     `;
-  });
-
-  document.querySelectorAll(".sales-chart-bar").forEach((button) => {
-    button.addEventListener("click", () => {
-      const profit = Number(button.dataset.profit ?? 0);
-      if (!result) return;
-
-      result.innerHTML = `
-        <p class="text-sm font-semibold text-slate-500">Grafik ${button.dataset.date}</p>
-        <p class="mt-1 text-2xl font-bold text-green-700">${can("view_profit") ? formatCurrency(profit) : "-"}</p>
-        <p class="mt-1 text-sm text-slate-500">Nominal keuntungan dari bar grafik yang dipilih.</p>
-      `;
-    });
   });
 
   const resetForm = () => {
@@ -420,7 +378,7 @@ export function afterRender() {
       if (!sale || !form) return;
 
       form.elements.id.value = sale.id;
-      form.elements.date.value = sale.date ?? today();
+      form.elements.date.value = today();
       form.elements.product.value = sale.product ?? "";
       const selectedProduct = products.find((product) => product.id === Number(sale.productId))
         ?? products.find((product) => product.name === sale.product);
@@ -442,17 +400,17 @@ export function afterRender() {
   });
 
   document.querySelectorAll(".delete-sale").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const sale = sales.find((item) => item.id === Number(button.dataset.id));
       const confirmed = confirm(`Hapus input penjualan "${sale?.product ?? "ini"}"?`);
       if (!confirmed) return;
 
-      remove("sales", button.dataset.id);
+      await remove("sales", button.dataset.id);
       location.reload();
     });
   });
 
-  document.querySelector("#sales-form")?.addEventListener("submit", (event) => {
+  document.querySelector("#sales-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const currentForm = event.currentTarget;
     const formData = new FormData(currentForm);
@@ -462,7 +420,7 @@ export function afterRender() {
     const qty = unitSold * unitContent;
     const profit = Math.round(qty * profitPerUnit);
     const sale = {
-      date: formData.get("date"),
+      date: today(),
       product: formData.get("product").trim(),
       productId: Number(formData.get("productId")),
       unitSold,
@@ -475,9 +433,9 @@ export function afterRender() {
 
     const id = formData.get("id");
     if (id) {
-      update("sales", id, sale);
+      await update("sales", id, sale);
     } else {
-      add("sales", sale);
+      await add("sales", sale);
     }
 
     location.reload();

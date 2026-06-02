@@ -35,8 +35,8 @@ function filterProducts(products, keyword) {
   });
 }
 
-export function render() {
-  const products = list("products");
+export async function render() {
+  const products = await list("products");
 
   return `
     <section class="space-y-5">
@@ -61,8 +61,8 @@ export function render() {
   `;
 }
 
-export function afterRender() {
-  const products = list("products");
+export async function afterRender() {
+  const products = await list("products");
   const input = document.querySelector("#product-search");
   const results = document.querySelector("#search-results");
   const summary = document.querySelector("#search-summary");

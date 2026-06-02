@@ -1,0 +1,509 @@
+{
+  "info": {
+    "name": "Retail Inventory REST API",
+    "description": "Postman collection untuk backend Node.js + Express retail inventory. Set variable base_url sesuai server lokal, default: http://localhost:3000/api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users?page=1&limit=20"
+          }
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users/1"
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin Gudang\",\n  \"email\": \"admin2@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"Super Admin\",\n  \"status\": \"Aktif\"\n}"
+            },
+            "url": "{{base_url}}/users"
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kasir Toko Updated\",\n  \"status\": \"Aktif\"\n}"
+            },
+            "url": "{{base_url}}/users/1"
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/users/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Suppliers",
+      "item": [
+        {
+          "name": "Get All Suppliers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/suppliers?page=1&limit=20"
+          }
+        },
+        {
+          "name": "Get Supplier By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/suppliers/1"
+          }
+        },
+        {
+          "name": "Create Supplier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"PT Sembako Nusantara\",\n  \"phone\": \"081234567890\",\n  \"address\": \"Jakarta\",\n  \"notes\": \"Supplier bahan pokok\"\n}"
+            },
+            "url": "{{base_url}}/suppliers"
+          }
+        },
+        {
+          "name": "Update Supplier",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"089999999999\",\n  \"notes\": \"Kontak diperbarui\"\n}"
+            },
+            "url": "{{base_url}}/suppliers/1"
+          }
+        },
+        {
+          "name": "Delete Supplier",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/suppliers/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/products?page=1&limit=20&search=beras"
+          }
+        },
+        {
+          "name": "Get Product By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/products/1"
+          }
+        },
+        {
+          "name": "Get Stock Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/products/stock-alerts"
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplier_id\": 1,\n  \"category\": \"Beras\",\n  \"name\": \"Beras Medium\",\n  \"unit\": \"sak\",\n  \"unit_content\": 25,\n  \"base_price\": 300000,\n  \"sale_price\": 14000,\n  \"stock\": 100,\n  \"min_stock\": 20,\n  \"barcode\": \"BRSMED001\"\n}"
+            },
+            "url": "{{base_url}}/products"
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sale_price\": 14500,\n  \"min_stock\": 25\n}"
+            },
+            "url": "{{base_url}}/products/1"
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/products/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Purchases",
+      "item": [
+        {
+          "name": "Get All Purchases",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/purchases?page=1&limit=20"
+          }
+        },
+        {
+          "name": "Get Purchase By ID With Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/purchases/1"
+          }
+        },
+        {
+          "name": "Create Purchase With Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplier_id\": 1,\n  \"user_id\": 1,\n  \"invoice_number\": \"INV-001\",\n  \"invoice_photo_path\": null,\n  \"purchased_at\": \"2026-06-01\",\n  \"details\": [\n    {\n      \"product_id\": 1,\n      \"quantity\": 25,\n      \"unit_price\": 12500\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/purchases"
+          }
+        },
+        {
+          "name": "Update Purchase",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoice_number\": \"INV-001-UPDATED\",\n  \"purchased_at\": \"2026-06-01\"\n}"
+            },
+            "url": "{{base_url}}/purchases/1"
+          }
+        },
+        {
+          "name": "Delete Purchase",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/purchases/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Purchase Details",
+      "item": [
+        {
+          "name": "Get All Purchase Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/purchase-details?page=1&limit=20"
+          }
+        },
+        {
+          "name": "Get Purchase Detail By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/purchase-details/1"
+          }
+        },
+        {
+          "name": "Create Purchase Detail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purchase_id\": 1,\n  \"product_id\": 1,\n  \"quantity\": 10,\n  \"unit_price\": 12500\n}"
+            },
+            "url": "{{base_url}}/purchase-details"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "Get All Sales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/sales?page=1&limit=20"
+          }
+        },
+        {
+          "name": "Get Sale By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/sales/1"
+          }
+        },
+        {
+          "name": "Create Sale",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 2,\n  \"product_id\": 1,\n  \"sold_at\": \"2026-06-01\",\n  \"unit_sold\": 2,\n  \"unit_content\": 1,\n  \"notes\": \"Transaksi kasir\"\n}"
+            },
+            "url": "{{base_url}}/sales"
+          }
+        },
+        {
+          "name": "Update Sale",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Catatan penjualan diperbarui\"\n}"
+            },
+            "url": "{{base_url}}/sales/1"
+          }
+        },
+        {
+          "name": "Delete Sale",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/sales/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Price History",
+      "item": [
+        {
+          "name": "Get All Price History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/price-history?page=1&limit=20"
+          }
+        },
+        {
+          "name": "Create Price History",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": 1,\n  \"purchase_id\": 1,\n  \"base_price\": 312500,\n  \"unit_content\": 25,\n  \"sale_price\": 14500\n}"
+            },
+            "url": "{{base_url}}/price-history"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Repacking",
+      "item": [
+        {
+          "name": "Get All Repacking",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/repacking?page=1&limit=20"
+          }
+        },
+        {
+          "name": "Create Repacking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source_product_id\": 1,\n  \"target_product_id\": null,\n  \"gross_weight\": 25,\n  \"shrinkage\": 0.5,\n  \"base_price\": 312500\n}"
+            },
+            "url": "{{base_url}}/repacking"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Activity Logs",
+      "item": [
+        {
+          "name": "Get All Activity Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/activity-logs?page=1&limit=20"
+          }
+        },
+        {
+          "name": "Create Activity Log",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"activity\": \"Login\",\n  \"detail\": \"User login ke sistem\",\n  \"ip_address\": \"127.0.0.1\"\n}"
+            },
+            "url": "{{base_url}}/activity-logs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Daily Sales Profit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/reports/daily-sales-profit"
+          }
+        },
+        {
+          "name": "Daily Sales Profit By Date Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/reports/daily-sales-profit?start_date=2026-06-01&end_date=2026-06-30"
+          }
+        },
+        {
+          "name": "Monthly Sales Profit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/reports/monthly-sales-profit"
+          }
+        }
+      ]
+    }
+  ]
+}

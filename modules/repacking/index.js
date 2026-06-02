@@ -2,7 +2,7 @@ import { formatCurrency, list } from "../../assets/js/api.js";
 import { can } from "../../assets/js/auth.js";
 import { table } from "../../assets/components/table.js";
 
-export function render() {
+export async function render() {
   return `
     <section class="space-y-4">
       <div>
@@ -15,7 +15,7 @@ export function render() {
         { key: "shrinkage", label: "Susut" },
         { key: "netWeight", label: "Net" },
         { key: "costPerKg", label: "HPP/Kg", render: (row) => can("view_cost_price") ? formatCurrency(row.costPerKg) : "-" }
-      ], list("repacking"))}
+      ], await list("repacking"))}
     </section>
   `;
 }

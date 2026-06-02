@@ -1,30 +1,389 @@
 <!doctype html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Retail Inventory & Profit Monitoring System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              primary: "#22c55e",
-              mint: "#bbf7d0",
-              citrus: "#fb923c",
-              success: "#16a34a",
-              warning: "#f97316",
-              danger: "#dc2626"
-            }
-          }
-        }
-      };
-    </script>
-    <link rel="stylesheet" href="assets/css/app.css" />
-  </head>
-  <body class="text-slate-900">
-    <div id="app" class="min-h-screen"></div>
-    <script type="module" src="assets/js/app.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retail Inventory System</title>
+  <style>
+    :root {
+      --green: #16a34a;
+      --mint: #bbf7d0;
+      --orange: #f97316;
+      --dark: #0f172a;
+      --line: #dbe7dc;
+      --page: #f7fbf6;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: var(--page); color: var(--dark); }
+    button, input, select, textarea { font: inherit; }
+    .app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+    .sidebar { background: linear-gradient(160deg, var(--green), #22c55e 58%, var(--orange)); color: white; padding: 18px; }
+    .brand { font-size: 20px; font-weight: 800; line-height: 1.2; margin-bottom: 18px; }
+    .nav { display: grid; gap: 8px; }
+    .nav button { border: 0; border-radius: 8px; padding: 11px 12px; cursor: pointer; text-align: left; color: white; background: rgba(255,255,255,.12); }
+    .nav button.active, .nav button:hover { background: rgba(255,255,255,.28); }
+    .main { min-width: 0; }
+    .topbar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 18px; background: linear-gradient(90deg, #ffffff, #ecfdf5 55%, #fff7ed); border-bottom: 1px solid var(--line); }
+    .content { padding: 18px; }
+    .card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 16px; box-shadow: 0 12px 28px rgba(15,23,42,.06); }
+    .grid { display: grid; gap: 14px; }
+    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .forms { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .btn { border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px; background: white; cursor: pointer; font-weight: 700; }
+    .btn.primary { border: 0; color: white; background: linear-gradient(135deg, var(--green), var(--orange)); }
+    .btn.danger { color: #c2410c; background: #fff7ed; border-color: #fed7aa; }
+    .btn.soft { color: #15803d; background: #f0fdf4; border-color: #bbf7d0; }
+    label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; }
+    input, select, textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 7px; padding: 9px 10px; background: white; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+    th, td { border-bottom: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 14px; vertical-align: top; }
+    th { background: #f8fafc; font-size: 12px; text-transform: uppercase; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+    .muted { color: #64748b; }
+    .hidden { display: none !important; }
+    .modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(15,23,42,.45); padding: 20px; z-index: 20; }
+    .modal .card { max-width: 420px; width: 100%; }
+    .chart { display: flex; align-items: end; gap: 8px; height: 180px; padding-top: 12px; }
+    .bar { min-width: 24px; flex: 1; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--orange), var(--green)); }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { position: sticky; top: 0; z-index: 6; }
+      .nav { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .stats, .forms { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">Retail Inventory<br>Apps Script</div>
+      <div class="nav" id="nav"></div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <strong id="page-title">Dashboard</strong>
+          <div class="muted" id="clock"></div>
+        </div>
+        <div class="actions">
+          <span id="role-label" class="muted">Admin</span>
+          <button class="btn soft" id="super-login">Super Admin</button>
+          <button class="btn danger hidden" id="logout-super">Lockout</button>
+        </div>
+      </div>
+      <div class="content" id="content">Memuat data...</div>
+    </main>
+  </div>
+
+  <div class="modal hidden" id="login-modal">
+    <div class="card grid">
+      <h3>Masuk Super Admin</h3>
+      <label>Nama Super Admin<select id="login-admin"></select></label>
+      <label>Password
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
+          <input id="login-password" type="password">
+          <button class="btn" id="toggle-password">Lihat</button>
+        </div>
+      </label>
+      <div class="actions" style="justify-content:flex-end">
+        <button class="btn" id="cancel-login">Batal</button>
+        <button class="btn primary" id="submit-login">Masuk</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const menus = [
+      ["dashboard", "Dashboard"], ["barang", "Barang"], ["supplier", "Supplier"],
+      ["pembelian", "Pembelian"], ["penjualan", "Penjualan"], ["laporan", "Laporan"],
+      ["statistik", "Statistik"], ["users", "Users"]
+    ];
+
+    const state = {
+      route: "dashboard",
+      role: localStorage.getItem("role") || "Admin",
+      superAdmin: JSON.parse(localStorage.getItem("superAdmin") || "null"),
+      data: { products: [], suppliers: [], purchases: [], sales: [], users: [], priceHistory: [], dashboard: {} }
+    };
+
+    const rupiah = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value || 0));
+    const today = () => new Date().toISOString().slice(0, 10);
+    const el = (id) => document.getElementById(id);
+
+    function gas(action, payload = {}) {
+      return new Promise((resolve, reject) => {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).api(action, payload);
+      });
+    }
+
+    async function load() {
+      state.data = await gas("bootstrap");
+      renderShell();
+      render();
+    }
+
+    function renderShell() {
+      el("nav").innerHTML = menus.map(([key, label]) => `<button data-route="${key}" class="${state.route === key ? "active" : ""}">${label}</button>`).join("");
+      el("nav").querySelectorAll("button").forEach((button) => {
+        button.onclick = () => {
+          state.route = button.dataset.route;
+          renderShell();
+          render();
+        };
+      });
+      el("role-label").textContent = state.role === "Super Admin" ? `Super Admin: ${state.superAdmin?.name || ""}` : "Admin";
+      el("super-login").classList.toggle("hidden", state.role === "Super Admin");
+      el("logout-super").classList.toggle("hidden", state.role !== "Super Admin");
+    }
+
+    function render() {
+      const label = menus.find(([key]) => key === state.route)?.[1] || "Dashboard";
+      el("page-title").textContent = label;
+      if (["laporan", "statistik", "users"].includes(state.route) && state.role !== "Super Admin") {
+        el("content").innerHTML = `<div class="card"><h2>Akses dibatasi</h2><p class="muted">Menu ini hanya bisa diakses Super Admin.</p></div>`;
+        return;
+      }
+      const views = { dashboard, barang, supplier, pembelian, penjualan, laporan, statistik, users };
+      el("content").innerHTML = views[state.route]();
+      bindForms();
+    }
+
+    function dashboard() {
+      const d = state.data.dashboard || {};
+      return `<section class="grid">
+        <div class="grid stats">
+          ${stat("Barang", d.totalProducts)}
+          ${stat("Supplier", d.totalSuppliers)}
+          ${stat("Nilai Stok", rupiah(d.stockValue))}
+          ${stat("Keuntungan", rupiah(d.totalProfit))}
+        </div>
+        <div class="card"><h3>Stok Menipis</h3>${simpleTable(d.stockAlerts || [], ["name", "stock", "minStock"], ["Barang", "Stok", "Minimal"])}</div>
+      </section>`;
+    }
+
+    function barang() {
+      return crudView("products", "Barang", productForm(), productRows());
+    }
+
+    function supplier() {
+      return crudView("suppliers", "Supplier", supplierForm(), supplierRows());
+    }
+
+    function pembelian() {
+      return crudView("purchases", "Pembelian", purchaseForm(), purchaseRows());
+    }
+
+    function penjualan() {
+      return crudView("sales", "Input Penjualan", saleForm(), saleRows());
+    }
+
+    function laporan() {
+      const rows = dailySales();
+      return `<section class="grid">
+        <div class="card"><h2>Laporan Penjualan Harian</h2>${simpleTable(rows, ["date", "profit"], ["Tanggal", "Keuntungan"])}</div>
+        <div class="card"><h2>Grafik Keuntungan</h2>${barChart(rows.map((row) => row.profit))}</div>
+      </section>`;
+    }
+
+    function statistik() {
+      return `<section class="grid">
+        <div class="card"><h2>Statistik Perubahan Harga</h2>${barChart(state.data.priceHistory.map((row) => row.basePrice))}</div>
+        <div class="card">${simpleTable(state.data.priceHistory, ["product", "basePrice", "costPrice", "source", "createdAt"], ["Barang", "Harga Dasar", "HPP", "Sumber", "Tanggal"], priceFormat)}</div>
+      </section>`;
+    }
+
+    function users() {
+      return crudView("users", "Super Admin", userForm(), userRows());
+    }
+
+    function crudView(collection, title, form, rows) {
+      return `<section class="grid">
+        <div class="card"><h2>${title}</h2>${form}</div>
+        <div class="card"><h3>Daftar ${title}</h3>${rows}</div>
+      </section>`;
+    }
+
+    function stat(label, value) {
+      return `<div class="card"><div class="muted">${label}</div><h2>${value ?? 0}</h2></div>`;
+    }
+
+    function productForm() {
+      return `<form data-form="products" class="grid forms">
+        ${hiddenId()}
+        ${input("category", "Kategori Barang")}
+        ${input("name", "Nama Barang", true)}
+        ${select("unit", "Unit", ["sak", "karton/dus", "jligen", "pcs"])}
+        ${input("unitContent", "Isi/Unit", true, "number")}
+        ${input("basePrice", "Harga Dasar", true, "number")}
+        ${input("salePrice", "Harga Jual/Unit", true, "number")}
+        ${input("stock", "Stok", false, "number")}
+        ${input("minStock", "Stok Minimal", false, "number")}
+        ${formButtons()}
+      </form>`;
+    }
+
+    function supplierForm() {
+      return `<form data-form="suppliers" class="grid forms">
+        ${hiddenId()}${input("name", "Nama Supplier", true)}${input("phone", "Telepon")}${input("address", "Alamat")}${input("notes", "Catatan")}${formButtons()}
+      </form>`;
+    }
+
+    function purchaseForm() {
+      return `<form data-form="purchases" class="grid forms">
+        ${hiddenId()}${input("date", "Tanggal", true, "date", today())}${input("supplier", "Supplier")}${input("product", "Barang")}${input("qty", "Banyak Belanja", true, "number")}${input("amount", "Harga Dasar", true, "number")}${input("notes", "Catatan")}${formButtons()}
+      </form>`;
+    }
+
+    function saleForm() {
+      return `<form data-form="sales" class="grid forms">
+        ${hiddenId()}${input("date", "Tanggal", true, "date", today())}
+        <label>Nama Barang<select name="productId" required>${state.data.products.map((p) => `<option value="${p.id}">${p.name}</option>`).join("")}</select></label>
+        ${input("unitSold", "Unit Terjual", true, "number")}${formButtons()}
+      </form>`;
+    }
+
+    function userForm() {
+      return `<form data-form="users" class="grid forms">
+        ${hiddenId()}${input("name", "Nama", true)}${input("password", "Password", false, "password")}${select("status", "Status", ["Aktif", "Nonaktif"])}${formButtons()}
+      </form>`;
+    }
+
+    function productRows() {
+      return actionTable("products", state.data.products, ["category", "name", "unit", "unitContent", "basePrice", "costPrice", "salePrice", "stock"], ["Kategori", "Nama", "Unit", "Isi", "Harga Dasar", "HPP", "Harga Jual", "Stok"], priceFormat);
+    }
+
+    function supplierRows() {
+      return actionTable("suppliers", state.data.suppliers, ["name", "phone", "address", "notes"], ["Nama", "Telepon", "Alamat", "Catatan"]);
+    }
+
+    function purchaseRows() {
+      return actionTable("purchases", state.data.purchases, ["date", "supplier", "product", "qty", "amount", "total"], ["Tanggal", "Supplier", "Barang", "Banyak", "Harga", "Total"], priceFormat);
+    }
+
+    function saleRows() {
+      return actionTable("sales", state.data.sales, ["date", "product", "unitSold", "unitContent", "qty", "profitPerUnit", "profit"], ["Tanggal", "Barang", "Unit", "Isi", "Banyak", "Profit/Unit", "Keuntungan"], priceFormat);
+    }
+
+    function userRows() {
+      return actionTable("users", state.data.users, ["name", "role", "status"], ["Nama", "Role", "Status"]);
+    }
+
+    function actionTable(collection, rows, keys, labels, formatter) {
+      return table(rows, labels.concat(["Aksi"]), (row) => keys.map((key) => td(formatter ? formatter(key, row[key]) : row[key])).join("") + `<td class="actions"><button class="btn soft" data-edit="${collection}" data-id="${row.id}">Edit</button><button class="btn danger" data-delete="${collection}" data-id="${row.id}">Hapus</button></td>`);
+    }
+
+    function simpleTable(rows, keys, labels, formatter) {
+      return table(rows, labels, (row) => keys.map((key) => td(formatter ? formatter(key, row[key]) : row[key])).join(""));
+    }
+
+    function table(rows, labels, body) {
+      if (!rows.length) return `<p class="muted">Belum ada data.</p>`;
+      return `<div class="table-wrap"><table><thead><tr>${labels.map((label) => `<th>${label}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${body(row)}</tr>`).join("")}</tbody></table></div>`;
+    }
+
+    function td(value) {
+      return `<td>${value ?? ""}</td>`;
+    }
+
+    function input(name, label, required, type = "text", value = "") {
+      return `<label>${label}<input name="${name}" type="${type}" value="${value}" ${required ? "required" : ""}></label>`;
+    }
+
+    function select(name, label, options) {
+      return `<label>${label}<select name="${name}">${options.map((item) => `<option>${item}</option>`).join("")}</select></label>`;
+    }
+
+    function hiddenId() {
+      return `<input type="hidden" name="id">`;
+    }
+
+    function formButtons() {
+      return `<div class="actions" style="align-self:end"><button class="btn primary">Simpan</button><button class="btn" type="reset">Reset</button></div>`;
+    }
+
+    function priceFormat(key, value) {
+      return ["basePrice", "costPrice", "salePrice", "amount", "total", "profitPerUnit", "profit"].includes(key) ? rupiah(value) : value;
+    }
+
+    function dailySales() {
+      const map = {};
+      state.data.sales.forEach((sale) => map[sale.date] = (map[sale.date] || 0) + Number(sale.profit || 0));
+      return Object.keys(map).sort().map((date) => ({ date, profit: map[date] }));
+    }
+
+    function barChart(values) {
+      const max = Math.max(...values.map(Number), 1);
+      return `<div class="chart">${values.map((value) => `<div class="bar" title="${rupiah(value)}" style="height:${Math.max(Number(value) / max * 100, 5)}%"></div>`).join("")}</div>`;
+    }
+
+    function bindForms() {
+      document.querySelectorAll("form[data-form]").forEach((form) => {
+        form.onsubmit = async (event) => {
+          event.preventDefault();
+          const collection = form.dataset.form;
+          const item = Object.fromEntries(new FormData(form).entries());
+          const id = item.id;
+          delete item.id;
+          await gas(id ? "update" : "add", { collection, id, item });
+          await load();
+        };
+      });
+
+      document.querySelectorAll("[data-edit]").forEach((button) => {
+        button.onclick = () => fillForm(button.dataset.edit, button.dataset.id);
+      });
+
+      document.querySelectorAll("[data-delete]").forEach((button) => {
+        button.onclick = async () => {
+          if (!confirm("Hapus data ini?")) return;
+          await gas("remove", { collection: button.dataset.delete, id: button.dataset.id });
+          await load();
+        };
+      });
+    }
+
+    function fillForm(collection, id) {
+      const form = document.querySelector(`form[data-form="${collection}"]`);
+      const row = state.data[collection].find((item) => String(item.id) === String(id));
+      if (!form || !row) return;
+      Object.keys(row).forEach((key) => {
+        if (form.elements[key]) form.elements[key].value = row[key];
+      });
+      if (form.elements.password) form.elements.password.value = "";
+      scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    el("super-login").onclick = () => {
+      el("login-admin").innerHTML = state.data.users.map((user) => `<option value="${user.id}">${user.name}</option>`).join("");
+      el("login-modal").classList.remove("hidden");
+    };
+    el("cancel-login").onclick = () => el("login-modal").classList.add("hidden");
+    el("toggle-password").onclick = () => {
+      const input = el("login-password");
+      input.type = input.type === "password" ? "text" : "password";
+    };
+    el("submit-login").onclick = async () => {
+      const user = await gas("verifySuperAdmin", { adminId: el("login-admin").value, password: el("login-password").value });
+      state.role = "Super Admin";
+      state.superAdmin = user;
+      localStorage.setItem("role", state.role);
+      localStorage.setItem("superAdmin", JSON.stringify(user));
+      el("login-modal").classList.add("hidden");
+      renderShell();
+      render();
+    };
+    el("logout-super").onclick = () => {
+      state.role = "Admin";
+      state.superAdmin = null;
+      localStorage.removeItem("role");
+      localStorage.removeItem("superAdmin");
+      renderShell();
+      render();
+    };
+
+    setInterval(() => el("clock").textContent = new Date().toLocaleString("id-ID"), 1000);
+    load().catch((error) => el("content").innerHTML = `<div class="card"><h2>Error</h2><p>${error.message}</p></div>`);
+  </script>
+</body>
 </html>

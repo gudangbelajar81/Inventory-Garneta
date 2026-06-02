@@ -4,6 +4,8 @@ const routes = {
   pencarian: "../../modules/pencarian/index.js",
   supplier: "../../modules/supplier/index.js",
   pembelian: "../../modules/pembelian/index.js",
+  "kalkulator-belanja": "../../modules/kalkulator-belanja/index.js",
+  statistik: "../../modules/statistik/index.js",
   repacking: "../../modules/repacking/index.js",
   penjualan: "../../modules/penjualan/index.js",
   laporan: "../../modules/laporan/index.js",
@@ -20,10 +22,10 @@ export async function renderRoute(target) {
   const route = getCurrentRoute();
   const modulePath = routes[route] ?? routes.dashboard;
   const page = await import(modulePath);
-  target.innerHTML = page.render();
+  target.innerHTML = await page.render();
 
   if (typeof page.afterRender === "function") {
-    page.afterRender();
+    await page.afterRender();
   }
 
   document.querySelectorAll(".nav-link").forEach((link) => {

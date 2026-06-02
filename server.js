@@ -1,4 +1,4 @@
-require("dotenv").config({ override: true });
+require("dotenv").config({ override: true, quiet: true });
 const crypto = require("crypto");
 const express = require("express");
 const fs = require("fs");
@@ -58,6 +58,7 @@ async function handleAction(action, payload) {
     add: () => addRow(payload.collection, payload.item),
     update: () => updateRow(payload.collection, payload.id, payload.item),
     remove: () => removeRow(payload.collection, payload.id),
+    login: () => loginUser(payload.name, payload.password),
     verifySuperAdmin: () => verifySuperAdmin(payload.adminId, payload.password),
     modules: () => availableModules()
   };
@@ -421,6 +422,30 @@ async function verifySuperAdmin(adminId, password) {
   return { id: user.id, name: user.name, role: user.role };
 }
 
+async function loginUser(name, password) {
+  if (!name || !password) throw new Error("Nama dan password wajib diisi.");
+
+  const [rows] = await db.query(`
+    SELECT id, name, email, role, status, password_hash
+    FROM users
+    WHERE name = ?
+    LIMIT 1
+  `, [name]);
+  const user = rows[0];
+
+  if (!user || user.status !== "Aktif" || user.password_hash !== hashPassword(password)) {
+    throw new Error("Nama atau password salah.");
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: displayRole(user.role),
+    status: user.status
+  };
+}
+
 async function findRow(collection, id) {
   const rows = await listRows(collection);
   const row = rows.find((item) => String(item.id) === String(id));
@@ -505,7 +530,7 @@ function userPayload(item, requirePassword) {
     name: required(item.name, "Nama user"),
     email: item.email || `${String(item.name || "user").toLowerCase().replace(/\s+/g, ".")}@example.com`,
     passwordHash: password ? hashPassword(password) : null,
-    role: item.role || "Super Admin",
+    role: databaseRole(item.role || "Admin"),
     status: item.status || "Aktif"
   };
 }
@@ -571,9 +596,17 @@ function mapUser(row) {
     id: row.id,
     name: row.name,
     email: row.email,
-    role: row.role,
+    role: displayRole(row.role),
     status: row.status
   };
+}
+
+function databaseRole(role) {
+  return role === "Super Admin" ? "Super Admin" : "Employee";
+}
+
+function displayRole(role) {
+  return role === "Super Admin" ? "Super Admin" : "Admin";
 }
 
 function mapPriceHistory(row) {

@@ -67,9 +67,9 @@
           <div class="muted" id="clock"></div>
         </div>
         <div class="actions">
-          <span id="role-label" class="muted">Belum login</span>
-          <button class="btn soft" id="super-login">Masuk Akun</button>
-          <button class="btn danger hidden" id="logout-super">Keluar</button>
+          <span id="role-label" class="muted">Admin</span>
+          <button class="btn soft" id="super-login">Super Admin</button>
+          <button class="btn danger hidden" id="logout-super">Keluar Super Admin</button>
         </div>
       </div>
       <div class="content" id="content">Memuat data...</div>
@@ -78,8 +78,8 @@
 
   <div class="modal hidden" id="login-modal">
     <div class="card grid">
-      <h3>Masuk Akun</h3>
-      <label>Nama Akun<input id="login-name" list="login-users" autocomplete="username" placeholder="Masukkan nama akun"></label>
+      <h3>Masuk Super Admin</h3>
+      <label>Nama Super Admin<input id="login-name" list="login-users" autocomplete="username" placeholder="Masukkan nama Super Admin"></label>
       <datalist id="login-users"></datalist>
       <label>Password
         <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
@@ -88,20 +88,15 @@
         </div>
       </label>
       <div class="actions" style="justify-content:flex-end">
-        <button class="btn soft" id="show-create-account">Buat Akun</button>
+        <button class="btn soft" id="show-create-account">Buat Super Admin</button>
         <button class="btn" id="cancel-login">Batal</button>
         <button class="btn primary" id="submit-login">Masuk</button>
       </div>
       <div id="create-account-panel" class="hidden grid" style="border-top:1px solid var(--line);padding-top:12px">
-        <h3>Buat Akun Baru</h3>
-        <label>Nama Akun<input id="create-name" autocomplete="username"></label>
+        <h3>Buat Super Admin</h3>
+        <label>Nama Super Admin<input id="create-name" autocomplete="username"></label>
         <label>Password<input id="create-password" type="password" autocomplete="new-password"></label>
-        <label>Role
-          <select id="create-role">
-            <option>Admin</option>
-            <option>Super Admin</option>
-          </select>
-        </label>
+        <p class="muted">Hanya boleh ada satu akun Super Admin. Admin biasa tidak perlu login atau daftar akun.</p>
         <div class="actions" style="justify-content:flex-end">
           <button class="btn primary" id="submit-create-account">Simpan Akun</button>
         </div>
@@ -118,7 +113,7 @@
 
     const state = {
       route: "dashboard",
-      role: localStorage.getItem("role") || "Guest",
+      role: localStorage.getItem("role") || "Admin",
       currentUser: JSON.parse(localStorage.getItem("currentUser") || "null"),
       data: { products: [], suppliers: [], purchases: [], sales: [], users: [], priceHistory: [], dashboard: {} }
     };
@@ -159,19 +154,15 @@
           render();
         };
       });
-      const loggedIn = state.role !== "Guest";
-      el("role-label").textContent = loggedIn ? `${state.role}: ${state.currentUser?.name || ""}` : "Belum login";
-      el("super-login").classList.toggle("hidden", loggedIn);
-      el("logout-super").classList.toggle("hidden", !loggedIn);
+      const superMode = state.role === "Super Admin";
+      el("role-label").textContent = superMode ? `Super Admin: ${state.currentUser?.name || ""}` : "Admin";
+      el("super-login").classList.toggle("hidden", superMode);
+      el("logout-super").classList.toggle("hidden", !superMode);
     }
 
     function render() {
       const label = menus.find(([key]) => key === state.route)?.[1] || "Dashboard";
       el("page-title").textContent = label;
-      if (state.role === "Guest") {
-        el("content").innerHTML = `<div class="card"><h2>Masuk terlebih dahulu</h2><p class="muted">Gunakan akun Admin atau Super Admin untuk mengakses halaman admin.</p></div>`;
-        return;
-      }
       if (["laporan", "statistik", "users"].includes(state.route) && state.role !== "Super Admin") {
         el("content").innerHTML = `<div class="card"><h2>Akses dibatasi</h2><p class="muted">Menu ini hanya bisa diakses Super Admin.</p></div>`;
         return;
@@ -226,7 +217,7 @@
     }
 
     function users() {
-      return crudView("users", "Akun Admin", userForm(), userRows());
+      return crudView("users", "Akun Super Admin", userForm(), userRows());
     }
 
     function crudView(collection, title, form, rows) {
@@ -276,8 +267,10 @@
     }
 
     function userForm() {
+      const hasSuperAdmin = state.data.users.some((user) => user.role === "Super Admin");
       return `<form data-form="users" class="grid forms">
-        ${hiddenId()}${input("name", "Nama Akun", true)}${input("password", "Password", false, "password")}${select("role", "Role", ["Admin", "Super Admin"])}${select("status", "Status", ["Aktif", "Nonaktif"])}${formButtons()}
+        ${hiddenId()}${input("name", "Nama Super Admin", true)}${input("password", hasSuperAdmin ? "Password Baru" : "Password", !hasSuperAdmin, "password")}${select("status", "Status", ["Aktif", "Nonaktif"])}${formButtons()}
+        <p class="muted" style="grid-column:1/-1">${hasSuperAdmin ? "Super Admin sudah ada. Form ini hanya untuk mengedit akun yang dipilih dari tabel." : "Belum ada Super Admin. Buat satu akun Super Admin untuk membuka menu khusus."}</p>
       </form>`;
     }
 
@@ -298,7 +291,7 @@
     }
 
     function userRows() {
-      return actionTable("users", state.data.users, ["name", "role", "status"], ["Nama", "Role", "Status"]);
+      return actionTable("users", superAdmins(), ["name", "role", "status"], ["Nama", "Role", "Status"]);
     }
 
     function actionTable(collection, rows, keys, labels, formatter) {
@@ -344,6 +337,10 @@
       return Object.keys(map).sort().map((date) => ({ date, profit: map[date] }));
     }
 
+    function superAdmins() {
+      return state.data.users.filter((user) => user.role === "Super Admin");
+    }
+
     function barChart(values) {
       const max = Math.max(...values.map(Number), 1);
       return `<div class="chart">${values.map((value) => `<div class="bar" title="${rupiah(value)}" style="height:${Math.max(Number(value) / max * 100, 5)}%"></div>`).join("")}</div>`;
@@ -353,12 +350,16 @@
       document.querySelectorAll("form[data-form]").forEach((form) => {
         form.onsubmit = async (event) => {
           event.preventDefault();
-          const collection = form.dataset.form;
-          const item = Object.fromEntries(new FormData(form).entries());
-          const id = item.id;
-          delete item.id;
-          await gas(id ? "update" : "add", { collection, id, item });
-          await load();
+          try {
+            const collection = form.dataset.form;
+            const item = Object.fromEntries(new FormData(form).entries());
+            const id = item.id;
+            delete item.id;
+            await gas(id ? "update" : "add", { collection, id, item });
+            await load();
+          } catch (error) {
+            alert(error.message);
+          }
         };
       });
 
@@ -387,9 +388,12 @@
     }
 
     el("super-login").onclick = () => {
-      el("login-users").innerHTML = state.data.users.map((user) => `<option value="${user.name}"></option>`).join("");
+      const admins = superAdmins();
+      el("login-users").innerHTML = admins.map((user) => `<option value="${user.name}"></option>`).join("");
       el("login-name").value = "";
       el("login-password").value = "";
+      el("show-create-account").classList.toggle("hidden", admins.length > 0);
+      el("create-account-panel").classList.add("hidden");
       el("login-modal").classList.remove("hidden");
     };
     el("cancel-login").onclick = () => el("login-modal").classList.add("hidden");
@@ -398,6 +402,10 @@
       input.type = input.type === "password" ? "text" : "password";
     };
     el("show-create-account").onclick = () => {
+      if (superAdmins().length > 0) {
+        alert("Super Admin sudah terdaftar. Hanya boleh ada satu akun Super Admin.");
+        return;
+      }
       el("create-account-panel").classList.toggle("hidden");
     };
     el("submit-login").onclick = async () => {
@@ -413,7 +421,7 @@
         const item = {
           name: el("create-name").value.trim(),
           password: el("create-password").value,
-          role: el("create-role").value,
+          role: "Super Admin",
           status: "Aktif"
         };
         await gas("add", { collection: "users", item });
@@ -425,7 +433,7 @@
       }
     };
     el("logout-super").onclick = () => {
-      state.role = "Guest";
+      state.role = "Admin";
       state.currentUser = null;
       localStorage.removeItem("role");
       localStorage.removeItem("currentUser");

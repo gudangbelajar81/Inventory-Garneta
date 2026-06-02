@@ -325,6 +325,7 @@ async function addRow(collection, item = {}) {
   }
 
   if (collection === "users") {
+    await validateSuperAdminCreate(item);
     const [result] = await db.query(`
       INSERT INTO users (name, email, password_hash, role, status)
       VALUES (:name, :email, :passwordHash, :role, :status)
@@ -432,13 +433,13 @@ async function loginUser(name, password) {
   const [rows] = await db.query(`
     SELECT id, name, email, role, status, password_hash
     FROM users
-    WHERE name = ?
+    WHERE name = ? AND role = 'Super Admin'
     LIMIT 1
   `, [name]);
   const user = rows[0];
 
   if (!user || user.status !== "Aktif" || user.password_hash !== hashPassword(password)) {
-    throw new Error("Nama atau password salah.");
+    throw new Error("Nama atau password Super Admin salah.");
   }
 
   return {
@@ -475,6 +476,17 @@ async function validateUserDelete(id) {
   const user = await findRow("users", id);
   if (user.role === "Super Admin" && Number(row.total) <= 1) {
     throw new Error("Minimal harus ada satu Super Admin aktif.");
+  }
+}
+
+async function validateSuperAdminCreate(item) {
+  if (databaseRole(item.role || "Super Admin") !== "Super Admin") {
+    throw new Error("Akun biasa tidak perlu didaftarkan. Pendaftaran hanya untuk Super Admin.");
+  }
+
+  const [[row]] = await db.query("SELECT COUNT(*) AS total FROM users WHERE role = 'Super Admin'");
+  if (Number(row.total) >= 1) {
+    throw new Error("Super Admin sudah terdaftar. Hanya boleh ada satu akun Super Admin.");
   }
 }
 
@@ -534,7 +546,7 @@ function userPayload(item, requirePassword) {
     name: required(item.name, "Nama user"),
     email: item.email || `${String(item.name || "user").toLowerCase().replace(/\s+/g, ".")}@example.com`,
     passwordHash: password ? hashPassword(password) : null,
-    role: databaseRole(item.role || "Admin"),
+    role: "Super Admin",
     status: item.status || "Aktif"
   };
 }

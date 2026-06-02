@@ -1,4 +1,4 @@
-require("dotenv").config({ override: true, quiet: true });
+require("dotenv").config({ quiet: true });
 const crypto = require("crypto");
 const express = require("express");
 const fs = require("fs");
@@ -8,15 +8,19 @@ const mysql = require("mysql2/promise");
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
-const db = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "retail_inventory",
+const dbConfig = {
+  host: process.env.MYSQLHOST || process.env.DB_HOST || "localhost",
+  port: Number(process.env.MYSQLPORT || process.env.DB_PORT || 3306),
+  user: process.env.MYSQLUSER || process.env.DB_USER || "root",
+  password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || "",
+  database: process.env.MYSQLDATABASE || process.env.DB_NAME || "retail_inventory",
   waitForConnections: true,
   connectionLimit: 10,
   namedPlaceholders: true
+};
+
+const db = mysql.createPool({
+  ...dbConfig
 });
 
 const featureModules = loadFeatureModules();

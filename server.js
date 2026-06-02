@@ -1,6 +1,7 @@
 require('dotenv').config();
 const crypto = require("crypto");
 const express = require("express");
+const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
 
@@ -17,6 +18,8 @@ const db = mysql.createPool({
   connectionLimit: 10,
   namedPlaceholders: true
 });
+
+const featureModules = loadFeatureModules();
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -48,24 +51,140 @@ app.post("/api", async (req, res) => {
 });
 
 async function handleAction(action, payload) {
-  switch (action) {
-    case "bootstrap":
-      return bootstrap();
-    case "dashboard":
-      return dashboard();
-    case "list":
-      return listRows(payload.collection);
-    case "add":
-      return addRow(payload.collection, payload.item);
-    case "update":
-      return updateRow(payload.collection, payload.id, payload.item);
-    case "remove":
-      return removeRow(payload.collection, payload.id);
-    case "verifySuperAdmin":
-      return verifySuperAdmin(payload.adminId, payload.password);
-    default:
-      throw new Error(`Action "${action}" tidak dikenal.`);
+  const coreActions = {
+    bootstrap: () => bootstrap(),
+    dashboard: () => dashboard(),
+    list: () => listRows(payload.collection),
+    add: () => addRow(payload.collection, payload.item),
+    update: () => updateRow(payload.collection, payload.id, payload.item),
+    remove: () => removeRow(payload.collection, payload.id),
+    verifySuperAdmin: () => verifySuperAdmin(payload.adminId, payload.password),
+    modules: () => availableModules()
+  };
+
+  if (coreActions[action]) return coreActions[action]();
+
+  const dynamicHandler = resolveModuleAction(action, payload);
+  if (dynamicHandler) {
+    return dynamicHandler.handler(payload, createModuleContext(dynamicHandler.moduleName));
   }
+
+  throw new Error(actionNotFoundMessage(action));
+}
+
+function loadFeatureModules() {
+  const registry = new Map();
+  const modulesDir = path.join(__dirname, "modules");
+  if (!fs.existsSync(modulesDir)) return registry;
+
+  for (const entry of fs.readdirSync(modulesDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+
+    const moduleName = entry.name;
+    const entryFile = path.join(modulesDir, moduleName, "index.js");
+    if (!fs.existsSync(entryFile)) {
+      registry.set(moduleName, {
+        handlers: {},
+        status: "missing",
+        message: "File index.js tidak ditemukan."
+      });
+      continue;
+    }
+
+    try {
+      if (!isBackendModule(entryFile)) {
+        registry.set(moduleName, {
+          handlers: {},
+          status: "frontend-only",
+          message: "index.js terdeteksi sebagai modul frontend, bukan handler backend."
+        });
+        continue;
+      }
+
+      const imported = require(entryFile);
+      const handlers = normalizeModuleExports(imported);
+      registry.set(moduleName, {
+        handlers,
+        status: Object.keys(handlers).length ? "active" : "empty",
+        message: Object.keys(handlers).length ? "Aktif." : "Tidak ada function handler yang diekspor."
+      });
+    } catch (error) {
+      registry.set(moduleName, {
+        handlers: {},
+        status: "error",
+        message: error.message
+      });
+    }
+  }
+
+  return registry;
+}
+
+function isBackendModule(filePath) {
+  const source = fs.readFileSync(filePath, "utf8");
+  return /\bmodule\.exports\b|\bexports\./.test(source);
+}
+
+function normalizeModuleExports(imported) {
+  const source = imported && imported.default && typeof imported.default === "object" ? imported.default : imported;
+  return Object.entries(source || {}).reduce((handlers, [name, value]) => {
+    if (typeof value === "function") handlers[name] = value;
+    return handlers;
+  }, {});
+}
+
+function resolveModuleAction(action, payload = {}) {
+  const parsed = parseModuleAction(action);
+  const moduleName = parsed.moduleName || payload.module || payload.feature;
+  const methodName = parsed.methodName || payload.method || action;
+  if (!moduleName || !methodName) return null;
+
+  const registered = featureModules.get(moduleName);
+  if (!registered || !registered.handlers[methodName]) return null;
+
+  return {
+    moduleName,
+    handler: registered.handlers[methodName]
+  };
+}
+
+function parseModuleAction(action) {
+  const match = String(action).match(/^([a-zA-Z0-9_-]+)[.:/]([a-zA-Z0-9_-]+)$/);
+  if (!match) return {};
+  return { moduleName: match[1], methodName: match[2] };
+}
+
+function createModuleContext(moduleName) {
+  return {
+    db,
+    moduleName,
+    helpers: {
+      number,
+      nullableNumber,
+      required,
+      hashPassword,
+      formatDate
+    }
+  };
+}
+
+function availableModules() {
+  return Array.from(featureModules.entries()).map(([name, meta]) => ({
+    name,
+    status: meta.status,
+    actions: Object.keys(meta.handlers),
+    message: meta.message
+  }));
+}
+
+function actionNotFoundMessage(action) {
+  const activeModules = availableModules()
+    .filter((item) => item.actions.length)
+    .map((item) => `${item.name}: ${item.actions.join(", ")}`);
+  const moduleHint = activeModules.length
+    ? ` Modul aktif: ${activeModules.join(" | ")}.`
+    : " Belum ada modul backend aktif di folder modules/. Gunakan module.exports di modules/<nama>/index.js.";
+  return `Action "${action}" tidak ditemukan.${moduleHint}`;
 }
 
 async function bootstrap() {

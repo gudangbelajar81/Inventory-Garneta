@@ -1,3 +1,33 @@
+require('dotenv').config();
+const mysql = require('mysql2/promise'); // Kita pakai versi promise agar lebih stabil
+
+const app = express();
+
+// --- KONEKSI DATABASE OTOMATIS ---
+// Railway menyediakan DATABASE_URL, lokal menggunakan .env
+const dbConfig = process.env.DATABASE_URL 
+  ? process.env.DATABASE_URL 
+  : {
+      host: process.env.DB_HOST || 'localhost',
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'retail_inventory'
+    };
+
+const pool = mysql.createPool(dbConfig);
+
+// Cek koneksi saat server mulai
+(async () => {
+  try {
+    const connection = await pool.getConnection();
+    console.log('✅ Berhasil terhubung ke database!');
+    connection.release();
+  } catch (err) {
+    console.error('❌ Gagal terhubung ke database:', err.message);
+  }
+})();
+
+// ... sisanya kode aplikasi kamu (app.get, app.post, dll) ...
 require("dotenv").config({ quiet: true });
 const crypto = require("crypto");
 const express = require("express");

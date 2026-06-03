@@ -1,1 +1,6 @@
 .env
+node_modules/
+*.log
+server.log
+server.err.log
+npm-debug.log*

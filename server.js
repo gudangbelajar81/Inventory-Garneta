@@ -215,7 +215,7 @@ async function dashboard() {
       (SELECT COALESCE(SUM(profit), 0) FROM sales) AS totalProfit
   `);
   const [stockAlerts] = await db.query(`
-    SELECT id, category, name, unit, unit_content, base_price, cost_price, sale_price, stock, min_stock
+    SELECT id, category, name, unit, unit_content, base_price, cost_price, sale_price, stock, min_stock, barcode
     FROM products
     WHERE stock <= min_stock
     ORDER BY name ASC
@@ -235,7 +235,7 @@ async function listRows(collection) {
 
   if (collection === "products") {
     const [rows] = await db.query(`
-      SELECT id, supplier_id, category, name, unit, unit_content, base_price, cost_price, sale_price, stock, min_stock
+      SELECT id, supplier_id, category, name, unit, unit_content, base_price, cost_price, sale_price, stock, min_stock, barcode
       FROM products
       ORDER BY id DESC
     `);
@@ -292,8 +292,8 @@ async function addRow(collection, item = {}) {
   if (collection === "products") {
     const payload = productPayload(item);
     const [result] = await db.query(`
-      INSERT INTO products (supplier_id, category, name, unit, unit_content, base_price, sale_price, stock, min_stock)
-      VALUES (:supplierId, :category, :name, :unit, :unitContent, :basePrice, :salePrice, :stock, :minStock)
+      INSERT INTO products (supplier_id, category, name, unit, unit_content, base_price, sale_price, stock, min_stock, barcode)
+      VALUES (:supplierId, :category, :name, :unit, :unitContent, :basePrice, :salePrice, :stock, :minStock, :barcode)
     `, payload);
     await recordPriceHistory(result.insertId, "barang");
     return findRow("products", result.insertId);
@@ -347,7 +347,7 @@ async function updateRow(collection, id, item = {}) {
       UPDATE products
       SET supplier_id = :supplierId, category = :category, name = :name, unit = :unit,
           unit_content = :unitContent, base_price = :basePrice, sale_price = :salePrice,
-          stock = :stock, min_stock = :minStock
+          stock = :stock, min_stock = :minStock, barcode = :barcode
       WHERE id = :id
     `, payload);
     if (Number(before.basePrice) !== Number(payload.basePrice)) await recordPriceHistory(id, "barang");
@@ -500,7 +500,8 @@ function productPayload(item) {
     basePrice: number(item.basePrice),
     salePrice: number(item.salePrice),
     stock: number(item.stock),
-    minStock: number(item.minStock)
+    minStock: number(item.minStock),
+    barcode: item.barcode || null
   };
 }
 
@@ -563,7 +564,8 @@ function mapProduct(row) {
     costPrice: Number(row.cost_price || 0),
     salePrice: Number(row.sale_price || 0),
     stock: Number(row.stock || 0),
-    minStock: Number(row.min_stock || 0)
+    minStock: Number(row.min_stock || 0),
+    barcode: row.barcode || ""
   };
 }
 

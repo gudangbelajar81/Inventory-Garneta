@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Retail Inventory System</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
       --green: #16a34a;
@@ -46,6 +47,8 @@
     .modal .card { max-width: 420px; width: 100%; }
     .chart { display: flex; align-items: end; gap: 8px; height: 180px; padding-top: 12px; }
     .bar { min-width: 24px; flex: 1; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--orange), var(--green)); }
+    textarea.input-area { min-height: 120px; resize: vertical; }
+    video.scanner-preview { width: 100%; max-height: 240px; border-radius: 8px; border: 1px solid var(--line); background: #0f172a; object-fit: cover; }
     @media (max-width: 900px) {
       .app { grid-template-columns: 1fr; }
       .sidebar { position: sticky; top: 0; z-index: 6; }
@@ -107,7 +110,7 @@
   <script>
     const menus = [
       ["dashboard", "Dashboard"], ["barang", "Barang"], ["supplier", "Supplier"],
-      ["pembelian", "Pembelian"], ["penjualan", "Penjualan"], ["laporan", "Laporan"],
+      ["pembelian", "Pembelian"], ["kalkulator", "Kalkulator Belanja"], ["penjualan", "Penjualan"], ["laporan", "Laporan"],
       ["statistik", "Statistik"], ["users", "Users"]
     ];
 
@@ -117,6 +120,8 @@
       currentUser: JSON.parse(localStorage.getItem("currentUser") || "null"),
       data: { products: [], suppliers: [], purchases: [], sales: [], users: [], priceHistory: [], dashboard: {} }
     };
+    let scannerStream = null;
+    let scannerActive = false;
 
     const rupiah = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value || 0));
     const today = () => new Date().toISOString().slice(0, 10);
@@ -167,7 +172,7 @@
         el("content").innerHTML = `<div class="card"><h2>Akses dibatasi</h2><p class="muted">Menu ini hanya bisa diakses Super Admin.</p></div>`;
         return;
       }
-      const views = { dashboard, barang, supplier, pembelian, penjualan, laporan, statistik, users };
+      const views = { dashboard, barang, supplier, pembelian, kalkulator, penjualan, laporan, statistik, users };
       el("content").innerHTML = views[state.route]();
       bindForms();
     }
@@ -186,7 +191,12 @@
     }
 
     function barang() {
-      return crudView("products", "Barang", productForm(), productRows());
+      return `<section class="grid">
+        <div class="card"><h2>Barang</h2>${productForm()}</div>
+        <div class="card"><h3>Import Barang</h3>${productImportTools()}</div>
+        <div class="card"><h3>Scanner HP</h3>${productScannerTools()}</div>
+        <div class="card"><h3>Daftar Barang</h3>${productRows()}</div>
+      </section>`;
     }
 
     function supplier() {
@@ -195,6 +205,44 @@
 
     function pembelian() {
       return crudView("purchases", "Pembelian", purchaseForm(), purchaseRows());
+    }
+
+    function kalkulator() {
+      const rows = shoppingRows();
+      const total = rows.reduce((sum, row) => sum + shoppingSubtotal(row), 0);
+      return `<section class="grid">
+        <div class="card">
+          <h2>Kalkulator Belanja</h2>
+          <form id="shopping-form" class="grid forms">
+            ${hiddenId()}
+            <label>Nama Barang<input name="name" list="shopping-products" required placeholder="Contoh: Beras Premium"></label>
+            <datalist id="shopping-products">${state.data.products.map((p) => `<option value="${p.name}"></option>`).join("")}</datalist>
+            ${input("qty", "Banyak Beli", true, "number")}
+            ${input("amount", "Harga Dasar", false, "number")}
+            ${formButtons()}
+          </form>
+        </div>
+        <div class="card">
+          <h3>Copy Paste dari WA</h3>
+          <label>Daftar Belanja
+            <textarea id="shopping-wa-text" class="input-area" placeholder="Contoh:
+Payung 5
+Gula Pasir 2
+Beras Premium 1"></textarea>
+          </label>
+          <div class="actions">
+            <button class="btn soft" id="parse-shopping-wa">Proses Paste WA</button>
+            <button class="btn danger" id="clear-shopping">Kosongkan</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="actions" style="justify-content:space-between">
+            <h3>Daftar Belanja</h3>
+            <h2>${rupiah(total)}</h2>
+          </div>
+          ${shoppingTable(rows)}
+        </div>
+      </section>`;
     }
 
     function penjualan() {
@@ -242,8 +290,54 @@
         ${input("salePrice", "Harga Jual/Unit", true, "number")}
         ${input("stock", "Stok", false, "number")}
         ${input("minStock", "Stok Minimal", false, "number")}
+        ${input("barcode", "Barcode / Kode Scanner")}
         ${formButtons()}
       </form>`;
+    }
+
+    function productImportTools() {
+      return `<div class="grid">
+        <div class="grid forms">
+          <label>File CSV / Excel / Spreadsheet
+            <input id="product-import-file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls">
+          </label>
+          <div class="actions" style="align-self:end">
+            <button class="btn primary" id="import-products-file">Import File</button>
+          </div>
+        </div>
+        <label>Copy paste dari WA / Spreadsheet
+          <textarea id="product-wa-text" class="input-area" placeholder="Contoh:
+Beras Premium, Beras, sak, 25, 312500, 14500, 10
+Gula Pasir 2
+Payung, Tepung, sak, 25, 170000, 8500"></textarea>
+        </label>
+        <div class="actions">
+          <button class="btn soft" id="parse-products-wa">Proses Paste WA</button>
+        </div>
+        <p class="muted">Format header yang didukung: nama, kategori, unit, isi/unit, harga dasar, harga jual, stok, stok minimal, barcode. Jika hanya "Nama 5", stok akan diisi 5.</p>
+      </div>`;
+    }
+
+    function productScannerTools() {
+      return `<div class="grid">
+        <div class="grid forms">
+          <label>Hasil Scanner<input id="scanner-result" placeholder="Scan barcode atau ketik manual"></label>
+          <label>Nama Barang<input id="scanner-product-name" placeholder="Nama barang dari hasil scan"></label>
+          <label>Kategori<input id="scanner-product-category" value="Umum"></label>
+          <label>Harga Dasar<input id="scanner-base-price" type="number" value="0"></label>
+          <label>Unit<select id="scanner-unit"><option>sak</option><option>karton/dus</option><option>jligen</option><option>pcs</option></select></label>
+          <label>Isi/Unit<input id="scanner-unit-content" type="number" value="1"></label>
+          <label>Harga Jual<input id="scanner-sale-price" type="number" value="0"></label>
+          <label>Stok<input id="scanner-stock" type="number" value="0"></label>
+        </div>
+        <video id="scanner-video" class="scanner-preview hidden" playsinline></video>
+        <div class="actions">
+          <button class="btn soft" id="start-product-scanner">Buka Kamera HP</button>
+          <button class="btn danger hidden" id="stop-product-scanner">Tutup Kamera</button>
+          <button class="btn primary" id="save-scanned-product">Simpan Hasil Scan</button>
+        </div>
+        <p class="muted">Scanner memakai kamera perangkat dan BarcodeDetector jika tersedia. Jika browser belum mendukung, isi kode scanner manual.</p>
+      </div>`;
     }
 
     function supplierForm() {
@@ -275,7 +369,7 @@
     }
 
     function productRows() {
-      return actionTable("products", state.data.products, ["category", "name", "unit", "unitContent", "basePrice", "costPrice", "salePrice", "stock"], ["Kategori", "Nama", "Unit", "Isi", "Harga Dasar", "HPP", "Harga Jual", "Stok"], priceFormat);
+      return actionTable("products", state.data.products, ["category", "name", "unit", "unitContent", "basePrice", "costPrice", "salePrice", "stock", "barcode"], ["Kategori", "Nama", "Unit", "Isi", "Harga Dasar", "HPP", "Harga Jual", "Stok", "Barcode"], priceFormat);
     }
 
     function supplierRows() {
@@ -292,6 +386,22 @@
 
     function userRows() {
       return actionTable("users", superAdmins(), ["name", "role", "status"], ["Nama", "Role", "Status"]);
+    }
+
+    function shoppingRows() {
+      return JSON.parse(localStorage.getItem("shoppingRows") || "[]");
+    }
+
+    function saveShoppingRows(rows) {
+      localStorage.setItem("shoppingRows", JSON.stringify(rows));
+    }
+
+    function shoppingSubtotal(row) {
+      return Number(row.qty || 0) * Number(row.amount || 0);
+    }
+
+    function shoppingTable(rows) {
+      return actionTable("shopping", rows, ["name", "qty", "amount", "subtotal"], ["Nama Barang", "Banyak Beli", "Harga Dasar", "Total Jumlah"], (key, value) => key === "amount" || key === "subtotal" ? rupiah(value) : value);
     }
 
     function actionTable(collection, rows, keys, labels, formatter) {
@@ -331,6 +441,99 @@
       return ["basePrice", "costPrice", "salePrice", "amount", "total", "profitPerUnit", "profit"].includes(key) ? rupiah(value) : value;
     }
 
+    function findProduct(name) {
+      return state.data.products.find((product) => product.name.toLowerCase() === String(name || "").trim().toLowerCase());
+    }
+
+    function plainNumber(value) {
+      const cleaned = String(value ?? "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+      const parsed = Number(cleaned);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function splitRow(line) {
+      return String(line).split(/[,;\t]/).map((cell) => cell.trim()).filter((cell) => cell !== "");
+    }
+
+    function productFromCells(cells) {
+      if (cells.length <= 1) return null;
+      return {
+        name: cells[0],
+        category: cells[1] || "Umum",
+        unit: cells[2] || "pcs",
+        unitContent: plainNumber(cells[3]) || 1,
+        basePrice: plainNumber(cells[4]),
+        salePrice: plainNumber(cells[5]),
+        stock: plainNumber(cells[6]),
+        minStock: plainNumber(cells[7]),
+        barcode: cells[8] || ""
+      };
+    }
+
+    function parseProductText(text) {
+      return String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
+        const cells = splitRow(line);
+        const fullRow = productFromCells(cells);
+        if (fullRow) return fullRow;
+
+        const match = line.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)$/);
+        if (!match) return null;
+        return {
+          name: match[1].trim(),
+          category: "Umum",
+          unit: "pcs",
+          unitContent: 1,
+          basePrice: 0,
+          salePrice: 0,
+          stock: plainNumber(match[2]),
+          minStock: 0,
+          barcode: ""
+        };
+      }).filter((row) => row && row.name);
+    }
+
+    function parseShoppingText(text) {
+      return String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
+        const cells = splitRow(line);
+        const name = cells.length >= 2 ? cells[0] : (line.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)$/)?.[1] || "");
+        const qty = cells.length >= 2 ? plainNumber(cells[1]) : plainNumber(line.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)$/)?.[2]);
+        if (!name || !qty) return null;
+        const product = findProduct(name);
+        const amount = product ? Number(product.basePrice || 0) : 0;
+        return { id: Date.now() + Math.random(), name: name.trim(), qty, amount, subtotal: qty * amount };
+      }).filter(Boolean);
+    }
+
+    async function importProducts(rows) {
+      let saved = 0;
+      for (const row of rows) {
+        await gas("add", { collection: "products", item: row });
+        saved += 1;
+      }
+      await load();
+      alert(`${saved} barang berhasil diimport.`);
+    }
+
+    async function readProductFile(file) {
+      const ext = file.name.split(".").pop().toLowerCase();
+      if (["xlsx", "xls"].includes(ext)) {
+        if (!window.XLSX) throw new Error("Library Excel belum termuat. Coba koneksi internet aktif atau gunakan CSV.");
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        const first = (rows[0] || []).map((cell) => String(cell).toLowerCase());
+        const hasHeader = first.some((cell) => ["nama", "name", "barang", "harga dasar", "baseprice"].includes(cell));
+        return (hasHeader ? rows.slice(1) : rows).map((row) => productFromCells(row.map(String))).filter((item) => item && item.name);
+      }
+
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      const first = splitRow(lines[0] || "").map((cell) => cell.toLowerCase());
+      const hasHeader = first.some((cell) => ["nama", "name", "barang", "harga dasar", "baseprice"].includes(cell));
+      return parseProductText((hasHeader ? lines.slice(1) : lines).join("\n"));
+    }
+
     function dailySales() {
       const map = {};
       state.data.sales.forEach((sale) => map[sale.date] = (map[sale.date] || 0) + Number(sale.profit || 0));
@@ -364,15 +567,116 @@
       });
 
       document.querySelectorAll("[data-edit]").forEach((button) => {
-        button.onclick = () => fillForm(button.dataset.edit, button.dataset.id);
+        button.onclick = () => {
+          if (button.dataset.edit === "shopping") {
+            fillShoppingForm(button.dataset.id);
+            return;
+          }
+          fillForm(button.dataset.edit, button.dataset.id);
+        };
       });
 
       document.querySelectorAll("[data-delete]").forEach((button) => {
         button.onclick = async () => {
           if (!confirm("Hapus data ini?")) return;
+          if (button.dataset.delete === "shopping") {
+            saveShoppingRows(shoppingRows().filter((row) => String(row.id) !== String(button.dataset.id)));
+            render();
+            return;
+          }
           await gas("remove", { collection: button.dataset.delete, id: button.dataset.id });
           await load();
         };
+      });
+
+      bindProductTools();
+      bindShoppingTools();
+    }
+
+    function bindProductTools() {
+      el("parse-products-wa")?.addEventListener("click", async () => {
+        try {
+          const rows = parseProductText(el("product-wa-text").value);
+          if (!rows.length) throw new Error("Tidak ada data barang yang bisa diproses.");
+          await importProducts(rows);
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+
+      el("import-products-file")?.addEventListener("click", async () => {
+        try {
+          const file = el("product-import-file").files[0];
+          if (!file) throw new Error("Pilih file CSV atau Excel terlebih dahulu.");
+          const rows = await readProductFile(file);
+          if (!rows.length) throw new Error("File tidak berisi data barang yang valid.");
+          await importProducts(rows);
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+
+      el("save-scanned-product")?.addEventListener("click", async () => {
+        try {
+          const item = {
+            barcode: el("scanner-result").value.trim(),
+            name: el("scanner-product-name").value.trim() || el("scanner-result").value.trim(),
+            category: el("scanner-product-category").value || "Umum",
+            unit: el("scanner-unit").value,
+            unitContent: plainNumber(el("scanner-unit-content").value) || 1,
+            basePrice: plainNumber(el("scanner-base-price").value),
+            salePrice: plainNumber(el("scanner-sale-price").value),
+            stock: plainNumber(el("scanner-stock").value),
+            minStock: 0
+          };
+          await gas("add", { collection: "products", item });
+          await stopScanner();
+          await load();
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+
+      el("start-product-scanner")?.addEventListener("click", startScanner);
+      el("stop-product-scanner")?.addEventListener("click", stopScanner);
+    }
+
+    function bindShoppingTools() {
+      const form = el("shopping-form");
+      form?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const id = formData.get("id") || Date.now() + Math.random();
+        const name = formData.get("name").trim();
+        const product = findProduct(name);
+        const qty = plainNumber(formData.get("qty"));
+        const amount = plainNumber(formData.get("amount")) || Number(product?.basePrice || 0);
+        const next = { id, name, qty, amount, subtotal: qty * amount };
+        const rows = shoppingRows();
+        const exists = rows.some((row) => String(row.id) === String(id));
+        saveShoppingRows(exists ? rows.map((row) => String(row.id) === String(id) ? next : row) : [next, ...rows]);
+        render();
+      });
+
+      form?.elements.name?.addEventListener("input", () => {
+        const product = findProduct(form.elements.name.value);
+        if (product) form.elements.amount.value = product.basePrice;
+      });
+
+      el("parse-shopping-wa")?.addEventListener("click", () => {
+        const rows = parseShoppingText(el("shopping-wa-text").value);
+        if (!rows.length) {
+          alert("Tidak ada daftar belanja yang bisa diproses.");
+          return;
+        }
+        saveShoppingRows([...rows, ...shoppingRows()]);
+        render();
+      });
+
+      el("clear-shopping")?.addEventListener("click", () => {
+        if (!confirm("Kosongkan kalkulator belanja?")) return;
+        saveShoppingRows([]);
+        render();
       });
     }
 
@@ -385,6 +689,72 @@
       });
       if (form.elements.password) form.elements.password.value = "";
       scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function fillShoppingForm(id) {
+      const form = el("shopping-form");
+      const row = shoppingRows().find((item) => String(item.id) === String(id));
+      if (!form || !row) return;
+      form.elements.id.value = row.id;
+      form.elements.name.value = row.name;
+      form.elements.qty.value = row.qty;
+      form.elements.amount.value = row.amount;
+      scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function startScanner() {
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Browser belum mendukung akses kamera.");
+        }
+        const video = el("scanner-video");
+        scannerStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = scannerStream;
+        video.classList.remove("hidden");
+        el("stop-product-scanner").classList.remove("hidden");
+        await video.play();
+
+        if (!("BarcodeDetector" in window)) {
+          alert("Kamera aktif. Browser belum mendukung deteksi barcode otomatis, isi hasil scanner manual.");
+          return;
+        }
+
+        const detector = new BarcodeDetector({ formats: ["qr_code", "ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e"] });
+        scannerActive = true;
+        const scan = async () => {
+          if (!scannerActive) return;
+          try {
+            const codes = await detector.detect(video);
+            if (codes.length) {
+              el("scanner-result").value = codes[0].rawValue;
+              scannerActive = false;
+              await stopScanner();
+              return;
+            }
+          } catch (error) {
+            console.warn(error);
+          }
+          requestAnimationFrame(scan);
+        };
+        scan();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function stopScanner() {
+      scannerActive = false;
+      if (scannerStream) {
+        scannerStream.getTracks().forEach((track) => track.stop());
+        scannerStream = null;
+      }
+      const video = el("scanner-video");
+      if (video) {
+        video.pause();
+        video.srcObject = null;
+        video.classList.add("hidden");
+      }
+      el("stop-product-scanner")?.classList.add("hidden");
     }
 
     el("super-login").onclick = () => {

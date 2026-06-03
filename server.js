@@ -28,7 +28,6 @@ const pool = mysql.createPool(dbConfig);
 })();
 
 // ... sisanya kode aplikasi kamu (app.get, app.post, dll) ...
-require("dotenv").config({ quiet: true });
 const crypto = require("crypto");
 const express = require("express");
 const fs = require("fs");

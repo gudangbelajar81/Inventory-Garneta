@@ -145,6 +145,7 @@ async function handleAction(action, payload) {
     verifySuperAdmin: () => verifySuperAdmin(payload.adminId, payload.password),
     analyzeInvoiceImage: () => analyzeInvoiceImage(payload.imageDataUrl),
     aiSettings: () => getAiSettings(),
+    testAiSettings: () => testAiSettings(),
     modules: () => availableModules()
   };
 
@@ -610,6 +611,50 @@ function getAiSettings() {
       model: "AI_MODEL"
     }
   };
+}
+
+async function testAiSettings() {
+  if (!process.env.AI_API_KEY) {
+    throw new Error("API_KEY_NOT_CONFIGURED_ON_RAILWAY");
+  }
+
+  const provider = String(process.env.AI_PROVIDER || "openai").toLowerCase();
+  if (provider === "openai") {
+    await testJsonEndpoint("https://api.openai.com/v1/models", {
+      Authorization: `Bearer ${process.env.AI_API_KEY}`
+    });
+  } else if (provider === "groq") {
+    await testJsonEndpoint("https://api.groq.com/openai/v1/models", {
+      Authorization: `Bearer ${process.env.AI_API_KEY}`
+    });
+  } else if (provider === "gemini") {
+    const model = process.env.AI_MODEL || process.env.GEMINI_MODEL || "gemini-1.5-flash";
+    await testJsonEndpoint(`https://generativelanguage.googleapis.com/v1beta/models/${model}?key=${encodeURIComponent(process.env.AI_API_KEY)}`);
+  } else {
+    throw new Error(`AI_PROVIDER tidak didukung: ${provider}`);
+  }
+
+  return {
+    ok: true,
+    provider,
+    model: getAiSettings().model,
+    message: "Koneksi API berhasil."
+  };
+}
+
+async function testJsonEndpoint(url, headers = {}) {
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    let message = `API test gagal (${response.status})`;
+    try {
+      const data = await response.json();
+      message = data.error?.message || data.message || message;
+    } catch (error) {
+      // Ignore body parse errors for provider health checks.
+    }
+    throw new Error(message);
+  }
+  return response.json();
 }
 
 function defaultAiModel(provider) {

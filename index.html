@@ -307,16 +307,21 @@ Beras Premium 1"></textarea>
           <div class="actions" style="justify-content:space-between">
             <div>
               <h2>Setting API</h2>
-              <p class="muted">Pengaturan ini dibaca dari Environment Variables server. API key tidak pernah ditampilkan di browser.</p>
+              <p class="muted">API key harus dimasukkan di Environment Variables Railway, bukan di browser. Key tidak pernah ditampilkan di frontend.</p>
             </div>
-            <button class="btn soft" id="refresh-ai-settings">Refresh</button>
+            <div class="actions">
+              <button class="btn soft" id="refresh-ai-settings">Refresh</button>
+              <button class="btn primary" id="test-ai-settings">Test Koneksi API</button>
+            </div>
           </div>
           <div id="ai-settings-panel" class="grid" style="margin-top:14px">
             <p class="muted">Memuat pengaturan API...</p>
           </div>
+          <p id="ai-settings-test-result" class="muted"></p>
         </div>
         <div class="card">
-          <h3>Environment Variables Railway</h3>
+          <h3>Cara Mengisi API di Railway</h3>
+          <p class="muted">Buka Railway Dashboard -> pilih service aplikasi -> Variables -> tambahkan env berikut -> Redeploy.</p>
           <div class="table-wrap">
             <table>
               <thead><tr><th>Nama Env</th><th>Contoh</th><th>Keterangan</th></tr></thead>
@@ -691,6 +696,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       if (!el("ai-settings-panel")) return;
       loadAiSettings();
       el("refresh-ai-settings")?.addEventListener("click", loadAiSettings);
+      el("test-ai-settings")?.addEventListener("click", testAiSettings);
     }
 
     async function loadAiSettings() {
@@ -707,6 +713,19 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         `;
       } catch (error) {
         el("ai-settings-panel").innerHTML = `<p class="muted">${error.message}</p>`;
+      }
+    }
+
+    async function testAiSettings() {
+      const target = el("ai-settings-test-result");
+      try {
+        target.textContent = "Menguji koneksi API...";
+        const result = await gas("testAiSettings");
+        target.textContent = `${result.message} Provider: ${result.provider}, Model: ${result.model}`;
+      } catch (error) {
+        target.textContent = error.message === "API_KEY_NOT_CONFIGURED_ON_RAILWAY"
+          ? "API key belum diatur. Isi AI_API_KEY di Railway Variables lalu redeploy."
+          : error.message;
       }
     }
 

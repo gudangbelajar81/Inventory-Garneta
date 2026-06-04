@@ -536,7 +536,7 @@ async function loginUser(name, password) {
 
 async function analyzeInvoiceImage(imageDataUrl) {
   const settings = await getAiRuntimeSettings();
-  if (!settings.apiKey) {
+  if (!settings.keys.length) {
     throw new Error("API_KEY_NOT_CONFIGURED_ON_RAILWAY");
   }
   if (!imageDataUrl || !String(imageDataUrl).startsWith("data:image/")) {
@@ -588,9 +588,42 @@ Execution Instructions:
 3. Structure data into the schema above.
 4. If an item total does not match the sum of items, flag "status": "review_required".`;
 
-  const outputText = await requestAiExtraction(settings.provider, settings.apiKey, imageDataUrl, prompt, settings.model);
+  const outputText = await requestAiExtractionWithRotation(settings, imageDataUrl, prompt);
   const parsed = JSON.parse(outputText);
   return normalizeInvoiceExtraction(parsed);
+}
+
+async function requestAiExtractionWithRotation(settings, imageDataUrl, prompt) {
+  let lastError;
+  const orderedKeys = prioritizeLiveKeys(settings.keys).filter((apiKey) => apiKey.status === "live");
+  if (!orderedKeys.length) {
+    await healthCheckAiKeys(settings.provider, settings.model);
+    throw new Error("Tidak ada API key live. Health check otomatis sudah dijalankan, coba ulangi request.");
+  }
+
+  for (const apiKey of orderedKeys) {
+    try {
+      const output = await requestAiExtraction(settings.provider, apiKey.value, imageDataUrl, prompt, settings.model);
+      if (apiKey.status !== "live") {
+        await updateApiKeyStatus(settings.provider, apiKey.id, "live", "");
+      }
+      return output;
+    } catch (error) {
+      lastError = error;
+      if (isRateLimitError(error)) {
+        await updateApiKeyStatus(settings.provider, apiKey.id, "dead", "429 Rate Limit");
+        continue;
+      }
+      if (isAuthError(error)) {
+        await updateApiKeyStatus(settings.provider, apiKey.id, "dead", `Auth ${error.status}`);
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  await healthCheckAiKeys(settings.provider);
+  throw lastError || new Error("Tidak ada API key live yang bisa dipakai.");
 }
 
 async function requestAiExtraction(provider, apiKey, imageDataUrl, prompt, model) {
@@ -601,11 +634,11 @@ async function requestAiExtraction(provider, apiKey, imageDataUrl, prompt, model
 }
 
 async function getAiRuntimeSettings() {
-  const dbSettings = await readAppSettings(["AI_PROVIDER", "AI_API_KEY", "AI_MODEL"]);
+  const dbSettings = await readAppSettings(["AI_PROVIDER", "AI_API_KEY", "AI_API_KEYS", "AI_MODEL"]);
   const provider = String(dbSettings.AI_PROVIDER || process.env.AI_PROVIDER || "openai").toLowerCase();
-  const apiKey = dbSettings.AI_API_KEY || process.env.AI_API_KEY || "";
+  const keys = buildApiKeyList(provider, dbSettings);
   const model = dbSettings.AI_MODEL || process.env.AI_MODEL || process.env.OPENAI_MODEL || process.env.GROQ_MODEL || process.env.GEMINI_MODEL || defaultAiModel(provider);
-  return { provider, apiKey, model };
+  return { provider, keys, model };
 }
 
 async function getAiSettings() {
@@ -613,11 +646,15 @@ async function getAiSettings() {
   return {
     provider: settings.provider,
     model: settings.model,
-    keyConfigured: Boolean(settings.apiKey),
-    source: settings.apiKey ? "server" : "empty",
+    keyConfigured: settings.keys.length > 0,
+    keyLimit: 10,
+    keys: maskApiKeys(settings.keys),
+    liveKeys: settings.keys.filter((key) => key.status === "live").length,
+    deadKeys: settings.keys.filter((key) => key.status === "dead").length,
+    source: settings.keys.length ? "server" : "empty",
     envNames: {
       provider: "AI_PROVIDER",
-      key: "AI_API_KEY",
+      key: "AI_API_KEYS",
       model: "AI_MODEL"
     }
   };
@@ -630,13 +667,14 @@ async function saveAiSettings(payload = {}) {
   }
 
   const model = String(payload.model || defaultAiModel(provider)).trim();
-  const apiKey = String(payload.apiKey || "").trim();
-  if (!apiKey) throw new Error("API key wajib diisi.");
+  const keys = normalizeApiKeys(payload.apiKeys || payload.apiKey);
+  if (!keys.length) throw new Error("Minimal satu API key wajib diisi.");
 
   await writeAppSettings({
     AI_PROVIDER: provider,
     AI_MODEL: model,
-    AI_API_KEY: apiKey
+    AI_API_KEY: keys[0].value,
+    AI_API_KEYS: JSON.stringify(keys)
   });
 
   return getAiSettings();
@@ -644,30 +682,19 @@ async function saveAiSettings(payload = {}) {
 
 async function testAiSettings() {
   const settings = await getAiRuntimeSettings();
-  if (!settings.apiKey) {
+  if (!settings.keys.length) {
     throw new Error("API_KEY_NOT_CONFIGURED_ON_RAILWAY");
   }
 
-  const provider = settings.provider;
-  if (provider === "openai") {
-    await testJsonEndpoint("https://api.openai.com/v1/models", {
-      Authorization: `Bearer ${settings.apiKey}`
-    });
-  } else if (provider === "groq") {
-    await testJsonEndpoint("https://api.groq.com/openai/v1/models", {
-      Authorization: `Bearer ${settings.apiKey}`
-    });
-  } else if (provider === "gemini") {
-    await testJsonEndpoint(`https://generativelanguage.googleapis.com/v1beta/models/${settings.model}?key=${encodeURIComponent(settings.apiKey)}`);
-  } else {
-    throw new Error(`AI_PROVIDER tidak didukung: ${provider}`);
-  }
+  const results = await healthCheckAiKeys(settings.provider, settings.model);
+  const liveCount = results.filter((item) => item.status === "live").length;
 
   return {
     ok: true,
-    provider,
+    provider: settings.provider,
     model: settings.model,
-    message: "Koneksi API berhasil."
+    keys: results.map(({ value, ...item }) => item),
+    message: liveCount ? `Health check selesai. ${liveCount} key live.` : "Health check selesai. Belum ada key live."
   };
 }
 
@@ -681,7 +708,9 @@ async function testJsonEndpoint(url, headers = {}) {
     } catch (error) {
       // Ignore body parse errors for provider health checks.
     }
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
   return response.json();
 }
@@ -721,6 +750,172 @@ async function writeAppSettings(settings) {
       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
     `, [key, value]);
   }
+}
+
+function buildApiKeyList(provider, dbSettings) {
+  const storedKeys = parseStoredApiKeys(dbSettings.AI_API_KEYS);
+  const envKeys = normalizeApiKeys(process.env.AI_API_KEYS || process.env.AI_API_KEY || "");
+  const singleDbKey = normalizeApiKeys(dbSettings.AI_API_KEY || "");
+  const merged = [...storedKeys, ...singleDbKey, ...envKeys];
+  const seen = new Set();
+
+  return merged
+    .filter((item) => item.provider === provider || !item.provider)
+    .filter((item) => {
+      if (!item.value || seen.has(item.value)) return false;
+      seen.add(item.value);
+      return true;
+    })
+    .slice(0, 10)
+    .map((item, index) => ({
+      id: item.id || createKeyId(item.value),
+      provider,
+      value: item.value,
+      status: item.status || "live",
+      layer: index + 1,
+      lastError: item.lastError || "",
+      lastCheckedAt: item.lastCheckedAt || ""
+    }));
+}
+
+function parseStoredApiKeys(rawValue) {
+  if (!rawValue) return [];
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (Array.isArray(parsed)) return normalizeApiKeys(parsed);
+  } catch (error) {
+    // Fall back to line-based parsing for older saved values.
+  }
+  return normalizeApiKeys(rawValue);
+}
+
+function normalizeApiKeys(value) {
+  const values = Array.isArray(value)
+    ? value
+    : String(value || "")
+      .split(/[\n,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  return values
+    .map((item) => {
+      if (typeof item === "object" && item !== null) {
+        const keyValue = String(item.value || item.key || "").trim();
+        if (!keyValue) return null;
+        return {
+          id: item.id || createKeyId(keyValue),
+          provider: item.provider || "",
+          value: keyValue,
+          status: item.status === "dead" ? "dead" : "live",
+          lastError: item.lastError || "",
+          lastCheckedAt: item.lastCheckedAt || ""
+        };
+      }
+
+      const keyValue = String(item || "").trim();
+      if (!keyValue) return null;
+      return {
+        id: createKeyId(keyValue),
+        provider: "",
+        value: keyValue,
+        status: "live",
+        lastError: "",
+        lastCheckedAt: ""
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 10);
+}
+
+function prioritizeLiveKeys(keys) {
+  return [...keys].sort((a, b) => {
+    if (a.status === b.status) return a.layer - b.layer;
+    return a.status === "live" ? -1 : 1;
+  });
+}
+
+function maskApiKeys(keys) {
+  return keys.map((key) => ({
+    id: key.id,
+    layer: key.layer,
+    masked: maskApiKey(key.value),
+    status: key.status,
+    lastError: key.lastError,
+    lastCheckedAt: key.lastCheckedAt
+  }));
+}
+
+function maskApiKey(value) {
+  const text = String(value || "");
+  if (text.length <= 8) return "********";
+  return `${text.slice(0, 4)}...${text.slice(-4)}`;
+}
+
+function createKeyId(value) {
+  return crypto.createHash("sha256").update(String(value)).digest("hex").slice(0, 16);
+}
+
+async function updateApiKeyStatus(provider, keyId, status, lastError = "") {
+  const dbSettings = await readAppSettings(["AI_API_KEYS"]);
+  const keys = buildApiKeyList(provider, dbSettings).map((key) => (
+    key.id === keyId
+      ? { ...key, status, lastError, lastCheckedAt: new Date().toISOString() }
+      : key
+  ));
+  await writeAppSettings({ AI_API_KEYS: JSON.stringify(keys) });
+}
+
+async function healthCheckAiKeys(provider, model) {
+  const dbSettings = await readAppSettings(["AI_PROVIDER", "AI_API_KEY", "AI_API_KEYS", "AI_MODEL"]);
+  const selectedProvider = provider || String(dbSettings.AI_PROVIDER || process.env.AI_PROVIDER || "openai").toLowerCase();
+  const selectedModel = model || dbSettings.AI_MODEL || process.env.AI_MODEL || defaultAiModel(selectedProvider);
+  const keys = buildApiKeyList(selectedProvider, dbSettings);
+  const checked = [];
+
+  for (const key of keys) {
+    try {
+      await pingAiProvider(selectedProvider, key.value, selectedModel);
+      checked.push({ ...key, status: "live", lastError: "", lastCheckedAt: new Date().toISOString() });
+    } catch (error) {
+      checked.push({
+        ...key,
+        status: "dead",
+        lastError: isRateLimitError(error) ? "429 Rate Limit" : (error.message || "Health check gagal"),
+        lastCheckedAt: new Date().toISOString()
+      });
+    }
+  }
+
+  if (checked.length) {
+    await writeAppSettings({ AI_API_KEYS: JSON.stringify(checked) });
+  }
+
+  return maskApiKeys(checked);
+}
+
+async function pingAiProvider(provider, apiKey, model) {
+  if (provider === "openai") {
+    return testJsonEndpoint("https://api.openai.com/v1/models", {
+      Authorization: `Bearer ${apiKey}`
+    });
+  }
+  if (provider === "groq") {
+    return testJsonEndpoint("https://api.groq.com/openai/v1/models", {
+      Authorization: `Bearer ${apiKey}`
+    });
+  }
+  if (provider === "gemini") {
+    return testJsonEndpoint(`https://generativelanguage.googleapis.com/v1beta/models/${model || "gemini-1.5-flash"}?key=${encodeURIComponent(apiKey)}`);
+  }
+  throw new Error(`AI_PROVIDER tidak didukung: ${provider}`);
+}
+
+function isRateLimitError(error) {
+  return Number(error.status) === 429 || /rate limit|quota|429/i.test(error.message || "");
+}
+
+function isAuthError(error) {
+  return [401, 403].includes(Number(error.status)) || /api key|unauthorized|forbidden|permission/i.test(error.message || "");
 }
 
 function defaultAiModel(provider) {
@@ -796,7 +991,9 @@ async function requestOpenAiExtraction(apiKey, imageDataUrl, prompt, model) {
 
   const result = await response.json();
   if (!response.ok) {
-    throw new Error(result.error?.message || "Analisis AI gagal.");
+    const error = new Error(result.error?.message || "Analisis AI gagal.");
+    error.status = response.status;
+    throw error;
   }
 
   return extractAiText(result);
@@ -827,7 +1024,9 @@ async function requestGroqExtraction(apiKey, imageDataUrl, prompt, model) {
 
   const result = await response.json();
   if (!response.ok) {
-    throw new Error(result.error?.message || "Analisis AI gagal.");
+    const error = new Error(result.error?.message || "Analisis AI gagal.");
+    error.status = response.status;
+    throw error;
   }
 
   return result.choices?.[0]?.message?.content || "";
@@ -858,7 +1057,9 @@ async function requestGeminiExtraction(apiKey, imageDataUrl, prompt, model) {
 
   const result = await response.json();
   if (!response.ok) {
-    throw new Error(result.error?.message || "Analisis AI gagal.");
+    const error = new Error(result.error?.message || "Analisis AI gagal.");
+    error.status = response.status;
+    throw error;
   }
 
   return result.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("") || "";

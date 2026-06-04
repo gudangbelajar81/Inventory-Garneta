@@ -1,2 +1,2 @@
-2026-06-04 14:00:25 [33mwarn[39m: DB_URL tidak ditemukan di .env — menggunakan fallback DB_HOST / DB_USER / DB_NAME. {"service":"inventory-system"}
-2026-06-04 14:00:25 [32minfo[39m: Server berjalan di http://localhost:3000 {"service":"inventory-system"}
+2026-06-04 14:19:48 [33mwarn[39m: DB_URL tidak ditemukan di .env — menggunakan fallback DB_HOST / DB_USER / DB_NAME. {"service":"inventory-system"}
+2026-06-04 14:19:48 [32minfo[39m: Server berjalan di http://localhost:3000 {"service":"inventory-system"}

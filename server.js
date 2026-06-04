@@ -1114,10 +1114,11 @@ async function healthCheckAiKeys(provider, model) {
       await pingAiProvider(selectedProvider, key.value, selectedModel);
       checked.push({ ...key, status: "live", lastError: "", lastCheckedAt: new Date().toISOString() });
     } catch (error) {
+      const dead = isRateLimitError(error) || isAuthError(error);
       checked.push({
         ...key,
-        status: "dead",
-        lastError: isRateLimitError(error) ? "429 Rate Limit" : (error.message || "Health check gagal"),
+        status: dead ? "dead" : "live",
+        lastError: healthCheckMessage(error),
         lastCheckedAt: new Date().toISOString()
       });
     }
@@ -1145,7 +1146,7 @@ async function pingAiProvider(provider, apiKey, model) {
     });
   }
   if (provider === "gemini") {
-    return testJsonEndpoint(`https://generativelanguage.googleapis.com/v1beta/models/${model || "gemini-1.5-flash"}?key=${encodeURIComponent(apiKey)}`);
+    return testJsonEndpoint(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
   }
   if (provider === "deepseek") {
     return testJsonEndpoint("https://api.deepseek.com/v1/models", {
@@ -1161,6 +1162,17 @@ function isRateLimitError(error) {
 
 function isAuthError(error) {
   return [401, 403].includes(Number(error.status)) || /api key|unauthorized|forbidden|permission/i.test(error.message || "");
+}
+
+function isModelAvailabilityError(error) {
+  return [404, 415].includes(Number(error.status)) || /not found|not supported|supported methods|unknown variant|expected `text`|expected text|image_url/i.test(error.message || "");
+}
+
+function healthCheckMessage(error) {
+  if (isRateLimitError(error)) return "429 Rate Limit";
+  if (isAuthError(error)) return `Auth ${error.status || ""}`.trim();
+  if (isModelAvailabilityError(error)) return "Key valid, model/provider perlu disesuaikan";
+  return error.message || "Health check gagal";
 }
 
 function resolveAiModel(provider, dbSettings = {}) {
@@ -1190,7 +1202,7 @@ function isModelCompatible(provider, model) {
 }
 
 function defaultAiModel(provider) {
-  if (provider === "gemini") return "gemini-1.5-flash";
+  if (provider === "gemini") return "gemini-2.5-flash";
   if (provider === "groq") return "meta-llama/llama-4-scout-17b-16e-instruct";
   if (provider === "deepseek") return "deepseek-chat";
   return "gpt-4.1-mini";
@@ -1339,7 +1351,7 @@ async function requestDeepSeekExtraction(apiKey, imageDataUrl, prompt, model) {
 
 async function requestGeminiExtraction(apiKey, imageDataUrl, prompt, model) {
   const { mimeType, base64 } = parseDataUrl(imageDataUrl);
-  const selectedModel = model || "gemini-1.5-flash";
+  const selectedModel = model || "gemini-2.5-flash";
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${encodeURIComponent(apiKey)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

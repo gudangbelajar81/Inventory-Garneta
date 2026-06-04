@@ -66,6 +66,9 @@
     .api-key-box { display: grid; gap: 8px; }
     .api-key-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
     .api-key-display { border: 1px solid rgba(148,163,184,.22); border-radius: 14px; background: #090a10; padding: 13px 14px; color: #cbd5e1; font-weight: 900; overflow-wrap: anywhere; }
+    .api-form-grid { display: grid; gap: 12px; }
+    .api-form-grid select, .api-form-grid input { width: 100%; border: 1px solid rgba(148,163,184,.24); border-radius: 14px; background: #090a10; color: #f8fafc; padding: 13px 14px; outline: none; }
+    .api-form-grid option { color: #0f172a; }
     .api-primary { border: 0; border-radius: 14px; padding: 13px 18px; color: white; font-weight: 900; background: linear-gradient(135deg, #7c3aed, #2563eb); cursor: pointer; }
     .api-warning { border: 1px solid rgba(245,158,11,.55); background: rgba(120,53,15,.36); color: #fde68a; border-radius: 14px; padding: 13px 14px; font-size: 13px; }
     .api-help-card { padding: 16px; color: #cbd5e1; }
@@ -349,13 +352,12 @@ Beras Premium 1"></textarea>
           <p id="ai-settings-test-result" class="api-status-text"></p>
 
           <div class="api-help-card">
-            <strong>CARA SET API KEY DI RAILWAY</strong>
+            <strong>CARA SET API KEY</strong>
             <ol>
-              <li>Buka Railway Dashboard.</li>
-              <li>Pilih service aplikasi inventory.</li>
-              <li>Buka tab Variables.</li>
-              <li>Tambahkan <strong>AI_PROVIDER</strong>, <strong>AI_API_KEY</strong>, dan opsional <strong>AI_MODEL</strong>.</li>
-              <li>Klik Redeploy agar backend membaca env terbaru.</li>
+              <li>Pilih provider AI: Gemini, OpenAI, atau Groq.</li>
+              <li>Masukkan API key dan model yang ingin dipakai.</li>
+              <li>Klik Save API Settings, lalu Health Check Now.</li>
+              <li>Key disimpan di database server dan tidak ditaruh di localStorage browser.</li>
             </ol>
           </div>
         </div>
@@ -737,16 +739,75 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           <div class="api-key-box">
             <label>AI API KEY</label>
             <div class="api-key-row">
-              <div class="api-key-display">${settings.keyConfigured ? "****************************" : "Belum ada key di Railway"}</div>
+              <div class="api-key-display">${settings.keyConfigured ? "****************************" : "Belum ada API key tersimpan"}</div>
               <button class="btn soft" type="button" title="Key tidak bisa ditampilkan demi keamanan">HIDDEN</button>
             </div>
           </div>
+          <form id="ai-settings-form" class="api-form-grid">
+            <label>Provider AI</label>
+            <select id="ai-provider">
+              <option value="gemini" ${settings.provider === "gemini" ? "selected" : ""}>Gemini</option>
+              <option value="openai" ${settings.provider === "openai" ? "selected" : ""}>OpenAI</option>
+              <option value="groq" ${settings.provider === "groq" ? "selected" : ""}>Groq</option>
+            </select>
+            <label>Model</label>
+            <input id="ai-model" value="${settings.model}" placeholder="gemini-1.5-flash">
+            <label>API Key Baru</label>
+            <div class="api-key-row">
+              <input id="ai-api-key" type="password" placeholder="Masukkan API key">
+              <button class="btn soft" id="toggle-ai-key" type="button">SHOW</button>
+            </div>
+            <button class="api-primary" type="submit">SAVE API SETTINGS</button>
+          </form>
           <div class="api-warning">
-            API key tidak disimpan di browser. Input key dilakukan lewat Railway Variables: <strong>${settings.envNames.key}</strong>.
+            API key tidak ditampilkan kembali setelah disimpan. Untuk mengganti key, masukkan key baru lalu simpan.
           </div>
         `;
+        bindAiSettingsForm();
       } catch (error) {
         el("ai-settings-panel").innerHTML = `<p class="muted">${error.message}</p>`;
+      }
+    }
+
+    function bindAiSettingsForm() {
+      const providerInput = el("ai-provider");
+      const modelInput = el("ai-model");
+      const keyInput = el("ai-api-key");
+      const toggle = el("toggle-ai-key");
+      const form = el("ai-settings-form");
+
+      providerInput?.addEventListener("change", () => {
+        const defaults = {
+          gemini: "gemini-1.5-flash",
+          openai: "gpt-4.1-mini",
+          groq: "meta-llama/llama-4-scout-17b-16e-instruct"
+        };
+        modelInput.value = defaults[providerInput.value] || modelInput.value;
+      });
+
+      toggle?.addEventListener("click", () => {
+        const visible = keyInput.type === "text";
+        keyInput.type = visible ? "password" : "text";
+        toggle.textContent = visible ? "SHOW" : "HIDE";
+      });
+
+      form?.addEventListener("submit", saveAiSettings);
+    }
+
+    async function saveAiSettings(event) {
+      event.preventDefault();
+      const target = el("ai-settings-test-result");
+      try {
+        target.textContent = "Menyimpan API settings...";
+        await gas("saveAiSettings", {
+          provider: el("ai-provider").value,
+          model: el("ai-model").value,
+          apiKey: el("ai-api-key").value
+        });
+        target.textContent = "API settings berhasil disimpan.";
+        await loadAiSettings();
+      } catch (error) {
+        target.textContent = error.message;
       }
     }
 
@@ -758,7 +819,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         target.textContent = `${result.message} Provider: ${result.provider}, Model: ${result.model}`;
       } catch (error) {
         target.textContent = error.message === "API_KEY_NOT_CONFIGURED_ON_RAILWAY"
-          ? "API key belum diatur. Isi AI_API_KEY di Railway Variables lalu redeploy."
+          ? "API key belum diatur. Isi dari halaman Pusat API lalu simpan."
           : error.message;
       }
     }

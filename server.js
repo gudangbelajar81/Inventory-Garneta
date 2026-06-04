@@ -145,6 +145,7 @@ async function handleAction(action, payload) {
     verifySuperAdmin: () => verifySuperAdmin(payload.adminId, payload.password),
     analyzeInvoiceImage: () => analyzeInvoiceImage(payload.imageDataUrl),
     aiSettings: () => getAiSettings(),
+    saveAiSettings: () => saveAiSettings(payload),
     testAiSettings: () => testAiSettings(),
     modules: () => availableModules()
   };
@@ -534,7 +535,8 @@ async function loginUser(name, password) {
 }
 
 async function analyzeInvoiceImage(imageDataUrl) {
-  if (!process.env.AI_API_KEY) {
+  const settings = await getAiRuntimeSettings();
+  if (!settings.apiKey) {
     throw new Error("API_KEY_NOT_CONFIGURED_ON_RAILWAY");
   }
   if (!imageDataUrl || !String(imageDataUrl).startsWith("data:image/")) {
@@ -586,25 +588,33 @@ Execution Instructions:
 3. Structure data into the schema above.
 4. If an item total does not match the sum of items, flag "status": "review_required".`;
 
-  const provider = String(process.env.AI_PROVIDER || "openai").toLowerCase();
-  const outputText = await requestAiExtraction(provider, process.env.AI_API_KEY, imageDataUrl, prompt);
+  const outputText = await requestAiExtraction(settings.provider, settings.apiKey, imageDataUrl, prompt, settings.model);
   const parsed = JSON.parse(outputText);
   return normalizeInvoiceExtraction(parsed);
 }
 
-async function requestAiExtraction(provider, apiKey, imageDataUrl, prompt) {
-  if (provider === "gemini") return requestGeminiExtraction(apiKey, imageDataUrl, prompt);
-  if (provider === "groq") return requestGroqExtraction(apiKey, imageDataUrl, prompt);
-  if (provider === "openai") return requestOpenAiExtraction(apiKey, imageDataUrl, prompt);
+async function requestAiExtraction(provider, apiKey, imageDataUrl, prompt, model) {
+  if (provider === "gemini") return requestGeminiExtraction(apiKey, imageDataUrl, prompt, model);
+  if (provider === "groq") return requestGroqExtraction(apiKey, imageDataUrl, prompt, model);
+  if (provider === "openai") return requestOpenAiExtraction(apiKey, imageDataUrl, prompt, model);
   throw new Error(`AI_PROVIDER tidak didukung: ${provider}`);
 }
 
-function getAiSettings() {
-  const provider = String(process.env.AI_PROVIDER || "openai").toLowerCase();
+async function getAiRuntimeSettings() {
+  const dbSettings = await readAppSettings(["AI_PROVIDER", "AI_API_KEY", "AI_MODEL"]);
+  const provider = String(dbSettings.AI_PROVIDER || process.env.AI_PROVIDER || "openai").toLowerCase();
+  const apiKey = dbSettings.AI_API_KEY || process.env.AI_API_KEY || "";
+  const model = dbSettings.AI_MODEL || process.env.AI_MODEL || process.env.OPENAI_MODEL || process.env.GROQ_MODEL || process.env.GEMINI_MODEL || defaultAiModel(provider);
+  return { provider, apiKey, model };
+}
+
+async function getAiSettings() {
+  const settings = await getAiRuntimeSettings();
   return {
-    provider,
-    model: process.env.AI_MODEL || process.env.OPENAI_MODEL || process.env.GROQ_MODEL || process.env.GEMINI_MODEL || defaultAiModel(provider),
-    keyConfigured: Boolean(process.env.AI_API_KEY),
+    provider: settings.provider,
+    model: settings.model,
+    keyConfigured: Boolean(settings.apiKey),
+    source: settings.apiKey ? "server" : "empty",
     envNames: {
       provider: "AI_PROVIDER",
       key: "AI_API_KEY",
@@ -613,23 +623,42 @@ function getAiSettings() {
   };
 }
 
+async function saveAiSettings(payload = {}) {
+  const provider = String(payload.provider || "gemini").trim().toLowerCase();
+  if (!["openai", "groq", "gemini"].includes(provider)) {
+    throw new Error("Provider API harus openai, groq, atau gemini.");
+  }
+
+  const model = String(payload.model || defaultAiModel(provider)).trim();
+  const apiKey = String(payload.apiKey || "").trim();
+  if (!apiKey) throw new Error("API key wajib diisi.");
+
+  await writeAppSettings({
+    AI_PROVIDER: provider,
+    AI_MODEL: model,
+    AI_API_KEY: apiKey
+  });
+
+  return getAiSettings();
+}
+
 async function testAiSettings() {
-  if (!process.env.AI_API_KEY) {
+  const settings = await getAiRuntimeSettings();
+  if (!settings.apiKey) {
     throw new Error("API_KEY_NOT_CONFIGURED_ON_RAILWAY");
   }
 
-  const provider = String(process.env.AI_PROVIDER || "openai").toLowerCase();
+  const provider = settings.provider;
   if (provider === "openai") {
     await testJsonEndpoint("https://api.openai.com/v1/models", {
-      Authorization: `Bearer ${process.env.AI_API_KEY}`
+      Authorization: `Bearer ${settings.apiKey}`
     });
   } else if (provider === "groq") {
     await testJsonEndpoint("https://api.groq.com/openai/v1/models", {
-      Authorization: `Bearer ${process.env.AI_API_KEY}`
+      Authorization: `Bearer ${settings.apiKey}`
     });
   } else if (provider === "gemini") {
-    const model = process.env.AI_MODEL || process.env.GEMINI_MODEL || "gemini-1.5-flash";
-    await testJsonEndpoint(`https://generativelanguage.googleapis.com/v1beta/models/${model}?key=${encodeURIComponent(process.env.AI_API_KEY)}`);
+    await testJsonEndpoint(`https://generativelanguage.googleapis.com/v1beta/models/${settings.model}?key=${encodeURIComponent(settings.apiKey)}`);
   } else {
     throw new Error(`AI_PROVIDER tidak didukung: ${provider}`);
   }
@@ -637,7 +666,7 @@ async function testAiSettings() {
   return {
     ok: true,
     provider,
-    model: getAiSettings().model,
+    model: settings.model,
     message: "Koneksi API berhasil."
   };
 }
@@ -657,13 +686,50 @@ async function testJsonEndpoint(url, headers = {}) {
   return response.json();
 }
 
+async function ensureAppSettingsTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      setting_key VARCHAR(80) PRIMARY KEY,
+      setting_value TEXT NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB
+  `);
+}
+
+async function readAppSettings(keys = []) {
+  await ensureAppSettingsTable();
+  if (!keys.length) return {};
+
+  const [rows] = await db.query(
+    "SELECT setting_key, setting_value FROM app_settings WHERE setting_key IN (?)",
+    [keys]
+  );
+
+  return rows.reduce((settings, row) => {
+    settings[row.setting_key] = row.setting_value;
+    return settings;
+  }, {});
+}
+
+async function writeAppSettings(settings) {
+  await ensureAppSettingsTable();
+  const entries = Object.entries(settings);
+  for (const [key, value] of entries) {
+    await db.query(`
+      INSERT INTO app_settings (setting_key, setting_value)
+      VALUES (?, ?)
+      ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+    `, [key, value]);
+  }
+}
+
 function defaultAiModel(provider) {
   if (provider === "gemini") return "gemini-1.5-flash";
   if (provider === "groq") return "meta-llama/llama-4-scout-17b-16e-instruct";
   return "gpt-4.1-mini";
 }
 
-async function requestOpenAiExtraction(apiKey, imageDataUrl, prompt) {
+async function requestOpenAiExtraction(apiKey, imageDataUrl, prompt, model) {
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -671,7 +737,7 @@ async function requestOpenAiExtraction(apiKey, imageDataUrl, prompt) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini",
+      model: model || "gpt-4.1-mini",
       input: [
         {
           role: "user",
@@ -736,7 +802,7 @@ async function requestOpenAiExtraction(apiKey, imageDataUrl, prompt) {
   return extractAiText(result);
 }
 
-async function requestGroqExtraction(apiKey, imageDataUrl, prompt) {
+async function requestGroqExtraction(apiKey, imageDataUrl, prompt, model) {
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -744,7 +810,7 @@ async function requestGroqExtraction(apiKey, imageDataUrl, prompt) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: process.env.AI_MODEL || process.env.GROQ_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct",
+      model: model || "meta-llama/llama-4-scout-17b-16e-instruct",
       temperature: 0,
       response_format: { type: "json_object" },
       messages: [
@@ -767,10 +833,10 @@ async function requestGroqExtraction(apiKey, imageDataUrl, prompt) {
   return result.choices?.[0]?.message?.content || "";
 }
 
-async function requestGeminiExtraction(apiKey, imageDataUrl, prompt) {
+async function requestGeminiExtraction(apiKey, imageDataUrl, prompt, model) {
   const { mimeType, base64 } = parseDataUrl(imageDataUrl);
-  const model = process.env.AI_MODEL || process.env.GEMINI_MODEL || "gemini-1.5-flash";
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+  const selectedModel = model || "gemini-1.5-flash";
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${encodeURIComponent(apiKey)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

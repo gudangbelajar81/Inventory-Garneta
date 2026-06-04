@@ -146,7 +146,10 @@ async function handleAction(action, payload) {
     verifySuperAdmin: () => verifySuperAdmin(payload.adminId, payload.password),
     analyzeInvoiceImage: () => analyzeInvoiceImage(payload.imageDataUrl),
     aiSettings: () => getAiSettings(payload.provider),
+    aiSettingsAll: () => getAllAiSettings(),
     saveAiSettings: () => saveAiSettings(payload),
+    editAiKey: () => editAiKey(payload.provider, payload.keyId, payload.apiKey),
+    deleteAiKey: () => deleteAiKey(payload.provider, payload.keyId),
     testAiSettings: () => testAiSettings(payload),
     modules: () => availableModules()
   };
@@ -723,24 +726,101 @@ async function getAiSettings(provider) {
   };
 }
 
+async function getAllAiSettings() {
+  const providers = await getAiProvidersForFallback();
+  const allKeys = providers.flatMap((settings) => maskApiKeys(settings.keys).map((key) => ({
+    ...key,
+    provider: settings.provider,
+    providerLabel: providerLabel(settings.provider),
+    model: settings.model
+  })));
+
+  return {
+    providers: providers.map((settings) => ({
+      provider: settings.provider,
+      providerLabel: providerLabel(settings.provider),
+      model: settings.model,
+      keyLimit: 10,
+      liveKeys: settings.keys.filter((key) => key.status === "live").length,
+      deadKeys: settings.keys.filter((key) => key.status === "dead").length,
+      totalKeys: settings.keys.length
+    })),
+    keys: allKeys,
+    totalKeys: allKeys.length,
+    liveKeys: allKeys.filter((key) => key.status === "live").length,
+    deadKeys: allKeys.filter((key) => key.status === "dead").length
+  };
+}
+
 async function saveAiSettings(payload = {}) {
   const provider = normalizeAiProvider(payload.provider || "gemini");
 
   const requestedModel = String(payload.model || "").trim();
-  const model = isModelCompatible(provider, requestedModel) ? requestedModel : defaultAiModel(provider);
+  const model = requestedModel && requestedModel.toLowerCase() !== "auto" && isModelCompatible(provider, requestedModel)
+    ? requestedModel
+    : defaultAiModel(provider);
   const keys = normalizeApiKeys(payload.apiKeys || payload.apiKey);
   if (!keys.length) throw new Error("Minimal satu API key wajib diisi.");
 
   await writeAppSettings({
     AI_PROVIDER: provider,
-    AI_MODEL: model,
     [providerModelSettingKey(provider)]: model,
-    AI_API_KEY: keys[0].value,
-    AI_API_KEYS: JSON.stringify(keys),
     [providerKeysSettingKey(provider)]: JSON.stringify(keys)
   });
 
   return getAiSettings(provider);
+}
+
+async function deleteAiKey(provider, keyId) {
+  const selectedProvider = normalizeAiProvider(provider);
+  if (!keyId) throw new Error("ID API key wajib dikirim.");
+
+  const dbSettings = await readAppSettings(["AI_PROVIDER", "AI_API_KEY", "AI_API_KEYS", providerKeysSettingKey(selectedProvider)]);
+  const keys = buildApiKeyList(selectedProvider, dbSettings);
+  const target = keys.find((key) => key.id === keyId);
+  if (!target) throw new Error("API key tidak ditemukan.");
+  if (target.status !== "dead") {
+    throw new Error("Hanya API key berstatus DEAD yang bisa dihapus.");
+  }
+
+  const nextKeys = keys.filter((key) => key.id !== keyId);
+  await writeAppSettings({
+    [providerKeysSettingKey(selectedProvider)]: JSON.stringify(nextKeys)
+  });
+  return getAllAiSettings();
+}
+
+async function editAiKey(provider, keyId, apiKey) {
+  const selectedProvider = normalizeAiProvider(provider);
+  const nextValue = String(apiKey || "").trim();
+  if (!keyId) throw new Error("ID API key wajib dikirim.");
+  if (!nextValue) throw new Error("API key pengganti wajib diisi.");
+
+  const dbSettings = await readAppSettings(["AI_PROVIDER", "AI_API_KEY", "AI_API_KEYS", providerKeysSettingKey(selectedProvider)]);
+  const keys = buildApiKeyList(selectedProvider, dbSettings);
+  const target = keys.find((key) => key.id === keyId);
+  if (!target) throw new Error("API key tidak ditemukan.");
+
+  const duplicate = keys.find((key) => key.id !== keyId && key.value === nextValue);
+  if (duplicate) throw new Error("API key pengganti sudah ada di provider ini.");
+
+  const nextKeys = keys.map((key) => (
+    key.id === keyId
+      ? {
+        ...key,
+        id: createKeyId(nextValue),
+        value: nextValue,
+        status: "live",
+        lastError: "",
+        lastCheckedAt: ""
+      }
+      : key
+  ));
+
+  await writeAppSettings({
+    [providerKeysSettingKey(selectedProvider)]: JSON.stringify(nextKeys)
+  });
+  return getAllAiSettings();
 }
 
 async function testAiSettings(payload = {}) {
@@ -882,6 +962,16 @@ function providerEnvKeysKey(provider) {
 
 function providerEnvModelKey(provider) {
   return `${provider.toUpperCase()}_MODEL`;
+}
+
+function providerLabel(provider) {
+  const labels = {
+    gemini: "Gemini AI",
+    openai: "OpenAI",
+    groq: "Groq",
+    deepseek: "DeepSeek"
+  };
+  return labels[provider] || provider.toUpperCase();
 }
 
 function parseStoredApiKeys(rawValue) {

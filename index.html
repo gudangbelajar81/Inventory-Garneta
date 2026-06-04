@@ -74,6 +74,9 @@
     .api-key-list { display: grid; gap: 8px; }
     .api-key-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid rgba(148,163,184,.18); border-radius: 14px; background: rgba(2,6,23,.62); padding: 10px 12px; color: #cbd5e1; font-size: 12px; }
     .api-key-item strong { color: #f8fafc; }
+    .api-key-display-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+    .api-edit-overlay { grid-column: 1 / -1; width: 100%; margin-top: 10px; grid-template-columns: 1fr auto auto; gap: 8px; padding: 12px; border-radius: 14px; border: 1px solid rgba(34,211,238,.24); background: rgba(2,6,23,.9); box-shadow: inset 0 0 0 1px rgba(255,255,255,.03); }
+    .api-edit-overlay input { border: 1px solid rgba(148,163,184,.24); border-radius: 12px; background: #090a10; color: #f8fafc; padding: 10px 12px; }
     .api-key-input-list { display: grid; gap: 8px; }
     .api-key-input-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; }
     .api-primary { border: 0; border-radius: 14px; padding: 13px 18px; color: white; font-weight: 900; background: linear-gradient(135deg, #7c3aed, #2563eb); cursor: pointer; }
@@ -81,6 +84,13 @@
     .api-help-card { padding: 16px; color: #cbd5e1; }
     .api-help-card ol { margin: 10px 0 0; padding-left: 20px; line-height: 1.75; }
     .api-status-text { color: #a7f3d0; font-weight: 800; }
+    .theme-panel { max-width: 560px; margin-top: 16px; padding: 20px; display: grid; gap: 14px; background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(148,163,184,.18); border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.24); }
+    .theme-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .theme-grid label { color: #e2e8f0; }
+    .theme-grid input[type="color"] { height: 44px; padding: 4px; background: #090a10; border-color: rgba(148,163,184,.24); cursor: pointer; }
+    .theme-preview { height: 52px; border: 1px solid rgba(148,163,184,.2); border-radius: 14px; background: linear-gradient(135deg, var(--green), var(--orange)); }
+    .edit-overlay { display: none; }
+    .edit-overlay.active { display: grid; }
     @media (max-width: 900px) {
       .app { grid-template-columns: 1fr; }
       .sidebar { position: sticky; top: 0; z-index: 6; }
@@ -251,6 +261,16 @@
         <label>Hasil JSON AI
           <textarea id="invoice-ai-result" class="input-area" placeholder='{"tanggal":"04/06/26","items":[],"total_belanja":0}'></textarea>
         </label>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Nama Barang</th><th>Kuantitas</th><th>Harga Modal</th><th>Tipe Harga</th><th>Aksi</th></tr>
+            </thead>
+            <tbody id="invoice-table-body">
+              <tr><td colspan="5" class="muted">Belum ada hasil analisa.</td></tr>
+            </tbody>
+          </table>
+        </div>
         <p class="muted">Butuh env AI_PROVIDER dan AI_API_KEY di Railway. Hasil AI mengikuti format JSON DSI dan dapat langsung dimasukkan ke menu Barang.</p>
       </div>`;
     }
@@ -367,6 +387,20 @@ Beras Premium 1"></textarea>
               <li>Sistem memprioritaskan key LIVE dan memindahkan key 429 ke DEAD.</li>
             </ol>
           </div>
+        </div>
+        <div class="theme-panel">
+          <div class="api-section-title">Warna Tampilan</div>
+          <div class="theme-preview" id="theme-preview"></div>
+          <div class="theme-grid">
+            <label>Hijau Utama<input id="theme-green" type="color"></label>
+            <label>Orange Aksen<input id="theme-orange" type="color"></label>
+            <label>Background<input id="theme-page" type="color"></label>
+          </div>
+          <div class="actions">
+            <button class="api-primary" id="save-theme-colors" type="button">SIMPAN WARNA</button>
+            <button class="btn soft" id="reset-theme-colors" type="button">RESET</button>
+          </div>
+          <p class="muted">Warna berlaku untuk dashboard, sidebar, topbar, tombol utama, grafik, dan halaman lain.</p>
         </div>
       </section>`;
     }
@@ -725,6 +759,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       bindShoppingTools();
       bindInvoiceAiTools();
       bindSettingsTools();
+      bindThemeTools();
     }
 
     function bindSettingsTools() {
@@ -734,27 +769,99 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       el("test-ai-settings")?.addEventListener("click", testAiSettings);
     }
 
+    const defaultTheme = { green: "#16a34a", orange: "#f97316", page: "#f7fbf6" };
+
+    function currentTheme() {
+      try {
+        return { ...defaultTheme, ...JSON.parse(localStorage.getItem("themeColors") || "{}") };
+      } catch (error) {
+        return { ...defaultTheme };
+      }
+    }
+
+    function applyTheme(theme = currentTheme()) {
+      const root = document.documentElement;
+      root.style.setProperty("--green", theme.green);
+      root.style.setProperty("--orange", theme.orange);
+      root.style.setProperty("--page", theme.page);
+      root.style.setProperty("--mint", softenColor(theme.green, "#bbf7d0"));
+      root.style.setProperty("--line", softenColor(theme.green, "#dbe7dc"));
+    }
+
+    function bindThemeTools() {
+      if (!el("theme-green")) return;
+      const theme = currentTheme();
+      el("theme-green").value = theme.green;
+      el("theme-orange").value = theme.orange;
+      el("theme-page").value = theme.page;
+      updateThemePreview();
+
+      ["theme-green", "theme-orange", "theme-page"].forEach((id) => {
+        el(id)?.addEventListener("input", () => {
+          const next = readThemeInputs();
+          applyTheme(next);
+          updateThemePreview();
+        });
+      });
+
+      el("save-theme-colors")?.addEventListener("click", () => {
+        const next = readThemeInputs();
+        localStorage.setItem("themeColors", JSON.stringify(next));
+        applyTheme(next);
+      });
+
+      el("reset-theme-colors")?.addEventListener("click", () => {
+        localStorage.removeItem("themeColors");
+        applyTheme(defaultTheme);
+        el("theme-green").value = defaultTheme.green;
+        el("theme-orange").value = defaultTheme.orange;
+        el("theme-page").value = defaultTheme.page;
+        updateThemePreview();
+      });
+    }
+
+    function readThemeInputs() {
+      return {
+        green: el("theme-green")?.value || defaultTheme.green,
+        orange: el("theme-orange")?.value || defaultTheme.orange,
+        page: el("theme-page")?.value || defaultTheme.page
+      };
+    }
+
+    function updateThemePreview() {
+      const preview = el("theme-preview");
+      if (!preview) return;
+      const theme = readThemeInputs();
+      preview.style.background = `linear-gradient(135deg, ${theme.green}, ${theme.orange})`;
+    }
+
+    function softenColor(value, fallback) {
+      const hex = String(value || "").replace("#", "");
+      if (!/^[0-9a-f]{6}$/i.test(hex)) return fallback;
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      const mix = (channel) => Math.round(channel + (255 - channel) * 0.75).toString(16).padStart(2, "0");
+      return `#${mix(r)}${mix(g)}${mix(b)}`;
+    }
+
     async function loadAiSettings(providerOverride) {
       try {
         const selectedProvider = typeof providerOverride === "string"
           ? providerOverride
           : (el("ai-provider")?.value || undefined);
         const settings = await gas("aiSettings", { provider: selectedProvider });
-        const keyRows = (settings.keys || []).map((key) => `
-          <div class="api-key-item">
-            <span><strong>LAYER ${key.layer}</strong> ${key.masked}</span>
-            <span class="api-badge ${key.status === "live" ? "ok" : "warn"}">${key.status.toUpperCase()}</span>
-          </div>
-        `).join("") || `<div class="api-key-item"><span>Belum ada layer API key.</span><span class="api-badge warn">EMPTY</span></div>`;
+        const allSettings = await gas("aiSettingsAll");
+        const keyRows = renderApiKeyLayers(allSettings.keys || []);
         el("ai-settings-panel").innerHTML = `
           <div class="api-badges">
             <span class="api-badge">PROVIDER: ${settings.provider.toUpperCase()}</span>
-            <span class="api-badge">MODEL: ${settings.model}</span>
-            <span class="api-badge ${settings.liveKeys ? "ok" : "warn"}">LIVE: ${settings.liveKeys}/${settings.keyLimit}</span>
-            <span class="api-badge ${settings.deadKeys ? "warn" : "ok"}">DEAD: ${settings.deadKeys}</span>
+            <span class="api-badge">MODEL: AUTO (${settings.model})</span>
+            <span class="api-badge ${allSettings.liveKeys ? "ok" : "warn"}">LIVE: ${allSettings.liveKeys}/${allSettings.totalKeys || settings.keyLimit}</span>
+            <span class="api-badge ${allSettings.deadKeys ? "warn" : "ok"}">DEAD: ${allSettings.deadKeys}</span>
           </div>
           <div class="api-key-box">
-            <label>API KEY LAYERS</label>
+            <label>API KEY LAYERS SEMUA PROVIDER</label>
             <div class="api-key-list">${keyRows}</div>
           </div>
           <form id="ai-settings-form" class="api-form-grid">
@@ -766,7 +873,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
               <option value="deepseek" ${settings.provider === "deepseek" ? "selected" : ""}>DeepSeek</option>
             </select>
             <label>Model</label>
-            <input id="ai-model" value="${settings.model}" placeholder="gemini-1.5-flash">
+            <input id="ai-model" value="auto" placeholder="auto" title="Kosongkan atau isi auto agar backend memilih model terbaik bawaan provider.">
             <label>API Keys Baru / Pengganti</label>
             <div id="ai-key-input-list" class="api-key-input-list"></div>
             <div class="actions">
@@ -776,12 +883,103 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             <button class="api-primary" type="submit">SAVE API SETTINGS</button>
           </form>
           <div class="api-warning">
-            API key penuh tidak ditampilkan kembali setelah disimpan. Untuk mengganti daftar key, masukkan ulang semua key yang ingin dipakai.
+            Model berjalan otomatis mengikuti provider. Key penuh tidak ditampilkan kembali; daftar di atas hanya masked. Key DEAD bisa dihapus dari layer.
           </div>
         `;
         bindAiSettingsForm();
+        bindAiKeyLayerActions();
       } catch (error) {
         el("ai-settings-panel").innerHTML = `<p class="muted">${error.message}</p>`;
+      }
+    }
+
+    function renderApiKeyLayers(keys) {
+      if (!keys.length) {
+        return `<div class="api-key-item"><span>Belum ada layer API key tersimpan.</span><span class="api-badge warn">EMPTY</span></div>`;
+      }
+
+      return keys.map((key) => `
+        <div class="api-key-item" id="api-row-${key.id}" style="display:grid">
+          <div class="api-key-display-row">
+            <span>
+              <strong>${key.providerLabel}</strong> LAYER ${key.layer} · ${key.masked}<br>
+              <small>Model otomatis: ${key.model}</small>
+            </span>
+            <span class="actions">
+              <button class="btn soft edit-ai-key" data-provider="${key.provider}" data-key-id="${key.id}" type="button">EDIT</button>
+              <span class="api-badge ${key.status === "live" ? "ok" : "warn"}">${key.status.toUpperCase()}</span>
+              ${key.status === "dead" ? `<button class="btn danger delete-ai-key" data-provider="${key.provider}" data-key-id="${key.id}" type="button">Hapus</button>` : ""}
+            </span>
+          </div>
+          <div class="edit-overlay api-edit-overlay" id="edit-mode-${key.id}">
+            <input class="edit-ai-key-input" type="password" placeholder="Masukkan API key pengganti">
+            <button class="btn primary save-ai-key-edit" data-provider="${key.provider}" data-key-id="${key.id}" type="button">SAVE</button>
+            <button class="btn soft cancel-ai-key-edit" data-key-id="${key.id}" type="button">CANCEL</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function bindAiKeyLayerActions() {
+      document.querySelectorAll(".edit-ai-key").forEach((button) => {
+        button.addEventListener("click", () => openEditMode(button.dataset.keyId));
+      });
+
+      document.querySelectorAll(".cancel-ai-key-edit").forEach((button) => {
+        button.addEventListener("click", () => cancelEdit(button.dataset.keyId));
+      });
+
+      document.querySelectorAll(".save-ai-key-edit").forEach((button) => {
+        button.addEventListener("click", () => saveEdit(button.dataset.keyId, button.dataset.provider));
+      });
+
+      document.querySelectorAll(".delete-ai-key").forEach((button) => {
+        button.addEventListener("click", async () => {
+          if (!confirm("Hapus API key DEAD ini?")) return;
+          const target = el("ai-settings-test-result");
+          try {
+            target.textContent = "Menghapus API key DEAD...";
+            await gas("deleteAiKey", {
+              provider: button.dataset.provider,
+              keyId: button.dataset.keyId
+            });
+            target.textContent = "API key DEAD berhasil dihapus.";
+            await loadAiSettings(el("ai-provider")?.value);
+          } catch (error) {
+            target.textContent = error.message;
+          }
+        });
+      });
+    }
+
+    function openEditMode(id) {
+      document.querySelectorAll(".edit-overlay").forEach((panel) => panel.classList.remove("active"));
+      el(`edit-mode-${id}`)?.classList.add("active");
+    }
+
+    function cancelEdit(id) {
+      const panel = el(`edit-mode-${id}`);
+      panel?.classList.remove("active");
+      const input = panel?.querySelector(".edit-ai-key-input");
+      if (input) input.value = "";
+    }
+
+    async function saveEdit(id, provider) {
+      const panel = el(`edit-mode-${id}`);
+      const input = panel?.querySelector(".edit-ai-key-input");
+      const target = el("ai-settings-test-result");
+      try {
+        target.textContent = "Menyimpan edit API key...";
+        await gas("editAiKey", {
+          provider,
+          keyId: id,
+          apiKey: input?.value || ""
+        });
+        target.textContent = "API key berhasil diperbarui.";
+        cancelEdit(id);
+        await loadAiSettings(el("ai-provider")?.value);
+      } catch (error) {
+        target.textContent = error.message;
       }
     }
 
@@ -795,13 +993,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       renderAiKeyInputs([""]);
 
       providerInput?.addEventListener("change", () => {
-        const defaults = {
-          gemini: "gemini-1.5-flash",
-          openai: "gpt-4.1-mini",
-          groq: "meta-llama/llama-4-scout-17b-16e-instruct",
-          deepseek: "deepseek-chat"
-        };
-        modelInput.value = defaults[providerInput.value] || modelInput.value;
+        modelInput.value = "auto";
         loadAiSettings(providerInput.value);
       });
 
@@ -910,7 +1102,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
       el("save-invoice-products")?.addEventListener("click", async () => {
         try {
-          const invoice = JSON.parse(el("invoice-ai-result").value || "{}");
+          const invoice = collectInvoiceTableJson();
           const rows = invoiceItemsToProducts(invoice);
           if (!rows.length) throw new Error("Tidak ada item valid untuk dimasukkan ke Barang.");
           await importProducts(rows);
@@ -922,8 +1114,84 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
     async function analyzeInvoiceImage(imageDataUrl) {
       el("invoice-ai-result").value = "Menganalisa foto nota...";
+      renderTableFromJson({ items: [] });
       const result = await gas("analyzeInvoiceImage", { imageDataUrl });
       el("invoice-ai-result").value = JSON.stringify(result, null, 2);
+      renderTableFromJson(result);
+    }
+
+    function renderTableFromJson(jsonData) {
+      const tableBody = el("invoice-table-body");
+      if (!tableBody) return;
+      const items = Array.isArray(jsonData?.items) ? jsonData.items : [];
+      tableBody.innerHTML = "";
+
+      if (!items.length) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="muted">${jsonData?.error || "Belum ada item valid."}</td></tr>`;
+        return;
+      }
+
+      items.forEach((item) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td><input class="invoice-item-name" value="${escapeAttr(item.nama_barang || "")}"></td>
+          <td><input class="invoice-item-qty" type="number" min="0" step="0.01" value="${Number(item.kuantitas || 0)}"></td>
+          <td><input class="invoice-item-price" type="number" min="0" step="1" value="${Number(item.harga_modal || 0)}"></td>
+          <td>
+            <select class="invoice-item-type">
+              <option value="H.M/pcs" ${item.tipe_harga === "H.M/pcs" ? "selected" : ""}>H.M/pcs</option>
+              <option value="H.M/dus" ${item.tipe_harga === "H.M/dus" ? "selected" : ""}>H.M/dus</option>
+              <option value="sst" ${item.tipe_harga === "sst" ? "selected" : ""}>sst</option>
+            </select>
+          </td>
+          <td><button class="btn danger delete-invoice-row" type="button">Hapus</button></td>
+        `;
+        row.querySelector(".delete-invoice-row").addEventListener("click", () => {
+          row.remove();
+          syncInvoiceJsonFromTable();
+        });
+        row.querySelectorAll("input,select").forEach((input) => {
+          input.addEventListener("input", syncInvoiceJsonFromTable);
+          input.addEventListener("change", syncInvoiceJsonFromTable);
+        });
+        tableBody.appendChild(row);
+      });
+
+      syncInvoiceJsonFromTable();
+    }
+
+    function collectInvoiceTableJson() {
+      const rows = [...document.querySelectorAll("#invoice-table-body tr")];
+      const items = rows.map((row) => {
+        const name = row.querySelector(".invoice-item-name")?.value.trim();
+        if (!name) return null;
+        return {
+          nama_barang: name,
+          kuantitas: Number(row.querySelector(".invoice-item-qty")?.value || 0),
+          harga_modal: Number(row.querySelector(".invoice-item-price")?.value || 0),
+          tipe_harga: row.querySelector(".invoice-item-type")?.value || "H.M/pcs"
+        };
+      }).filter(Boolean);
+
+      let current = {};
+      try {
+        current = JSON.parse(el("invoice-ai-result")?.value || "{}");
+      } catch (error) {
+        current = {};
+      }
+
+      return {
+        tanggal: current.tanggal || new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "2-digit" }),
+        items,
+        total_belanja: items.reduce((sum, item) => sum + (Number(item.kuantitas || 0) * Number(item.harga_modal || 0)), 0),
+        status: current.status || "review_required"
+      };
+    }
+
+    function syncInvoiceJsonFromTable() {
+      const output = el("invoice-ai-result");
+      if (!output) return;
+      output.value = JSON.stringify(collectInvoiceTableJson(), null, 2);
     }
 
     async function openInvoiceCamera() {
@@ -1202,6 +1470,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       render();
     }
 
+    applyTheme();
     setInterval(() => el("clock").textContent = new Date().toLocaleString("id-ID"), 1000);
     load().catch((error) => el("content").innerHTML = `<div class="card"><h2>Error</h2><p>${error.message}</p></div>`);
   </script>

@@ -651,7 +651,7 @@ async function getAiRuntimeSettings(providerOverride) {
   ]);
   const provider = normalizeAiProvider(providerOverride || dbSettings.AI_PROVIDER || process.env.AI_PROVIDER || "openai");
   const keys = buildApiKeyList(provider, dbSettings);
-  const model = dbSettings[providerModelSettingKey(provider)] || dbSettings.AI_MODEL || process.env[providerEnvModelKey(provider)] || process.env.AI_MODEL || defaultAiModel(provider);
+  const model = resolveAiModel(provider, dbSettings);
   return { provider, keys, model };
 }
 
@@ -677,7 +677,8 @@ async function getAiSettings(provider) {
 async function saveAiSettings(payload = {}) {
   const provider = normalizeAiProvider(payload.provider || "gemini");
 
-  const model = String(payload.model || defaultAiModel(provider)).trim();
+  const requestedModel = String(payload.model || "").trim();
+  const model = isModelCompatible(provider, requestedModel) ? requestedModel : defaultAiModel(provider);
   const keys = normalizeApiKeys(payload.apiKeys || payload.apiKey);
   if (!keys.length) throw new Error("Minimal satu API key wajib diisi.");
 
@@ -916,7 +917,9 @@ async function updateApiKeyStatus(provider, keyId, status, lastError = "") {
 async function healthCheckAiKeys(provider, model) {
   const selectedProvider = normalizeAiProvider(provider || process.env.AI_PROVIDER || "openai");
   const dbSettings = await readAppSettings(["AI_PROVIDER", "AI_API_KEY", "AI_API_KEYS", "AI_MODEL", providerKeysSettingKey(selectedProvider), providerModelSettingKey(selectedProvider)]);
-  const selectedModel = model || dbSettings[providerModelSettingKey(selectedProvider)] || dbSettings.AI_MODEL || process.env.AI_MODEL || defaultAiModel(selectedProvider);
+  const selectedModel = isModelCompatible(selectedProvider, model)
+    ? model
+    : resolveAiModel(selectedProvider, dbSettings);
   const keys = buildApiKeyList(selectedProvider, dbSettings);
   const checked = [];
 
@@ -972,6 +975,32 @@ function isRateLimitError(error) {
 
 function isAuthError(error) {
   return [401, 403].includes(Number(error.status)) || /api key|unauthorized|forbidden|permission/i.test(error.message || "");
+}
+
+function resolveAiModel(provider, dbSettings = {}) {
+  const candidates = [
+    dbSettings[providerModelSettingKey(provider)],
+    process.env[providerEnvModelKey(provider)],
+    process.env[`${provider.toUpperCase()}_MODEL`],
+    dbSettings.AI_MODEL,
+    process.env.AI_MODEL
+  ];
+
+  const compatible = candidates
+    .map((item) => String(item || "").trim())
+    .find((item) => isModelCompatible(provider, item));
+
+  return compatible || defaultAiModel(provider);
+}
+
+function isModelCompatible(provider, model) {
+  const value = String(model || "").trim().toLowerCase();
+  if (!value) return false;
+  if (provider === "gemini") return value.startsWith("gemini-");
+  if (provider === "deepseek") return value.startsWith("deepseek-");
+  if (provider === "openai") return !value.startsWith("gemini-") && !value.startsWith("deepseek-");
+  if (provider === "groq") return !value.startsWith("gemini-") && !value.startsWith("deepseek-");
+  return false;
 }
 
 function defaultAiModel(provider) {

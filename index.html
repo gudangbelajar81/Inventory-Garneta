@@ -111,7 +111,7 @@
     const menus = [
       ["dashboard", "Dashboard"], ["barang", "Barang"], ["supplier", "Supplier"],
       ["pembelian", "Pembelian"], ["kalkulator", "Kalkulator Belanja"], ["penjualan", "Penjualan"], ["laporan", "Laporan"],
-      ["statistik", "Statistik"], ["users", "Users"]
+      ["statistik", "Statistik"], ["users", "Users"], ["settings", "Setting"]
     ];
 
     const state = {
@@ -179,7 +179,7 @@
         el("content").innerHTML = `<div class="card"><h2>Akses dibatasi</h2><p class="muted">Menu ini hanya bisa diakses Super Admin.</p></div>`;
         return;
       }
-      const views = { dashboard, barang, supplier, pembelian, kalkulator, penjualan, laporan, statistik, users };
+      const views = { dashboard, barang, supplier, pembelian, kalkulator, penjualan, laporan, statistik, users, settings };
       el("content").innerHTML = views[state.route]();
       bindForms();
     }
@@ -299,6 +299,36 @@ Beras Premium 1"></textarea>
 
     function users() {
       return crudView("users", "Akun Super Admin", userForm(), userRows());
+    }
+
+    function settings() {
+      return `<section class="grid">
+        <div class="card">
+          <div class="actions" style="justify-content:space-between">
+            <div>
+              <h2>Setting API</h2>
+              <p class="muted">Pengaturan ini dibaca dari Environment Variables server. API key tidak pernah ditampilkan di browser.</p>
+            </div>
+            <button class="btn soft" id="refresh-ai-settings">Refresh</button>
+          </div>
+          <div id="ai-settings-panel" class="grid" style="margin-top:14px">
+            <p class="muted">Memuat pengaturan API...</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Environment Variables Railway</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nama Env</th><th>Contoh</th><th>Keterangan</th></tr></thead>
+              <tbody>
+                <tr><td>AI_PROVIDER</td><td>openai / groq / gemini</td><td>Provider AI yang dipakai backend.</td></tr>
+                <tr><td>AI_API_KEY</td><td>********</td><td>Disimpan hanya di Railway, tidak di frontend.</td></tr>
+                <tr><td>AI_MODEL</td><td>gpt-4.1-mini</td><td>Opsional, menimpa model default provider.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>`;
     }
 
     function crudView(collection, title, form, rows) {
@@ -654,6 +684,30 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       bindProductTools();
       bindShoppingTools();
       bindInvoiceAiTools();
+      bindSettingsTools();
+    }
+
+    function bindSettingsTools() {
+      if (!el("ai-settings-panel")) return;
+      loadAiSettings();
+      el("refresh-ai-settings")?.addEventListener("click", loadAiSettings);
+    }
+
+    async function loadAiSettings() {
+      try {
+        const settings = await gas("aiSettings");
+        el("ai-settings-panel").innerHTML = `
+          <div class="grid stats">
+            ${stat("Provider", settings.provider)}
+            ${stat("Model", settings.model)}
+            ${stat("API Key", settings.keyConfigured ? "Terpasang" : "Belum")}
+            ${stat("Keamanan", "Server-side")}
+          </div>
+          <p class="muted">Key dibaca dari <strong>${settings.envNames.key}</strong> di server. Nilai key tidak dikirim ke frontend.</p>
+        `;
+      } catch (error) {
+        el("ai-settings-panel").innerHTML = `<p class="muted">${error.message}</p>`;
+      }
     }
 
     function bindInvoiceAiTools() {

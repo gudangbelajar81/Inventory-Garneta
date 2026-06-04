@@ -144,6 +144,7 @@ async function handleAction(action, payload) {
     login: () => loginUser(payload.name, payload.password),
     verifySuperAdmin: () => verifySuperAdmin(payload.adminId, payload.password),
     analyzeInvoiceImage: () => analyzeInvoiceImage(payload.imageDataUrl),
+    aiSettings: () => getAiSettings(),
     modules: () => availableModules()
   };
 
@@ -595,6 +596,26 @@ async function requestAiExtraction(provider, apiKey, imageDataUrl, prompt) {
   if (provider === "groq") return requestGroqExtraction(apiKey, imageDataUrl, prompt);
   if (provider === "openai") return requestOpenAiExtraction(apiKey, imageDataUrl, prompt);
   throw new Error(`AI_PROVIDER tidak didukung: ${provider}`);
+}
+
+function getAiSettings() {
+  const provider = String(process.env.AI_PROVIDER || "openai").toLowerCase();
+  return {
+    provider,
+    model: process.env.AI_MODEL || process.env.OPENAI_MODEL || process.env.GROQ_MODEL || process.env.GEMINI_MODEL || defaultAiModel(provider),
+    keyConfigured: Boolean(process.env.AI_API_KEY),
+    envNames: {
+      provider: "AI_PROVIDER",
+      key: "AI_API_KEY",
+      model: "AI_MODEL"
+    }
+  };
+}
+
+function defaultAiModel(provider) {
+  if (provider === "gemini") return "gemini-1.5-flash";
+  if (provider === "groq") return "meta-llama/llama-4-scout-17b-16e-instruct";
+  return "gpt-4.1-mini";
 }
 
 async function requestOpenAiExtraction(apiKey, imageDataUrl, prompt) {

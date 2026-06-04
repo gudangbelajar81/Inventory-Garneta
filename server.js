@@ -11,6 +11,7 @@ const errorHandler = require("./middleware/errorHandler");
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const SHUTDOWN_TIMEOUT_MS = Number(process.env.SHUTDOWN_TIMEOUT_MS || 30000);
+const AI_PROVIDERS = ["gemini", "openai", "groq", "deepseek"];
 
 let server;
 let isShuttingDown = false;
@@ -535,8 +536,8 @@ async function loginUser(name, password) {
 }
 
 async function analyzeInvoiceImage(imageDataUrl) {
-  const settings = await getAiRuntimeSettings();
-  if (!settings.keys.length) {
+  const providers = await getAiProvidersForFallback();
+  if (!providers.some((provider) => provider.keys.length > 0)) {
     throw new Error("API_KEY_NOT_CONFIGURED_ON_RAILWAY");
   }
   if (!imageDataUrl || !String(imageDataUrl).startsWith("data:image/")) {
@@ -588,9 +589,32 @@ Execution Instructions:
 3. Structure data into the schema above.
 4. If an item total does not match the sum of items, flag "status": "review_required".`;
 
-  const outputText = await requestAiExtractionWithRotation(settings, imageDataUrl, prompt);
-  const parsed = JSON.parse(outputText);
+  const parsed = await callAiWithFallback(providers, imageDataUrl, prompt);
   return normalizeInvoiceExtraction(parsed);
+}
+
+async function callAiWithFallback(providers, imageDataUrl, prompt) {
+  let lastError;
+
+  for (const providerSettings of providers) {
+    if (!providerSettings.keys.length) continue;
+
+    try {
+      const outputText = await requestAiExtractionWithRotation(providerSettings, imageDataUrl, prompt);
+      return JSON.parse(outputText);
+    } catch (error) {
+      lastError = error;
+      logger.warn("Provider AI gagal, mencoba provider berikutnya.", {
+        provider: providerSettings.provider,
+        model: providerSettings.model,
+        status: error.status || null,
+        error: sanitizeAiError(error.message)
+      });
+      continue;
+    }
+  }
+
+  throw new Error(sanitizeAiError(lastError?.message) || "Semua API Provider gagal.");
 }
 
 async function requestAiExtractionWithRotation(settings, imageDataUrl, prompt) {
@@ -653,6 +677,31 @@ async function getAiRuntimeSettings(providerOverride) {
   const keys = buildApiKeyList(provider, dbSettings);
   const model = resolveAiModel(provider, dbSettings);
   return { provider, keys, model };
+}
+
+async function getAiProvidersForFallback() {
+  const dbSettings = await readAppSettings([
+    "AI_PROVIDER",
+    "AI_API_KEY",
+    "AI_API_KEYS",
+    "AI_MODEL",
+    "AI_KEYS_GEMINI",
+    "AI_KEYS_OPENAI",
+    "AI_KEYS_GROQ",
+    "AI_KEYS_DEEPSEEK",
+    "AI_MODEL_GEMINI",
+    "AI_MODEL_OPENAI",
+    "AI_MODEL_GROQ",
+    "AI_MODEL_DEEPSEEK"
+  ]);
+  const activeProvider = normalizeAiProvider(dbSettings.AI_PROVIDER || process.env.AI_PROVIDER || "gemini");
+  const providerOrder = uniqueList([activeProvider, ...AI_PROVIDERS]);
+
+  return providerOrder.map((provider) => ({
+    provider,
+    keys: buildApiKeyList(provider, dbSettings),
+    model: resolveAiModel(provider, dbSettings)
+  }));
 }
 
 async function getAiSettings(provider) {
@@ -802,10 +851,21 @@ function buildApiKeyList(provider, dbSettings) {
 
 function normalizeAiProvider(provider) {
   const normalized = String(provider || "openai").trim().toLowerCase();
-  if (!["openai", "groq", "gemini", "deepseek"].includes(normalized)) {
+  if (!AI_PROVIDERS.includes(normalized)) {
     throw new Error("Provider API harus openai, groq, gemini, atau deepseek.");
   }
   return normalized;
+}
+
+function uniqueList(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function sanitizeAiError(message) {
+  return String(message || "")
+    .replace(/sk-[A-Za-z0-9_-]+/g, "sk-***")
+    .replace(/AIza[0-9A-Za-z_-]+/g, "AIza***")
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer ***");
 }
 
 function providerKeysSettingKey(provider) {

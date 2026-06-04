@@ -144,9 +144,9 @@ async function handleAction(action, payload) {
     login: () => loginUser(payload.name, payload.password),
     verifySuperAdmin: () => verifySuperAdmin(payload.adminId, payload.password),
     analyzeInvoiceImage: () => analyzeInvoiceImage(payload.imageDataUrl),
-    aiSettings: () => getAiSettings(),
+    aiSettings: () => getAiSettings(payload.provider),
     saveAiSettings: () => saveAiSettings(payload),
-    testAiSettings: () => testAiSettings(),
+    testAiSettings: () => testAiSettings(payload),
     modules: () => availableModules()
   };
 
@@ -630,19 +630,33 @@ async function requestAiExtraction(provider, apiKey, imageDataUrl, prompt, model
   if (provider === "gemini") return requestGeminiExtraction(apiKey, imageDataUrl, prompt, model);
   if (provider === "groq") return requestGroqExtraction(apiKey, imageDataUrl, prompt, model);
   if (provider === "openai") return requestOpenAiExtraction(apiKey, imageDataUrl, prompt, model);
+  if (provider === "deepseek") return requestDeepSeekExtraction(apiKey, imageDataUrl, prompt, model);
   throw new Error(`AI_PROVIDER tidak didukung: ${provider}`);
 }
 
-async function getAiRuntimeSettings() {
-  const dbSettings = await readAppSettings(["AI_PROVIDER", "AI_API_KEY", "AI_API_KEYS", "AI_MODEL"]);
-  const provider = String(dbSettings.AI_PROVIDER || process.env.AI_PROVIDER || "openai").toLowerCase();
+async function getAiRuntimeSettings(providerOverride) {
+  const dbSettings = await readAppSettings([
+    "AI_PROVIDER",
+    "AI_API_KEY",
+    "AI_API_KEYS",
+    "AI_MODEL",
+    "AI_KEYS_GEMINI",
+    "AI_KEYS_OPENAI",
+    "AI_KEYS_GROQ",
+    "AI_KEYS_DEEPSEEK",
+    "AI_MODEL_GEMINI",
+    "AI_MODEL_OPENAI",
+    "AI_MODEL_GROQ",
+    "AI_MODEL_DEEPSEEK"
+  ]);
+  const provider = normalizeAiProvider(providerOverride || dbSettings.AI_PROVIDER || process.env.AI_PROVIDER || "openai");
   const keys = buildApiKeyList(provider, dbSettings);
-  const model = dbSettings.AI_MODEL || process.env.AI_MODEL || process.env.OPENAI_MODEL || process.env.GROQ_MODEL || process.env.GEMINI_MODEL || defaultAiModel(provider);
+  const model = dbSettings[providerModelSettingKey(provider)] || dbSettings.AI_MODEL || process.env[providerEnvModelKey(provider)] || process.env.AI_MODEL || defaultAiModel(provider);
   return { provider, keys, model };
 }
 
-async function getAiSettings() {
-  const settings = await getAiRuntimeSettings();
+async function getAiSettings(provider) {
+  const settings = await getAiRuntimeSettings(provider);
   return {
     provider: settings.provider,
     model: settings.model,
@@ -661,10 +675,7 @@ async function getAiSettings() {
 }
 
 async function saveAiSettings(payload = {}) {
-  const provider = String(payload.provider || "gemini").trim().toLowerCase();
-  if (!["openai", "groq", "gemini"].includes(provider)) {
-    throw new Error("Provider API harus openai, groq, atau gemini.");
-  }
+  const provider = normalizeAiProvider(payload.provider || "gemini");
 
   const model = String(payload.model || defaultAiModel(provider)).trim();
   const keys = normalizeApiKeys(payload.apiKeys || payload.apiKey);
@@ -673,15 +684,17 @@ async function saveAiSettings(payload = {}) {
   await writeAppSettings({
     AI_PROVIDER: provider,
     AI_MODEL: model,
+    [providerModelSettingKey(provider)]: model,
     AI_API_KEY: keys[0].value,
-    AI_API_KEYS: JSON.stringify(keys)
+    AI_API_KEYS: JSON.stringify(keys),
+    [providerKeysSettingKey(provider)]: JSON.stringify(keys)
   });
 
-  return getAiSettings();
+  return getAiSettings(provider);
 }
 
-async function testAiSettings() {
-  const settings = await getAiRuntimeSettings();
+async function testAiSettings(payload = {}) {
+  const settings = await getAiRuntimeSettings(payload.provider);
   if (!settings.keys.length) {
     throw new Error("API_KEY_NOT_CONFIGURED_ON_RAILWAY");
   }
@@ -753,10 +766,18 @@ async function writeAppSettings(settings) {
 }
 
 function buildApiKeyList(provider, dbSettings) {
+  const providerKeys = parseStoredApiKeys(dbSettings[providerKeysSettingKey(provider)]);
+  const activeStoredProvider = String(dbSettings.AI_PROVIDER || process.env.AI_PROVIDER || "").toLowerCase();
   const storedKeys = parseStoredApiKeys(dbSettings.AI_API_KEYS);
-  const envKeys = normalizeApiKeys(process.env.AI_API_KEYS || process.env.AI_API_KEY || "");
+  const envKeys = normalizeApiKeys(process.env[providerEnvKeysKey(provider)] || process.env.AI_API_KEYS || process.env.AI_API_KEY || "");
   const singleDbKey = normalizeApiKeys(dbSettings.AI_API_KEY || "");
-  const merged = [...storedKeys, ...singleDbKey, ...envKeys];
+  const merged = providerKeys.length
+    ? [...providerKeys, ...envKeys]
+    : [
+      ...(activeStoredProvider === provider ? storedKeys : []),
+      ...(activeStoredProvider === provider ? singleDbKey : []),
+      ...envKeys
+    ];
   const seen = new Set();
 
   return merged
@@ -776,6 +797,30 @@ function buildApiKeyList(provider, dbSettings) {
       lastError: item.lastError || "",
       lastCheckedAt: item.lastCheckedAt || ""
     }));
+}
+
+function normalizeAiProvider(provider) {
+  const normalized = String(provider || "openai").trim().toLowerCase();
+  if (!["openai", "groq", "gemini", "deepseek"].includes(normalized)) {
+    throw new Error("Provider API harus openai, groq, gemini, atau deepseek.");
+  }
+  return normalized;
+}
+
+function providerKeysSettingKey(provider) {
+  return `AI_KEYS_${provider.toUpperCase()}`;
+}
+
+function providerModelSettingKey(provider) {
+  return `AI_MODEL_${provider.toUpperCase()}`;
+}
+
+function providerEnvKeysKey(provider) {
+  return `AI_KEYS_${provider.toUpperCase()}`;
+}
+
+function providerEnvModelKey(provider) {
+  return `${provider.toUpperCase()}_MODEL`;
 }
 
 function parseStoredApiKeys(rawValue) {
@@ -856,19 +901,22 @@ function createKeyId(value) {
 }
 
 async function updateApiKeyStatus(provider, keyId, status, lastError = "") {
-  const dbSettings = await readAppSettings(["AI_API_KEYS"]);
+  const dbSettings = await readAppSettings(["AI_API_KEY", "AI_API_KEYS", providerKeysSettingKey(provider)]);
   const keys = buildApiKeyList(provider, dbSettings).map((key) => (
     key.id === keyId
       ? { ...key, status, lastError, lastCheckedAt: new Date().toISOString() }
       : key
   ));
-  await writeAppSettings({ AI_API_KEYS: JSON.stringify(keys) });
+  await writeAppSettings({
+    AI_API_KEYS: JSON.stringify(keys),
+    [providerKeysSettingKey(provider)]: JSON.stringify(keys)
+  });
 }
 
 async function healthCheckAiKeys(provider, model) {
-  const dbSettings = await readAppSettings(["AI_PROVIDER", "AI_API_KEY", "AI_API_KEYS", "AI_MODEL"]);
-  const selectedProvider = provider || String(dbSettings.AI_PROVIDER || process.env.AI_PROVIDER || "openai").toLowerCase();
-  const selectedModel = model || dbSettings.AI_MODEL || process.env.AI_MODEL || defaultAiModel(selectedProvider);
+  const selectedProvider = normalizeAiProvider(provider || process.env.AI_PROVIDER || "openai");
+  const dbSettings = await readAppSettings(["AI_PROVIDER", "AI_API_KEY", "AI_API_KEYS", "AI_MODEL", providerKeysSettingKey(selectedProvider), providerModelSettingKey(selectedProvider)]);
+  const selectedModel = model || dbSettings[providerModelSettingKey(selectedProvider)] || dbSettings.AI_MODEL || process.env.AI_MODEL || defaultAiModel(selectedProvider);
   const keys = buildApiKeyList(selectedProvider, dbSettings);
   const checked = [];
 
@@ -887,7 +935,10 @@ async function healthCheckAiKeys(provider, model) {
   }
 
   if (checked.length) {
-    await writeAppSettings({ AI_API_KEYS: JSON.stringify(checked) });
+    await writeAppSettings({
+      AI_API_KEYS: JSON.stringify(checked),
+      [providerKeysSettingKey(selectedProvider)]: JSON.stringify(checked)
+    });
   }
 
   return maskApiKeys(checked);
@@ -907,6 +958,11 @@ async function pingAiProvider(provider, apiKey, model) {
   if (provider === "gemini") {
     return testJsonEndpoint(`https://generativelanguage.googleapis.com/v1beta/models/${model || "gemini-1.5-flash"}?key=${encodeURIComponent(apiKey)}`);
   }
+  if (provider === "deepseek") {
+    return testJsonEndpoint("https://api.deepseek.com/v1/models", {
+      Authorization: `Bearer ${apiKey}`
+    });
+  }
   throw new Error(`AI_PROVIDER tidak didukung: ${provider}`);
 }
 
@@ -921,6 +977,7 @@ function isAuthError(error) {
 function defaultAiModel(provider) {
   if (provider === "gemini") return "gemini-1.5-flash";
   if (provider === "groq") return "meta-llama/llama-4-scout-17b-16e-instruct";
+  if (provider === "deepseek") return "deepseek-chat";
   return "gpt-4.1-mini";
 }
 
@@ -1008,6 +1065,39 @@ async function requestGroqExtraction(apiKey, imageDataUrl, prompt, model) {
     },
     body: JSON.stringify({
       model: model || "meta-llama/llama-4-scout-17b-16e-instruct",
+      temperature: 0,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: imageDataUrl } }
+          ]
+        }
+      ]
+    })
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    const error = new Error(result.error?.message || "Analisis AI gagal.");
+    error.status = response.status;
+    throw error;
+  }
+
+  return result.choices?.[0]?.message?.content || "";
+}
+
+async function requestDeepSeekExtraction(apiKey, imageDataUrl, prompt, model) {
+  const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: model || "deepseek-chat",
       temperature: 0,
       response_format: { type: "json_object" },
       messages: [

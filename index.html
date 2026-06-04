@@ -74,6 +74,8 @@
     .api-key-list { display: grid; gap: 8px; }
     .api-key-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid rgba(148,163,184,.18); border-radius: 14px; background: rgba(2,6,23,.62); padding: 10px 12px; color: #cbd5e1; font-size: 12px; }
     .api-key-item strong { color: #f8fafc; }
+    .api-key-input-list { display: grid; gap: 8px; }
+    .api-key-input-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; }
     .api-primary { border: 0; border-radius: 14px; padding: 13px 18px; color: white; font-weight: 900; background: linear-gradient(135deg, #7c3aed, #2563eb); cursor: pointer; }
     .api-warning { border: 1px solid rgba(245,158,11,.55); background: rgba(120,53,15,.36); color: #fde68a; border-radius: 14px; padding: 13px 14px; font-size: 13px; }
     .api-help-card { padding: 16px; color: #cbd5e1; }
@@ -732,9 +734,12 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       el("test-ai-settings")?.addEventListener("click", testAiSettings);
     }
 
-    async function loadAiSettings() {
+    async function loadAiSettings(providerOverride) {
       try {
-        const settings = await gas("aiSettings");
+        const selectedProvider = typeof providerOverride === "string"
+          ? providerOverride
+          : (el("ai-provider")?.value || undefined);
+        const settings = await gas("aiSettings", { provider: selectedProvider });
         const keyRows = (settings.keys || []).map((key) => `
           <div class="api-key-item">
             <span><strong>LAYER ${key.layer}</strong> ${key.masked}</span>
@@ -758,12 +763,14 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
               <option value="gemini" ${settings.provider === "gemini" ? "selected" : ""}>Gemini</option>
               <option value="openai" ${settings.provider === "openai" ? "selected" : ""}>OpenAI</option>
               <option value="groq" ${settings.provider === "groq" ? "selected" : ""}>Groq</option>
+              <option value="deepseek" ${settings.provider === "deepseek" ? "selected" : ""}>DeepSeek</option>
             </select>
             <label>Model</label>
             <input id="ai-model" value="${settings.model}" placeholder="gemini-1.5-flash">
             <label>API Keys Baru / Pengganti</label>
-            <div class="api-key-row">
-              <textarea id="ai-api-keys" data-hidden="true" placeholder="Satu baris satu API key. Maksimal 10 layer."></textarea>
+            <div id="ai-key-input-list" class="api-key-input-list"></div>
+            <div class="actions">
+              <button class="btn soft" id="add-ai-key" type="button">+ Tambah Key</button>
               <button class="btn soft" id="toggle-ai-key" type="button">SHOW</button>
             </div>
             <button class="api-primary" type="submit">SAVE API SETTINGS</button>
@@ -781,27 +788,67 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     function bindAiSettingsForm() {
       const providerInput = el("ai-provider");
       const modelInput = el("ai-model");
-      const keyInput = el("ai-api-keys");
       const toggle = el("toggle-ai-key");
       const form = el("ai-settings-form");
+      const addButton = el("add-ai-key");
+
+      renderAiKeyInputs([""]);
 
       providerInput?.addEventListener("change", () => {
         const defaults = {
           gemini: "gemini-1.5-flash",
           openai: "gpt-4.1-mini",
-          groq: "meta-llama/llama-4-scout-17b-16e-instruct"
+          groq: "meta-llama/llama-4-scout-17b-16e-instruct",
+          deepseek: "deepseek-chat"
         };
         modelInput.value = defaults[providerInput.value] || modelInput.value;
+        loadAiSettings(providerInput.value);
       });
 
       toggle?.addEventListener("click", () => {
-        const visible = keyInput.dataset.hidden !== "true";
-        keyInput.dataset.hidden = visible ? "true" : "false";
-        keyInput.style.webkitTextSecurity = visible ? "disc" : "none";
+        const inputs = [...document.querySelectorAll(".ai-key-input")];
+        const visible = inputs.some((input) => input.dataset.hidden !== "true");
+        inputs.forEach((input) => {
+          input.dataset.hidden = visible ? "true" : "false";
+          input.type = visible ? "password" : "text";
+        });
         toggle.textContent = visible ? "SHOW" : "HIDE";
       });
 
+      addButton?.addEventListener("click", () => addAiKeyInput());
       form?.addEventListener("submit", saveAiSettings);
+    }
+
+    function renderAiKeyInputs(values) {
+      const container = el("ai-key-input-list");
+      if (!container) return;
+      container.innerHTML = "";
+      const safeValues = (values || [""]).slice(0, 10);
+      safeValues.forEach((value) => addAiKeyInput(value));
+    }
+
+    function addAiKeyInput(value = "") {
+      const container = el("ai-key-input-list");
+      if (!container || container.children.length >= 10) return;
+      const row = document.createElement("div");
+      row.className = "api-key-input-row";
+      row.innerHTML = `
+        <input class="ai-key-input" data-hidden="true" type="password" value="${escapeAttr(value)}" placeholder="Masukkan API Key...">
+        <span class="api-badge warn">PENDING</span>
+        <button class="btn soft remove-ai-key" type="button">HAPUS</button>
+      `;
+      row.querySelector(".remove-ai-key").addEventListener("click", () => {
+        row.remove();
+        if (!container.children.length) addAiKeyInput();
+      });
+      container.appendChild(row);
+    }
+
+    function collectAiKeyValues() {
+      return [...document.querySelectorAll(".ai-key-input")]
+        .map((input) => input.value.trim())
+        .filter(Boolean)
+        .slice(0, 10);
     }
 
     async function saveAiSettings(event) {
@@ -812,7 +859,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         await gas("saveAiSettings", {
           provider: el("ai-provider").value,
           model: el("ai-model").value,
-          apiKeys: el("ai-api-keys").value
+          apiKeys: collectAiKeyValues()
         });
         target.textContent = "API settings berhasil disimpan.";
         await loadAiSettings();
@@ -825,7 +872,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       const target = el("ai-settings-test-result");
       try {
         target.textContent = "Menguji koneksi API...";
-        const result = await gas("testAiSettings");
+        const result = await gas("testAiSettings", {
+          provider: el("ai-provider")?.value
+        });
         const dead = (result.keys || []).filter((key) => key.status === "dead").length;
         target.textContent = `${result.message} Provider: ${result.provider}, Model: ${result.model}, Dead: ${dead}`;
         await loadAiSettings();
@@ -1079,6 +1128,14 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         video.classList.add("hidden");
       }
       el("stop-product-scanner")?.classList.add("hidden");
+    }
+
+    function escapeAttr(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
     }
 
     el("super-login").onclick = () => {

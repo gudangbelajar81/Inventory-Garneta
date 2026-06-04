@@ -539,9 +539,9 @@ async function loginUser(name, password) {
 }
 
 async function analyzeInvoiceImage(imageDataUrl) {
-  const providers = await getAiProvidersForFallback();
+  const providers = await getAiProvidersForFallback({ visionOnly: true });
   if (!providers.some((provider) => provider.keys.length > 0)) {
-    throw new Error("API_KEY_NOT_CONFIGURED_ON_RAILWAY");
+    throw new Error("Belum ada API key vision yang aktif. Gunakan Gemini, OpenAI, atau Groq untuk analisa foto.");
   }
   if (!imageDataUrl || !String(imageDataUrl).startsWith("data:image/")) {
     throw new Error("Gambar nota wajib dikirim dalam format jpg/jpeg/png base64.");
@@ -657,7 +657,11 @@ async function requestAiExtraction(provider, apiKey, imageDataUrl, prompt, model
   if (provider === "gemini") return requestGeminiExtraction(apiKey, imageDataUrl, prompt, model);
   if (provider === "groq") return requestGroqExtraction(apiKey, imageDataUrl, prompt, model);
   if (provider === "openai") return requestOpenAiExtraction(apiKey, imageDataUrl, prompt, model);
-  if (provider === "deepseek") return requestDeepSeekExtraction(apiKey, imageDataUrl, prompt, model);
+  if (provider === "deepseek") {
+    const error = new Error("DeepSeek tidak dipakai untuk analisa foto karena endpoint ini tidak menerima image_url.");
+    error.status = 415;
+    throw error;
+  }
   throw new Error(`AI_PROVIDER tidak didukung: ${provider}`);
 }
 
@@ -682,7 +686,7 @@ async function getAiRuntimeSettings(providerOverride) {
   return { provider, keys, model };
 }
 
-async function getAiProvidersForFallback() {
+async function getAiProvidersForFallback(options = {}) {
   const dbSettings = await readAppSettings([
     "AI_PROVIDER",
     "AI_API_KEY",
@@ -698,7 +702,8 @@ async function getAiProvidersForFallback() {
     "AI_MODEL_DEEPSEEK"
   ]);
   const activeProvider = normalizeAiProvider(dbSettings.AI_PROVIDER || process.env.AI_PROVIDER || "gemini");
-  const providerOrder = uniqueList([activeProvider, ...AI_PROVIDERS]);
+  const providerOrder = uniqueList([activeProvider, ...AI_PROVIDERS])
+    .filter((provider) => !options.visionOnly || providerSupportsImage(provider));
 
   return providerOrder.map((provider) => ({
     provider,
@@ -972,6 +977,10 @@ function providerLabel(provider) {
     deepseek: "DeepSeek"
   };
   return labels[provider] || provider.toUpperCase();
+}
+
+function providerSupportsImage(provider) {
+  return ["gemini", "openai", "groq"].includes(provider);
 }
 
 function parseStoredApiKeys(rawValue) {

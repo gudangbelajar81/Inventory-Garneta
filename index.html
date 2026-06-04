@@ -883,7 +883,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             <button class="api-primary" type="submit">SAVE API SETTINGS</button>
           </form>
           <div class="api-warning">
-            Model berjalan otomatis mengikuti provider. Key penuh tidak ditampilkan kembali; daftar di atas hanya masked. Key DEAD bisa dihapus dari layer.
+            SAVE API SETTINGS akan menambahkan key baru ke layer provider terpilih sampai maksimal 10 key. Key lama tetap tersimpan, duplikat otomatis diabaikan.
           </div>
           <div class="api-warning">
             Analisa foto hanya memakai provider vision: Gemini, OpenAI, dan Groq. DeepSeek disimpan untuk fallback teks dan tidak dikirim gambar.
@@ -1035,6 +1035,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       row.querySelector(".remove-ai-key").addEventListener("click", () => {
         row.remove();
         if (!container.children.length) addAiKeyInput();
+      });
+      row.querySelector(".ai-key-input").addEventListener("input", () => {
+        const inputs = [...container.querySelectorAll(".ai-key-input")];
+        const isLast = inputs[inputs.length - 1] === row.querySelector(".ai-key-input");
+        if (isLast && row.querySelector(".ai-key-input").value.trim() && container.children.length < 10) {
+          addAiKeyInput();
+        }
       });
       container.appendChild(row);
     }

@@ -764,8 +764,13 @@ async function saveAiSettings(payload = {}) {
   const model = requestedModel && requestedModel.toLowerCase() !== "auto" && isModelCompatible(provider, requestedModel)
     ? requestedModel
     : defaultAiModel(provider);
-  const keys = normalizeApiKeys(payload.apiKeys || payload.apiKey);
-  if (!keys.length) throw new Error("Minimal satu API key wajib diisi.");
+  const incomingKeys = normalizeApiKeys(payload.apiKeys || payload.apiKey);
+  if (!incomingKeys.length) throw new Error("Minimal satu API key wajib diisi.");
+
+  const dbSettings = await readAppSettings(["AI_PROVIDER", "AI_API_KEY", "AI_API_KEYS", providerKeysSettingKey(provider)]);
+  const existingKeys = buildApiKeyList(provider, dbSettings);
+  const keys = mergeApiKeyLayers(existingKeys, incomingKeys);
+  if (keys.length > 10) throw new Error("Maksimal 10 API key per provider.");
 
   await writeAppSettings({
     AI_PROVIDER: provider,
@@ -1030,6 +1035,28 @@ function normalizeApiKeys(value) {
     })
     .filter(Boolean)
     .slice(0, 10);
+}
+
+function mergeApiKeyLayers(existingKeys, incomingKeys) {
+  const byValue = new Map();
+
+  [...existingKeys, ...incomingKeys].forEach((key) => {
+    const value = String(key.value || "").trim();
+    if (!value || byValue.has(value)) return;
+    byValue.set(value, {
+      id: key.id || createKeyId(value),
+      provider: key.provider || "",
+      value,
+      status: key.status === "dead" ? "dead" : "live",
+      lastError: key.lastError || "",
+      lastCheckedAt: key.lastCheckedAt || ""
+    });
+  });
+
+  return [...byValue.values()].slice(0, 10).map((key, index) => ({
+    ...key,
+    layer: index + 1
+  }));
 }
 
 function prioritizeLiveKeys(keys) {

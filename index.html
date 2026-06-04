@@ -49,6 +49,28 @@
     .bar { min-width: 24px; flex: 1; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--orange), var(--green)); }
     textarea.input-area { min-height: 120px; resize: vertical; }
     video.scanner-preview { width: 100%; max-height: 240px; border-radius: 8px; border: 1px solid var(--line); background: #0f172a; object-fit: cover; }
+    .settings-page { background: radial-gradient(circle at 20% 0%, rgba(34,211,238,.16), transparent 28%), #090a10; color: #f8fafc; border-radius: 8px; padding: 22px; min-height: calc(100vh - 118px); }
+    .settings-hero, .api-center-card, .api-help-card { background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(148,163,184,.18); border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.32); }
+    .settings-hero { padding: 22px; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .settings-kicker { color: #67e8f9; font-size: 11px; font-weight: 900; letter-spacing: 6px; text-transform: uppercase; }
+    .settings-title { margin: 8px 0 4px; font-size: 24px; font-weight: 900; }
+    .settings-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+    .settings-tabs button { border: 1px solid rgba(148,163,184,.24); border-radius: 999px; padding: 10px 22px; background: rgba(255,255,255,.05); color: #dbeafe; font-weight: 900; cursor: pointer; }
+    .settings-tabs button.active { background: linear-gradient(135deg, #2563eb, #7c3aed); border-color: transparent; color: white; }
+    .api-center-card { max-width: 560px; padding: 20px; display: grid; gap: 16px; }
+    .api-section-title { color: #facc15; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; font-size: 13px; }
+    .api-badges { display: flex; flex-wrap: wrap; gap: 10px; }
+    .api-badge { border: 1px solid rgba(148,163,184,.22); border-radius: 999px; padding: 9px 13px; background: rgba(2,6,23,.68); color: #e2e8f0; font-size: 12px; font-weight: 900; }
+    .api-badge.ok { border-color: rgba(16,185,129,.55); color: #99f6e4; }
+    .api-badge.warn { border-color: rgba(245,158,11,.65); color: #fde68a; }
+    .api-key-box { display: grid; gap: 8px; }
+    .api-key-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .api-key-display { border: 1px solid rgba(148,163,184,.22); border-radius: 14px; background: #090a10; padding: 13px 14px; color: #cbd5e1; font-weight: 900; overflow-wrap: anywhere; }
+    .api-primary { border: 0; border-radius: 14px; padding: 13px 18px; color: white; font-weight: 900; background: linear-gradient(135deg, #7c3aed, #2563eb); cursor: pointer; }
+    .api-warning { border: 1px solid rgba(245,158,11,.55); background: rgba(120,53,15,.36); color: #fde68a; border-radius: 14px; padding: 13px 14px; font-size: 13px; }
+    .api-help-card { padding: 16px; color: #cbd5e1; }
+    .api-help-card ol { margin: 10px 0 0; padding-left: 20px; line-height: 1.75; }
+    .api-status-text { color: #a7f3d0; font-weight: 800; }
     @media (max-width: 900px) {
       .app { grid-template-columns: 1fr; }
       .sidebar { position: sticky; top: 0; z-index: 6; }
@@ -302,35 +324,39 @@ Beras Premium 1"></textarea>
     }
 
     function settings() {
-      return `<section class="grid">
-        <div class="card">
-          <div class="actions" style="justify-content:space-between">
-            <div>
-              <h2>Setting API</h2>
-              <p class="muted">API key harus dimasukkan di Environment Variables Railway, bukan di browser. Key tidak pernah ditampilkan di frontend.</p>
-            </div>
-            <div class="actions">
-              <button class="btn soft" id="refresh-ai-settings">Refresh</button>
-              <button class="btn primary" id="test-ai-settings">Test Koneksi API</button>
-            </div>
+      return `<section class="settings-page">
+        <div class="settings-hero">
+          <div>
+            <div class="settings-kicker">Settings</div>
+            <div class="settings-title">Pusat API (Load Balancer)</div>
+            <p class="muted">Kelola koneksi AI dari server Railway. Key tetap tersembunyi dan hanya dipakai backend.</p>
           </div>
-          <div id="ai-settings-panel" class="grid" style="margin-top:14px">
+          <button class="api-primary" id="refresh-ai-settings">RECHECK</button>
+        </div>
+
+        <div class="settings-tabs">
+          <button>SUPPORT</button>
+          <button>ENGINE</button>
+          <button class="active">PUSAT API</button>
+        </div>
+
+        <div class="api-center-card">
+          <div class="api-section-title">API Keys</div>
+          <div id="ai-settings-panel" class="grid">
             <p class="muted">Memuat pengaturan API...</p>
           </div>
-          <p id="ai-settings-test-result" class="muted"></p>
-        </div>
-        <div class="card">
-          <h3>Cara Mengisi API di Railway</h3>
-          <p class="muted">Buka Railway Dashboard -> pilih service aplikasi -> Variables -> tambahkan env berikut -> Redeploy.</p>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Nama Env</th><th>Contoh</th><th>Keterangan</th></tr></thead>
-              <tbody>
-                <tr><td>AI_PROVIDER</td><td>openai / groq / gemini</td><td>Provider AI yang dipakai backend.</td></tr>
-                <tr><td>AI_API_KEY</td><td>********</td><td>Disimpan hanya di Railway, tidak di frontend.</td></tr>
-                <tr><td>AI_MODEL</td><td>gpt-4.1-mini</td><td>Opsional, menimpa model default provider.</td></tr>
-              </tbody>
-            </table>
+          <button class="api-primary" id="test-ai-settings">HEALTH CHECK NOW</button>
+          <p id="ai-settings-test-result" class="api-status-text"></p>
+
+          <div class="api-help-card">
+            <strong>CARA SET API KEY DI RAILWAY</strong>
+            <ol>
+              <li>Buka Railway Dashboard.</li>
+              <li>Pilih service aplikasi inventory.</li>
+              <li>Buka tab Variables.</li>
+              <li>Tambahkan <strong>AI_PROVIDER</strong>, <strong>AI_API_KEY</strong>, dan opsional <strong>AI_MODEL</strong>.</li>
+              <li>Klik Redeploy agar backend membaca env terbaru.</li>
+            </ol>
           </div>
         </div>
       </section>`;
@@ -703,13 +729,21 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       try {
         const settings = await gas("aiSettings");
         el("ai-settings-panel").innerHTML = `
-          <div class="grid stats">
-            ${stat("Provider", settings.provider)}
-            ${stat("Model", settings.model)}
-            ${stat("API Key", settings.keyConfigured ? "Terpasang" : "Belum")}
-            ${stat("Keamanan", "Server-side")}
+          <div class="api-badges">
+            <span class="api-badge">PROVIDER: ${settings.provider.toUpperCase()}</span>
+            <span class="api-badge">MODEL: ${settings.model}</span>
+            <span class="api-badge ${settings.keyConfigured ? "ok" : "warn"}">${settings.keyConfigured ? "KEY ACTIVE" : "KEY NOT SET"}</span>
           </div>
-          <p class="muted">Key dibaca dari <strong>${settings.envNames.key}</strong> di server. Nilai key tidak dikirim ke frontend.</p>
+          <div class="api-key-box">
+            <label>AI API KEY</label>
+            <div class="api-key-row">
+              <div class="api-key-display">${settings.keyConfigured ? "****************************" : "Belum ada key di Railway"}</div>
+              <button class="btn soft" type="button" title="Key tidak bisa ditampilkan demi keamanan">HIDDEN</button>
+            </div>
+          </div>
+          <div class="api-warning">
+            API key tidak disimpan di browser. Input key dilakukan lewat Railway Variables: <strong>${settings.envNames.key}</strong>.
+          </div>
         `;
       } catch (error) {
         el("ai-settings-panel").innerHTML = `<p class="muted">${error.message}</p>`;

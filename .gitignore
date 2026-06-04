@@ -1,5 +1,7 @@
 .env
 node_modules/
+logs/*.log
+!logs/.gitkeep
 *.log
 server.log
 server.err.log

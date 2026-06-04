@@ -122,17 +122,24 @@
     };
     let scannerStream = null;
     let scannerActive = false;
+    let invoiceStream = null;
 
     const rupiah = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value || 0));
     const today = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
+    const API_URL = window.location.protocol === "file:" ? "http://127.0.0.1:3000/api" : "/api";
 
     async function gas(action, payload = {}) {
-      const response = await fetch("/api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, payload })
-      });
+      let response;
+      try {
+        response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, payload })
+        });
+      } catch (error) {
+        throw new Error("Tidak bisa terhubung ke server. Buka http://127.0.0.1:3000/ atau pastikan node server.js sedang berjalan.");
+      }
 
       const text = await response.text();
       const result = text ? JSON.parse(text) : null;
@@ -186,8 +193,34 @@
           ${stat("Nilai Stok", rupiah(d.stockValue))}
           ${stat("Keuntungan", rupiah(d.totalProfit))}
         </div>
+        <div class="card"><h3>AI Nota ke Barang</h3>${invoiceAiTools()}</div>
         <div class="card"><h3>Stok Menipis</h3>${simpleTable(d.stockAlerts || [], ["name", "stock", "minStock"], ["Barang", "Stok", "Minimal"])}</div>
       </section>`;
+    }
+
+    function invoiceAiTools() {
+      return `<div class="grid">
+        <div class="grid forms">
+          <label>Import Foto Nota JPG/JPEG/PNG
+            <input id="invoice-image-file" type="file" accept="image/jpeg,image/jpg,image/png">
+          </label>
+          <div class="actions" style="align-self:end">
+            <button class="btn soft" id="open-invoice-camera">Buka Kamera</button>
+            <button class="btn danger hidden" id="close-invoice-camera">Tutup Kamera</button>
+          </div>
+        </div>
+        <video id="invoice-camera-video" class="scanner-preview hidden" playsinline></video>
+        <canvas id="invoice-canvas" class="hidden"></canvas>
+        <div class="actions">
+          <button class="btn primary" id="analyze-invoice-file">Analisa Foto</button>
+          <button class="btn primary hidden" id="capture-invoice-photo">Foto & Analisa</button>
+          <button class="btn soft" id="save-invoice-products">Masukkan ke Barang</button>
+        </div>
+        <label>Hasil JSON AI
+          <textarea id="invoice-ai-result" class="input-area" placeholder='{"tanggal":"04/06/26","items":[],"total_belanja":0}'></textarea>
+        </label>
+        <p class="muted">Butuh env AI_PROVIDER dan AI_API_KEY di Railway. Hasil AI mengikuti format JSON DSI dan dapat langsung dimasukkan ke menu Barang.</p>
+      </div>`;
     }
 
     function barang() {
@@ -514,6 +547,35 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       alert(`${saved} barang berhasil diimport.`);
     }
 
+    function invoiceItemsToProducts(invoice) {
+      if (invoice.error) {
+        throw new Error(invoice.error);
+      }
+
+      return (invoice.items || [])
+        .filter((item) => item.nama_barang && item.nama_barang !== "UNKNOWN")
+        .map((item) => ({
+          name: item.nama_barang,
+          category: "Umum",
+          unit: item.tipe_harga === "H.M/dus" ? "karton/dus" : "pcs",
+          unitContent: 1,
+          basePrice: Number(item.harga_modal || 0),
+          salePrice: 0,
+          stock: Number(item.kuantitas || 0),
+          minStock: 0,
+          barcode: ""
+        }));
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Gagal membaca file gambar."));
+        reader.readAsDataURL(file);
+      });
+    }
+
     async function readProductFile(file) {
       const ext = file.name.split(".").pop().toLowerCase();
       if (["xlsx", "xls"].includes(ext)) {
@@ -591,6 +653,88 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
       bindProductTools();
       bindShoppingTools();
+      bindInvoiceAiTools();
+    }
+
+    function bindInvoiceAiTools() {
+      el("analyze-invoice-file")?.addEventListener("click", async () => {
+        try {
+          const file = el("invoice-image-file").files[0];
+          if (!file) throw new Error("Pilih file foto nota terlebih dahulu.");
+          const imageDataUrl = await readFileAsDataUrl(file);
+          await analyzeInvoiceImage(imageDataUrl);
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+
+      el("open-invoice-camera")?.addEventListener("click", openInvoiceCamera);
+      el("close-invoice-camera")?.addEventListener("click", closeInvoiceCamera);
+      el("capture-invoice-photo")?.addEventListener("click", async () => {
+        try {
+          const imageDataUrl = captureInvoiceFrame();
+          await analyzeInvoiceImage(imageDataUrl);
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+
+      el("save-invoice-products")?.addEventListener("click", async () => {
+        try {
+          const invoice = JSON.parse(el("invoice-ai-result").value || "{}");
+          const rows = invoiceItemsToProducts(invoice);
+          if (!rows.length) throw new Error("Tidak ada item valid untuk dimasukkan ke Barang.");
+          await importProducts(rows);
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+    }
+
+    async function analyzeInvoiceImage(imageDataUrl) {
+      el("invoice-ai-result").value = "Menganalisa foto nota...";
+      const result = await gas("analyzeInvoiceImage", { imageDataUrl });
+      el("invoice-ai-result").value = JSON.stringify(result, null, 2);
+    }
+
+    async function openInvoiceCamera() {
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error("Browser belum mendukung akses kamera.");
+        const video = el("invoice-camera-video");
+        invoiceStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = invoiceStream;
+        video.classList.remove("hidden");
+        el("capture-invoice-photo").classList.remove("hidden");
+        el("close-invoice-camera").classList.remove("hidden");
+        await video.play();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function captureInvoiceFrame() {
+      const video = el("invoice-camera-video");
+      const canvas = el("invoice-canvas");
+      if (!video?.videoWidth) throw new Error("Kamera belum siap.");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/jpeg", 0.92);
+    }
+
+    function closeInvoiceCamera() {
+      if (invoiceStream) {
+        invoiceStream.getTracks().forEach((track) => track.stop());
+        invoiceStream = null;
+      }
+      const video = el("invoice-camera-video");
+      if (video) {
+        video.pause();
+        video.srcObject = null;
+        video.classList.add("hidden");
+      }
+      el("capture-invoice-photo")?.classList.add("hidden");
+      el("close-invoice-camera")?.classList.add("hidden");
     }
 
     function bindProductTools() {

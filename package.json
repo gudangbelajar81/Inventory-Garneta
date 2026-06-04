@@ -4,7 +4,8 @@
   "main": "server.js",
   "scripts": {
     "migrate": "node migrate.js",
-    "start": "node migrate.js && node server.js"
+    "start": "node migrate.js && node server.js",
+    "cron": "node scripts/run-cron.js"
   },
   "engines": {
     "node": ">=20"
@@ -12,6 +13,8 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "mysql2": "^3.22.4"
+    "mysql2": "^3.22.4",
+    "node-cron": "^3.0.3",
+    "winston": "^3.17.0"
   }
 }

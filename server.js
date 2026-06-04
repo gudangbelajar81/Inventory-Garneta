@@ -4,57 +4,108 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
+const { databaseConfig } = require("./config/database");
+const logger = require("./config/logger");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
+const SHUTDOWN_TIMEOUT_MS = Number(process.env.SHUTDOWN_TIMEOUT_MS || 30000);
 
-const dbConfig = databaseConfig();
+let server;
+let isShuttingDown = false;
 
-const db = mysql.createPool({
-  ...dbConfig,
-  waitForConnections: true,
-  connectionLimit: 10,
-  namedPlaceholders: true
-});
+function createDatabasePool() {
+  const dbUrl = process.env.DB_URL;
+
+  if (!dbUrl) {
+    logger.warn("DB_URL tidak ditemukan di .env — menggunakan fallback DB_HOST / DB_USER / DB_NAME.");
+  } else {
+    logger.info("Koneksi database menggunakan DB_URL dari .env.");
+  }
+
+  const { multipleStatements, ...connectionConfig } = databaseConfig();
+
+  const pool = mysql.createPool({
+    ...connectionConfig,
+    waitForConnections: true,
+    connectionLimit: Number(process.env.DB_POOL_LIMIT || 10),
+    maxIdle: Number(process.env.DB_POOL_MAX_IDLE || 10),
+    idleTimeout: Number(process.env.DB_POOL_IDLE_TIMEOUT_MS || 60_000),
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0,
+    namedPlaceholders: true,
+    charset: "utf8mb4",
+    ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: true } : undefined
+  });
+
+  pool.on("connection", (connection) => {
+    logger.debug("Koneksi database baru dibuat.", { threadId: connection.threadId });
+  });
+
+  pool.on("error", (error) => {
+    logger.error("Pool database mengalami error.", {
+      code: error.code,
+      error: error.message
+    });
+  });
+
+  return pool;
+}
+
+const db = createDatabasePool();
 
 const featureModules = loadFeatureModules();
 
-function databaseConfig() {
-  if (process.env.DATABASE_URL) {
-    const url = new URL(process.env.DATABASE_URL);
-    return {
-      host: url.hostname,
-      port: Number(url.port || 3306),
-      user: decodeURIComponent(url.username),
-      password: decodeURIComponent(url.password),
-      database: url.pathname.replace(/^\//, "") || "retail_inventory"
-    };
-  }
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
 
-  return {
-    host: process.env.MYSQLHOST || process.env.DB_HOST || "localhost",
-    port: Number(process.env.MYSQLPORT || process.env.DB_PORT || 3306),
-    user: process.env.MYSQLUSER || process.env.DB_USER || "root",
-    password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || "",
-    database: process.env.MYSQLDATABASE || process.env.DB_NAME || "retail_inventory"
-  };
-}
-
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 app.use(express.static("public"));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.get("/api/health", async (req, res) => {
+async function healthCheck(req, res) {
+  if (isShuttingDown) {
+    return res.status(503).json({
+      ok: false,
+      status: "shutting_down",
+      message: "Server sedang dimatikan."
+    });
+  }
+
   try {
     await db.query("SELECT 1");
-    res.json({ ok: true, message: "Server dan database aktif." });
+    res.json({
+      ok: true,
+      status: "healthy",
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      message: "Server dan database aktif."
+    });
   } catch (error) {
-    res.status(500).json({ ok: false, message: error.message });
+    logger.error("Health check gagal.", { error: error.message });
+    res.status(503).json({ ok: false, status: "unhealthy", message: error.message });
   }
+}
+
+app.get("/health", healthCheck);
+app.get("/api/health", healthCheck);
+
+app.use((req, res, next) => {
+  if (isShuttingDown) {
+    return res.status(503).json({ ok: false, message: "Server sedang dimatikan." });
+  }
+  next();
 });
 
 app.post("/api", async (req, res) => {
@@ -65,9 +116,22 @@ app.post("/api", async (req, res) => {
     const data = await handleAction(action, payload);
     res.json({ ok: true, data });
   } catch (error) {
+    logger.warn("API request gagal.", { action: req.body?.action, error: error.message });
     res.status(400).json({ ok: false, message: error.message });
   }
 });
+
+app.post("/api/analyze", async (req, res) => {
+  try {
+    const data = await analyzeInvoiceImage(req.body?.imageDataUrl);
+    res.json({ ok: true, data });
+  } catch (error) {
+    logger.warn("Analisa foto gagal.", { error: error.message });
+    res.status(400).json({ ok: false, message: error.message });
+  }
+});
+
+app.use(errorHandler);
 
 async function handleAction(action, payload) {
   const coreActions = {
@@ -79,6 +143,7 @@ async function handleAction(action, payload) {
     remove: () => removeRow(payload.collection, payload.id),
     login: () => loginUser(payload.name, payload.password),
     verifySuperAdmin: () => verifySuperAdmin(payload.adminId, payload.password),
+    analyzeInvoiceImage: () => analyzeInvoiceImage(payload.imageDataUrl),
     modules: () => availableModules()
   };
 
@@ -466,6 +531,243 @@ async function loginUser(name, password) {
   };
 }
 
+async function analyzeInvoiceImage(imageDataUrl) {
+  if (!process.env.AI_API_KEY) {
+    throw new Error("API_KEY_NOT_CONFIGURED_ON_RAILWAY");
+  }
+  if (!imageDataUrl || !String(imageDataUrl).startsWith("data:image/")) {
+    throw new Error("Gambar nota wajib dikirim dalam format jpg/jpeg/png base64.");
+  }
+
+  const prompt = `Identity: You are a Professional Data Extraction Agent for the DSI-Inventory Management System.
+
+System Context:
+- You are part of a modular architecture. You may be running on Gemini, OpenAI, or Groq engines. Your output quality must remain consistent regardless of the underlying model.
+- Your primary function is to transform unstructured image data (invoices/notas) into clean, actionable JSON data.
+
+Standardization Protocols:
+1. Date Parsing:
+   - Always use DD/MM/YY format.
+   - Today is 04/06/26. If the nota lacks a date, use today's date.
+2. Naming Conventions (Strict Override):
+   - "jemplak" -> "japlak"
+   - "Rm" -> "Kol"
+   - Correct all spelling errors based on the standard Indonesian inventory master list.
+3. Pricing & Units:
+   - "H.M/dus" = Bulk Price per box.
+   - "H.M/pcs" = Unit Price per item.
+   - "sst" = Sachet.
+   - Strip all currency symbols (Rp, etc.) and keep only numeric values.
+4. Output Integrity:
+   - Provide output ONLY in strictly formatted JSON.
+   - NO markdown code blocks, NO conversational chatter, NO preambles.
+   - If an image is not a valid nota, return {"error": "Invalid document detected"}.
+
+JSON Schema Definition:
+{
+  "tanggal": "DD/MM/YY",
+  "items": [
+    {
+      "nama_barang": "string",
+      "kuantitas": number,
+      "harga_modal": number,
+      "tipe_harga": "H.M/pcs" | "H.M/dus" | "sst"
+    }
+  ],
+  "total_belanja": number,
+  "status": "success" | "review_required"
+}
+
+Execution Instructions:
+1. Analyze the visual elements of the image for text content.
+2. Apply normalization rules immediately.
+3. Structure data into the schema above.
+4. If an item total does not match the sum of items, flag "status": "review_required".`;
+
+  const provider = String(process.env.AI_PROVIDER || "openai").toLowerCase();
+  const outputText = await requestAiExtraction(provider, process.env.AI_API_KEY, imageDataUrl, prompt);
+  const parsed = JSON.parse(outputText);
+  return normalizeInvoiceExtraction(parsed);
+}
+
+async function requestAiExtraction(provider, apiKey, imageDataUrl, prompt) {
+  if (provider === "gemini") return requestGeminiExtraction(apiKey, imageDataUrl, prompt);
+  if (provider === "groq") return requestGroqExtraction(apiKey, imageDataUrl, prompt);
+  if (provider === "openai") return requestOpenAiExtraction(apiKey, imageDataUrl, prompt);
+  throw new Error(`AI_PROVIDER tidak didukung: ${provider}`);
+}
+
+async function requestOpenAiExtraction(apiKey, imageDataUrl, prompt) {
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini",
+      input: [
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: prompt },
+            { type: "input_image", image_url: imageDataUrl }
+          ]
+        }
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "invoice_extraction",
+          schema: {
+            type: "object",
+            oneOf: [
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  tanggal: { type: "string" },
+                  items: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        nama_barang: { type: "string" },
+                        kuantitas: { type: "number" },
+                        harga_modal: { type: "number" },
+                        tipe_harga: { type: "string", enum: ["H.M/pcs", "H.M/dus", "sst"] }
+                      },
+                      required: ["nama_barang", "kuantitas", "harga_modal", "tipe_harga"]
+                    }
+                  },
+                  total_belanja: { type: "number" },
+                  status: { type: "string", enum: ["success", "review_required"] }
+                },
+                required: ["tanggal", "items", "total_belanja", "status"]
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  error: { type: "string", enum: ["Invalid document detected"] }
+                },
+                required: ["error"]
+              }
+            ]
+          },
+          strict: true
+        }
+      }
+    })
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.error?.message || "Analisis AI gagal.");
+  }
+
+  return extractAiText(result);
+}
+
+async function requestGroqExtraction(apiKey, imageDataUrl, prompt) {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: process.env.AI_MODEL || process.env.GROQ_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct",
+      temperature: 0,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: imageDataUrl } }
+          ]
+        }
+      ]
+    })
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.error?.message || "Analisis AI gagal.");
+  }
+
+  return result.choices?.[0]?.message?.content || "";
+}
+
+async function requestGeminiExtraction(apiKey, imageDataUrl, prompt) {
+  const { mimeType, base64 } = parseDataUrl(imageDataUrl);
+  const model = process.env.AI_MODEL || process.env.GEMINI_MODEL || "gemini-1.5-flash";
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      generationConfig: {
+        temperature: 0,
+        responseMimeType: "application/json"
+      },
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType, data: base64 } }
+          ]
+        }
+      ]
+    })
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.error?.message || "Analisis AI gagal.");
+  }
+
+  return result.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("") || "";
+}
+
+function parseDataUrl(imageDataUrl) {
+  const match = String(imageDataUrl).match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) throw new Error("Format gambar base64 tidak valid.");
+  return { mimeType: match[1], base64: match[2] };
+}
+
+function extractAiText(result) {
+  if (result.output_text) return result.output_text;
+
+  for (const output of result.output || []) {
+    for (const content of output.content || []) {
+      if (content.text) return content.text;
+    }
+  }
+
+  throw new Error("AI tidak mengembalikan JSON.");
+}
+
+function normalizeInvoiceExtraction(data) {
+  if (data.error) return { error: "Invalid document detected" };
+
+  return {
+    tanggal: data.tanggal || "04/06/26",
+    items: Array.isArray(data.items)
+      ? data.items.map((item) => ({
+        nama_barang: item.nama_barang || "UNKNOWN",
+        kuantitas: number(item.kuantitas),
+        harga_modal: number(item.harga_modal),
+        tipe_harga: ["H.M/pcs", "H.M/dus", "sst"].includes(item.tipe_harga) ? item.tipe_harga : "H.M/pcs"
+      }))
+      : [],
+    total_belanja: number(data.total_belanja),
+    status: ["success", "review_required"].includes(data.status) ? data.status : "review_required"
+  };
+}
+
 async function findRow(collection, id) {
   const rows = await listRows(collection);
   const row = rows.find((item) => String(item.id) === String(id));
@@ -699,6 +1001,51 @@ function formatDate(value) {
   return new Date(value).toISOString().slice(0, 10);
 }
 
-app.listen(PORT, () => {
-  console.log(`Server berjalan di http://localhost:${PORT}`);
+server = app.listen(PORT, () => {
+  logger.info(`Server berjalan di http://localhost:${PORT}`);
+});
+
+async function gracefulShutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  logger.info(`${signal} diterima. Memulai graceful shutdown...`);
+
+  const forceExitTimer = setTimeout(() => {
+    logger.error("Graceful shutdown timeout. Memaksa keluar.");
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  forceExitTimer.unref();
+
+  server.close(async (closeError) => {
+    if (closeError) {
+      logger.error("Error menutup HTTP server.", { error: closeError.message });
+    } else {
+      logger.info("HTTP server ditutup — tidak menerima koneksi baru.");
+    }
+
+    try {
+      await db.end();
+      logger.info("Pool koneksi database ditutup.");
+    } catch (error) {
+      logger.error("Error menutup pool database.", { error: error.message });
+    }
+
+    clearTimeout(forceExitTimer);
+    process.exit(closeError ? 1 : 0);
+  });
+}
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught exception.", { error: error.message, stack: error.stack });
+  gracefulShutdown("uncaughtException");
+});
+
+process.on("unhandledRejection", (reason) => {
+  logger.error("Unhandled rejection.", {
+    reason: reason instanceof Error ? reason.message : String(reason)
+  });
 });

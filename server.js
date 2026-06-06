@@ -69,9 +69,18 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
+app.use("/assets", express.static(path.join(__dirname, "assets")));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
+});
+
+app.get("/manifest.webmanifest", (req, res) => {
+  res.type("application/manifest+json").sendFile(path.join(__dirname, "manifest.webmanifest"));
+});
+
+app.get("/service-worker.js", (req, res) => {
+  res.type("application/javascript").sendFile(path.join(__dirname, "service-worker.js"));
 });
 
 async function healthCheck(req, res) {
@@ -140,6 +149,8 @@ async function handleAction(action, payload) {
     deleteAiKey: () => deleteAiKey(payload),
     testAiSettings: () => testAiSettings(payload.provider),
     analyzeInvoiceImage: () => analyzeInvoiceImage(payload),
+    backupData: () => backupData(),
+    restoreData: () => restoreData(payload.backup),
     modules: () => availableModules()
   };
 
@@ -269,17 +280,18 @@ function actionNotFoundMessage(action) {
 }
 
 async function bootstrap() {
-  const [products, suppliers, purchases, sales, users, priceHistory, stats] = await Promise.all([
+  const [products, suppliers, purchases, sales, users, priceHistory, auditLogs, stats] = await Promise.all([
     listRows("products"),
     listRows("suppliers"),
     listRows("purchases"),
     listRows("sales"),
     listRows("users"),
     listRows("priceHistory"),
+    listRows("auditLogs"),
     dashboard()
   ]);
 
-  return { products, suppliers, purchases, sales, users, priceHistory, dashboard: stats };
+  return { products, suppliers, purchases, sales, users, priceHistory, auditLogs, dashboard: stats };
 }
 
 async function dashboard() {
@@ -351,6 +363,17 @@ async function listRows(collection) {
     return rows.map(mapPriceHistory);
   }
 
+  if (collection === "auditLogs") {
+    const [rows] = await db.query(`
+      SELECT al.id, al.user_id, u.name AS user_name, al.activity, al.detail, al.created_at
+      FROM activity_logs al
+      LEFT JOIN users u ON u.id = al.user_id
+      ORDER BY al.id DESC
+      LIMIT 300
+    `);
+    return rows.map(mapAuditLog);
+  }
+
   throw new Error("Collection belum dibuat handler list.");
 }
 
@@ -364,6 +387,7 @@ async function addRow(collection, item = {}) {
       VALUES (:supplierId, :category, :name, :unit, :unitContent, :basePrice, :salePrice, :stock, :barcode)
     `, payload);
     await recordPriceHistory(result.insertId, "barang");
+    await recordAudit(`Tambah barang: ${payload.name}`);
     return findRow("products", result.insertId);
   }
 
@@ -372,6 +396,7 @@ async function addRow(collection, item = {}) {
       INSERT INTO suppliers (name, phone, address, notes)
       VALUES (:name, :phone, :address, :notes)
     `, supplierPayload(item));
+    await recordAudit(`Tambah supplier: ${item.name || "-"}`);
     return findRow("suppliers", result.insertId);
   }
 
@@ -380,6 +405,7 @@ async function addRow(collection, item = {}) {
       INSERT INTO purchases (supplier_id, user_id, invoice_number, purchased_at, total)
       VALUES (:supplierId, :userId, :invoice, :date, :total)
     `, purchasePayload(item));
+    await recordAudit(`Tambah pembelian: ${item.invoice || item.product || "tanpa nomor nota"}`);
     return findRow("purchases", result.insertId);
   }
 
@@ -389,6 +415,7 @@ async function addRow(collection, item = {}) {
       INSERT INTO sales (user_id, product_id, sold_at, unit_sold, unit_content, cost_price, sale_price, notes)
       VALUES (:userId, :productId, :date, :unitSold, :unitContent, :costPrice, :salePrice, :notes)
     `, payload);
+    await recordAudit(`Tambah penjualan produk ID ${payload.productId}`);
     return findRow("sales", result.insertId);
   }
 
@@ -398,6 +425,7 @@ async function addRow(collection, item = {}) {
       INSERT INTO users (name, email, password_hash, role, status)
       VALUES (:name, :email, :passwordHash, :role, :status)
     `, userPayload(item, true));
+    await recordAudit(`Tambah akun Super Admin: ${item.name || "-"}`);
     return findRow("users", result.insertId);
   }
 
@@ -419,6 +447,7 @@ async function updateRow(collection, id, item = {}) {
       WHERE id = :id
     `, payload);
     if (Number(before.basePrice) !== Number(payload.basePrice)) await recordPriceHistory(id, "barang");
+    await recordAudit(`Edit barang: ${payload.name}`);
     return findRow("products", id);
   }
 
@@ -429,6 +458,7 @@ async function updateRow(collection, id, item = {}) {
       SET name = :name, phone = :phone, address = :address, notes = :notes
       WHERE id = :id
     `, { ...supplierPayload({ ...before, ...item }), id });
+    await recordAudit(`Edit supplier: ${item.name || before.name || "-"}`);
     return findRow("suppliers", id);
   }
 
@@ -439,6 +469,7 @@ async function updateRow(collection, id, item = {}) {
           purchased_at = :date, total = :total
       WHERE id = :id
     `, { ...purchasePayload(item), id });
+    await recordAudit(`Edit pembelian ID ${id}`);
     return findRow("purchases", id);
   }
 
@@ -451,6 +482,7 @@ async function updateRow(collection, id, item = {}) {
           cost_price = :costPrice, sale_price = :salePrice, notes = :notes
       WHERE id = :id
     `, payload);
+    await recordAudit(`Edit penjualan ID ${id}`);
     return findRow("sales", id);
   }
 
@@ -463,6 +495,7 @@ async function updateRow(collection, id, item = {}) {
       SET name = :name, email = :email, role = :role, status = :status ${passwordSql}
       WHERE id = :id
     `, payload);
+    await recordAudit(`Edit user: ${payload.name}`);
     return findRow("users", id);
   }
 
@@ -478,6 +511,7 @@ async function removeRow(collection, id) {
   const table = tableName(collection);
   const [result] = await db.query(`DELETE FROM ${table} WHERE id = ?`, [id]);
   if (result.affectedRows === 0) throw new Error("Data tidak ditemukan.");
+  await recordAudit(`Hapus ${collection} ID ${id}`);
   return { id, deleted: true };
 }
 
@@ -537,6 +571,10 @@ async function recordPriceHistory(productId, source) {
     unitContent: product.unitContent,
     salePrice: product.salePrice
   });
+}
+
+async function recordAudit(message, userId = null) {
+  await db.query("INSERT INTO activity_logs (user_id, activity, detail) VALUES (?, ?, ?)", [userId, message, null]);
 }
 
 async function validateUserDelete(id) {
@@ -704,6 +742,78 @@ function mapPriceHistory(row) {
     source: "barang",
     createdAt: row.recorded_at
   };
+}
+
+function mapAuditLog(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    user: row.user_name || "System",
+    message: row.detail ? `${row.activity}: ${row.detail}` : row.activity,
+    createdAt: row.created_at
+  };
+}
+
+async function backupData() {
+  const tables = ["suppliers", "products", "purchases", "sales", "users", "price_history", "activity_logs", "app_settings"];
+  const backup = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    tables: {}
+  };
+
+  for (const table of tables) {
+    const [rows] = await db.query(`SELECT * FROM ${table}`);
+    backup.tables[table] = rows;
+  }
+
+  await recordAudit("Backup database dibuat");
+  return backup;
+}
+
+async function restoreData(backup) {
+  if (!backup?.tables || typeof backup.tables !== "object") {
+    throw new Error("File backup tidak valid.");
+  }
+
+  const tableOrder = ["sales", "purchases", "price_history", "products", "suppliers", "users", "activity_logs", "app_settings"];
+  const restoreOrder = ["suppliers", "users", "products", "purchases", "sales", "price_history", "activity_logs", "app_settings"];
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.query("SET FOREIGN_KEY_CHECKS = 0");
+    for (const table of tableOrder) {
+      if (backup.tables[table]) await connection.query(`DELETE FROM ${table}`);
+    }
+
+    for (const table of restoreOrder) {
+      const rows = Array.isArray(backup.tables[table]) ? backup.tables[table] : [];
+      for (const row of rows) {
+        const columns = Object.keys(row);
+        if (!columns.length) continue;
+        const placeholders = columns.map(() => "?").join(", ");
+        const values = columns.map((column) => row[column]);
+        await connection.query(`INSERT INTO ${table} (${columns.map((column) => `\`${column}\``).join(", ")}) VALUES (${placeholders})`, values);
+      }
+    }
+
+    await connection.query("SET FOREIGN_KEY_CHECKS = 1");
+    await connection.query("INSERT INTO activity_logs (activity) VALUES (?)", ["Restore database dari backup"]);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    try {
+      await connection.query("SET FOREIGN_KEY_CHECKS = 1");
+    } catch (error) {
+      logger.warn("Gagal mengaktifkan ulang foreign key check.", { error: error.message });
+    }
+    connection.release();
+  }
+
+  return bootstrap();
 }
 
 const AI_PROVIDERS = ["gemini", "openai", "groq", "deepseek"];
@@ -1060,7 +1170,7 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 }
 
 function assertCollection(collection) {
-  if (!["products", "suppliers", "purchases", "sales", "users", "priceHistory"].includes(collection)) {
+  if (!["products", "suppliers", "purchases", "sales", "users", "priceHistory", "auditLogs"].includes(collection)) {
     throw new Error("Collection tidak dikenal.");
   }
 }
@@ -1072,7 +1182,8 @@ function tableName(collection) {
     purchases: "purchases",
     sales: "sales",
     users: "users",
-    priceHistory: "price_history"
+    priceHistory: "price_history",
+    auditLogs: "activity_logs"
   };
   return tables[collection];
 }

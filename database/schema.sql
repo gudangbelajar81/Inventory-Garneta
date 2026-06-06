@@ -174,12 +174,15 @@ CREATE TABLE sales (
 CREATE TABLE activity_logs (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT UNSIGNED NULL,
-  message TEXT NOT NULL,
+  activity VARCHAR(255) NOT NULL,
+  detail TEXT NULL,
+  ip_address VARCHAR(45) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_activity_logs_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE SET NULL
-    ON UPDATE CASCADE
+    ON UPDATE CASCADE,
+  INDEX idx_activity_logs_created_at (created_at)
 ) ENGINE=InnoDB;
 
 CREATE TABLE app_settings (

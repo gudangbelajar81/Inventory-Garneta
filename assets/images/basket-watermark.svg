@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+  <defs>
+    <linearGradient id="basketWatermark" x1="104" y1="98" x2="548" y2="552" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#24f0c7"/>
+      <stop offset=".55" stop-color="#8df7df"/>
+      <stop offset="1" stop-color="#ff7043"/>
+    </linearGradient>
+  </defs>
+  <path d="M152 250h336l-55 226H207l-55-226Z" fill="none" stroke="url(#basketWatermark)" stroke-width="30" stroke-linejoin="round"/>
+  <path d="M230 244c18-78 51-119 90-119s72 41 90 119" fill="none" stroke="url(#basketWatermark)" stroke-width="30" stroke-linecap="round"/>
+  <path d="M220 314h200M235 377h170M250 440h140" stroke="url(#basketWatermark)" stroke-width="26" stroke-linecap="round"/>
+  <path d="M438 150l56 28-56 28" fill="none" stroke="#ff7043" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

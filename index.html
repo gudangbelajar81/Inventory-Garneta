@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Retail Inventory System</title>
+  <meta name="theme-color" content="#0b1f24">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>GARNETA SYSTEM</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
@@ -29,11 +31,17 @@
     button, input, select, textarea { font: inherit; }
     .app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
     .sidebar { background: var(--sidebar-bg); color: var(--nav-text); padding: 18px; border-right: 1px solid var(--line); box-shadow: 18px 0 48px rgba(0,0,0,.22); }
-    .brand { font-size: 20px; font-weight: 900; line-height: 1.2; margin-bottom: 18px; letter-spacing: .2px; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; min-width: 0; }
+    .brand-logo { width: 44px; height: 44px; flex: 0 0 44px; filter: drop-shadow(0 10px 22px rgba(36,240,199,.22)); }
+    .brand-title { display: block; font-size: 19px; font-weight: 950; line-height: 1.02; letter-spacing: 1.4px; color: #f8ffff; text-transform: uppercase; text-shadow: 0 2px 14px rgba(36,240,199,.18); }
+    .brand-subtitle { display: block; margin-top: 5px; font-size: 9px; font-weight: 900; letter-spacing: 2.2px; color: var(--mint); text-transform: uppercase; }
     .nav { display: grid; gap: 8px; }
     .nav button { border: 1px solid rgba(141,247,223,.1); border-radius: 10px; padding: 11px 12px; cursor: pointer; text-align: left; color: var(--nav-text); background: rgba(255,255,255,.045); }
     .nav button.active, .nav button:hover { background: linear-gradient(135deg, rgba(36,240,199,.22), rgba(255,112,67,.14)); border-color: rgba(36,240,199,.34); box-shadow: 0 0 22px rgba(36,240,199,.12); }
     .main, .content, .card, .table-wrap { min-width: 0; }
+    .main { position: relative; isolation: isolate; }
+    .page-watermark { position: fixed; right: clamp(12px, 5vw, 82px); bottom: clamp(18px, 6vh, 74px); width: min(44vw, 520px); aspect-ratio: 1; background: url("/assets/images/basket-watermark.svg") center / contain no-repeat; opacity: .14; pointer-events: none; z-index: 0; filter: drop-shadow(0 24px 60px rgba(36,240,199,.08)); }
+    .topbar, .content { position: relative; z-index: 1; }
     .topbar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 18px; background: var(--topbar-bg); border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); box-shadow: 0 16px 40px rgba(0,0,0,.18); }
     .content { padding: 18px; }
     .card { background: var(--card-bg); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 22px 54px rgba(0,0,0,.28); }
@@ -101,6 +109,9 @@
     .theme-grid select { height: 44px; }
     .theme-grid input[type="color"] { height: 44px; padding: 4px; background: #090a10; border-color: rgba(148,163,184,.24); cursor: pointer; }
     .theme-preview { height: 52px; border: 1px solid rgba(148,163,184,.2); border-radius: 14px; background: linear-gradient(135deg, var(--green), var(--orange)); }
+    .brand-preview-grid { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: center; }
+    .asset-preview { width: 78px; height: 78px; border-radius: 18px; border: 1px solid rgba(148,163,184,.24); background: rgba(2,6,23,.55) center / contain no-repeat; }
+    .range-row { display: grid; grid-template-columns: 1fr 54px; gap: 10px; align-items: center; }
     .edit-overlay { display: none; }
     .edit-overlay.active { display: grid; }
     @media (min-width: 901px) and (max-width: 1200px) {
@@ -121,6 +132,7 @@
       .nav::-webkit-scrollbar { display: none; }
       .nav button { flex: 0 0 auto; min-width: 74px; max-width: 92px; min-height: 46px; padding: 7px 8px; border-radius: 16px; text-align: center; font-size: 11px; line-height: 1.15; white-space: normal; }
       .main { padding-bottom: 82px; }
+      .page-watermark { width: min(72vw, 360px); opacity: .08; right: -42px; bottom: 82px; }
       .topbar { padding: 10px 12px; border-radius: 0 0 20px 20px; }
       #page-title { font-size: 15px; }
       #clock { font-size: 11px; }
@@ -191,10 +203,14 @@
 <body>
   <div class="app">
     <aside class="sidebar">
-      <div class="brand">Retail Inventory<br>Web Server</div>
+      <div class="brand">
+        <img class="brand-logo" id="brand-logo" src="/assets/images/garneta-basket-logo.svg" alt="Garneta basket logo">
+        <div><span class="brand-title">GARNETA<br>SYSTEM</span><span class="brand-subtitle">Move Forward</span></div>
+      </div>
       <div class="nav" id="nav"></div>
     </aside>
     <main class="main">
+      <div class="page-watermark" id="page-watermark"></div>
       <div class="topbar">
         <div>
           <strong id="page-title">Dashboard</strong>
@@ -242,18 +258,19 @@
     const menus = [
       ["dashboard", "Dashboard"], ["barang", "Barang"], ["supplier", "Supplier"],
       ["pembelian", "Pembelian"], ["kalkulator", "Kalkulator Belanja"], ["penjualan", "Penjualan"], ["laporan", "Laporan"],
-      ["statistik", "Statistik"], ["users", "Users"], ["settings", "Setting"]
+      ["statistik", "Statistik"], ["audit", "Audit Log"], ["users", "Users"], ["settings", "Setting"]
     ];
 
     const state = {
       route: "dashboard",
       role: localStorage.getItem("role") || "Admin",
       currentUser: JSON.parse(localStorage.getItem("currentUser") || "null"),
-      data: { products: [], suppliers: [], purchases: [], sales: [], users: [], priceHistory: [], dashboard: {} }
+      data: { products: [], suppliers: [], purchases: [], sales: [], users: [], priceHistory: [], auditLogs: [], dashboard: {} }
     };
     let scannerStream = null;
     let scannerActive = false;
     let invoiceStream = null;
+    let deferredInstallPrompt = null;
 
     const rupiah = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value || 0));
     const today = () => new Date().toISOString().slice(0, 10);
@@ -301,16 +318,17 @@
       el("role-label").textContent = superMode ? `Super Admin: ${state.currentUser?.name || ""}` : "Admin";
       el("super-login").classList.toggle("hidden", superMode);
       el("logout-super").classList.toggle("hidden", !superMode);
+      applyBrandAssets();
     }
 
     function render() {
       const label = menus.find(([key]) => key === state.route)?.[1] || "Dashboard";
       el("page-title").textContent = label;
-      if (["laporan", "statistik", "users"].includes(state.route) && state.role !== "Super Admin") {
+      if (["laporan", "statistik", "audit", "users"].includes(state.route) && state.role !== "Super Admin") {
         el("content").innerHTML = `<div class="card"><h2>Akses dibatasi</h2><p class="muted">Menu ini hanya bisa diakses Super Admin.</p></div>`;
         return;
       }
-      const views = { dashboard, barang, supplier, pembelian, kalkulator, penjualan, laporan, statistik, users, settings };
+      const views = { dashboard, barang, supplier, pembelian, kalkulator, penjualan, laporan, statistik, audit, users, settings };
       el("content").innerHTML = views[state.route]();
       bindForms();
     }
@@ -345,6 +363,7 @@
           <button class="btn primary" id="analyze-invoice-file">Analisa Foto</button>
           <button class="btn primary hidden" id="capture-invoice-photo">Foto & Analisa</button>
           <button class="btn soft" id="copy-invoice-result">Copy Hasil</button>
+          <button class="btn soft" id="parse-invoice-draft">Jadikan Draft</button>
         </div>
         <label>Perintah AI
           <textarea id="invoice-ai-instruction" class="input-area" placeholder="Contoh: ambil nama barang dan harga saja. Atau: jumlahkan total belanja pada nota ini."></textarea>
@@ -352,7 +371,17 @@
         <label>Hasil
           <textarea id="invoice-ai-result" class="input-area" placeholder="Hasil AI akan muncul di sini dan bisa diedit/copy."></textarea>
         </label>
-        <p class="muted">Ketik perintah sesuai kebutuhan. AI akan mengikuti isi foto dan instruksi, misalnya menjumlahkan, mengambil nama barang saja, atau membuat ringkasan.</p>
+        <div>
+          <div class="actions" style="justify-content:space-between">
+            <h3>Draft Pembelian dari Nota</h3>
+            <div class="actions">
+              <button class="btn primary" id="save-invoice-draft">Simpan ke Barang/Pembelian</button>
+              <button class="btn danger" id="clear-invoice-draft">Kosongkan Draft</button>
+            </div>
+          </div>
+          <div id="invoice-draft-table">${invoiceDraftTable()}</div>
+        </div>
+        <p class="muted">Jika hasil AI berupa JSON nota, klik Jadikan Draft. Koreksi baris yang salah, hapus item keliru, lalu simpan ke Barang/Pembelian.</p>
       </div>`;
     }
 
@@ -424,9 +453,39 @@ Beras Premium 1"></textarea>
     }
 
     function statistik() {
+      const productId = localStorage.getItem("statsProductId") || "";
+      const rows = filteredPriceHistory(productId);
+      const prices = rows.map((row) => Number(row.basePrice || 0)).filter((value) => value > 0);
+      const last = rows[0]?.basePrice || 0;
+      const min = prices.length ? Math.min(...prices) : 0;
+      const max = prices.length ? Math.max(...prices) : 0;
       return `<section class="grid">
-        <div class="card"><h2>Statistik Perubahan Harga</h2>${barChart(state.data.priceHistory.map((row) => row.basePrice))}</div>
-        <div class="card">${simpleTable(state.data.priceHistory, ["product", "basePrice", "costPrice", "source", "createdAt"], ["Barang", "Harga Dasar", "HPP", "Sumber", "Tanggal"], priceFormat)}</div>
+        <div class="card">
+          <div class="actions" style="justify-content:space-between">
+            <h2>Statistik Perubahan Harga</h2>
+            <label style="min-width:240px">Barang
+              <select id="stats-product-filter">
+                <option value="">Semua Barang</option>
+                ${state.data.products.map((product) => `<option value="${product.id}" ${String(product.id) === String(productId) ? "selected" : ""}>${product.name}</option>`).join("")}
+              </select>
+            </label>
+          </div>
+          <div class="grid stats">
+            ${stat("Harga Terakhir", rupiah(last))}
+            ${stat("Harga Terendah", rupiah(min))}
+            ${stat("Harga Tertinggi", rupiah(max))}
+            ${stat("Jumlah Perubahan", rows.length)}
+          </div>
+          ${barChart(rows.slice().reverse().map((row) => row.basePrice))}
+        </div>
+        <div class="card">${simpleTable(rows, ["product", "basePrice", "costPrice", "source", "createdAt"], ["Barang", "Harga Dasar", "HPP", "Sumber", "Tanggal"], priceFormat)}</div>
+      </section>`;
+    }
+
+    function audit() {
+      return `<section class="grid">
+        <div class="card"><h2>Audit Log</h2><p class="muted">Riwayat tambah, edit, hapus, backup, dan restore.</p></div>
+        <div class="card">${simpleTable(state.data.auditLogs || [], ["createdAt", "user", "message"], ["Tanggal", "User", "Aktivitas"])}</div>
       </section>`;
     }
 
@@ -489,6 +548,52 @@ Beras Premium 1"></textarea>
             <button class="btn soft" id="reset-theme-colors" type="button">RESET</button>
           </div>
           <p class="muted">Warna berlaku untuk dashboard, sidebar, topbar, tombol utama, grafik, dan halaman lain.</p>
+        </div>
+        <div class="theme-panel">
+          <div class="api-section-title">Logo & Watermark</div>
+          <div class="brand-preview-grid">
+            <div class="asset-preview" id="logo-preview"></div>
+            <label>Upload Logo Sidebar / Dashboard
+              <input id="brand-logo-upload" type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp">
+            </label>
+          </div>
+          <div class="brand-preview-grid">
+            <div class="asset-preview" id="watermark-preview"></div>
+            <label>Upload Gambar Transparan Halaman
+              <input id="watermark-upload" type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp">
+            </label>
+          </div>
+          <label>Transparansi Gambar Halaman
+            <div class="range-row">
+              <input id="watermark-opacity" type="range" min="0" max="35" step="1">
+              <strong id="watermark-opacity-label">14%</strong>
+            </div>
+          </label>
+          <div class="actions">
+            <button class="api-primary" id="save-brand-assets" type="button">SIMPAN LOGO</button>
+            <button class="btn soft" id="reset-brand-assets" type="button">RESET GAMBAR</button>
+          </div>
+          <p class="muted">Gunakan PNG transparan atau SVG agar logo terlihat rapi. Watermark disarankan transparansi 8-18% supaya tetap enak dipandang.</p>
+        </div>
+        <div class="theme-panel">
+          <div class="api-section-title">Backup & Export</div>
+          <p class="muted">Export Excel/PDF, backup database ke JSON, atau restore dari file backup.</p>
+          <div class="actions">
+            <button class="api-primary" id="export-excel" type="button">EXPORT EXCEL</button>
+            <button class="btn soft" id="export-pdf" type="button">EXPORT PDF</button>
+            <button class="btn soft" id="download-backup" type="button">BACKUP JSON</button>
+          </div>
+          <label>Restore Backup JSON
+            <input id="restore-backup-file" type="file" accept="application/json,.json">
+          </label>
+          <div class="actions">
+            <button class="btn danger" id="restore-backup" type="button">RESTORE DATABASE</button>
+          </div>
+        </div>
+        <div class="theme-panel">
+          <div class="api-section-title">Install di HP</div>
+          <p class="muted">Aplikasi sudah disiapkan sebagai PWA. Buka dari browser HP, lalu pilih Add to Home Screen / Install App.</p>
+          <button class="btn soft" id="install-pwa" type="button">INSTALL APP</button>
         </div>
       </section>`;
     }
@@ -616,6 +721,14 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return JSON.parse(localStorage.getItem("shoppingRows") || "[]");
     }
 
+    function invoiceDraftRows() {
+      return JSON.parse(localStorage.getItem("invoiceDraftRows") || "[]");
+    }
+
+    function saveInvoiceDraftRows(rows) {
+      localStorage.setItem("invoiceDraftRows", JSON.stringify(rows));
+    }
+
     function saveShoppingRows(rows) {
       localStorage.setItem("shoppingRows", JSON.stringify(rows));
     }
@@ -625,7 +738,27 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function shoppingTable(rows) {
-      return actionTable("shopping", rows, ["name", "qty", "amount", "subtotal"], ["Nama Barang", "Banyak Beli", "Harga Dasar", "Total Jumlah"], (key, value) => key === "amount" || key === "subtotal" ? rupiah(value) : value);
+      return actionTable("shopping", rows, ["name", "unit", "qty", "amount", "subtotal"], ["Nama Barang", "Unit", "Banyak Beli", "Harga Dasar", "Total Jumlah"], (key, value) => key === "amount" || key === "subtotal" ? rupiah(value) : value);
+    }
+
+    function invoiceDraftTable() {
+      const rows = invoiceDraftRows();
+      if (!rows.length) return `<p class="muted">Belum ada draft nota.</p>`;
+      return `<div class="table-wrap"><table>
+        <thead><tr><th>Nama</th><th>Kategori</th><th>Unit</th><th>Isi</th><th>Qty</th><th>Harga Dasar</th><th>Harga Jual</th><th>Aksi</th></tr></thead>
+        <tbody>${rows.map((row) => `
+          <tr data-draft-id="${row.id}">
+            <td><input data-draft-field="name" value="${escapeAttr(row.name)}"></td>
+            <td><input data-draft-field="category" value="${escapeAttr(row.category || "Umum")}"></td>
+            <td><select data-draft-field="unit">${["sak", "karton/dus", "jligen", "kg", "ball", "pcs"].map((unit) => `<option ${row.unit === unit ? "selected" : ""}>${unit}</option>`).join("")}</select></td>
+            <td><input data-draft-field="unitContent" type="number" value="${Number(row.unitContent || 1)}"></td>
+            <td><input data-draft-field="stock" type="number" value="${Number(row.stock || 0)}"></td>
+            <td><input data-draft-field="basePrice" type="number" value="${Number(row.basePrice || 0)}"></td>
+            <td><input data-draft-field="salePrice" type="number" value="${Number(row.salePrice || 0)}"></td>
+            <td><button class="btn danger delete-invoice-draft" data-id="${row.id}" type="button">Hapus</button></td>
+          </tr>
+        `).join("")}</tbody>
+      </table></div>`;
     }
 
     function actionTable(collection, rows, keys, labels, formatter) {
@@ -693,22 +826,35 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       };
     }
 
+    function parseNameQtyUnit(line) {
+      const units = ["sak", "karton/dus", "karton", "dus", "jligen", "kg", "ball", "pcs"];
+      const pattern = new RegExp(`^(.+?)\\s+(\\d+(?:[.,]\\d+)?)\\s*(${units.map((unit) => unit.replace("/", "\\/")).join("|")})?$`, "i");
+      const match = String(line || "").trim().match(pattern);
+      if (!match) return null;
+      const rawUnit = (match[3] || "pcs").toLowerCase();
+      return {
+        name: match[1].trim(),
+        qty: plainNumber(match[2]),
+        unit: rawUnit === "karton" || rawUnit === "dus" ? "karton/dus" : rawUnit
+      };
+    }
+
     function parseProductText(text) {
       return String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
         const cells = splitRow(line);
         const fullRow = productFromCells(cells);
         if (fullRow) return fullRow;
 
-        const match = line.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)$/);
-        if (!match) return null;
+        const parsed = parseNameQtyUnit(line);
+        if (!parsed) return null;
         return {
-          name: match[1].trim(),
+          name: parsed.name,
           category: "Umum",
-          unit: "pcs",
+          unit: parsed.unit,
           unitContent: 1,
           basePrice: 0,
           salePrice: 0,
-          stock: plainNumber(match[2]),
+          stock: parsed.qty,
           barcode: ""
         };
       }).filter((row) => row && row.name);
@@ -717,12 +863,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     function parseShoppingText(text) {
       return String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
         const cells = splitRow(line);
-        const name = cells.length >= 2 ? cells[0] : (line.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)$/)?.[1] || "");
-        const qty = cells.length >= 2 ? plainNumber(cells[1]) : plainNumber(line.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)$/)?.[2]);
+        const parsed = cells.length >= 2 ? null : parseNameQtyUnit(line);
+        const name = cells.length >= 2 ? cells[0] : (parsed?.name || "");
+        const qty = cells.length >= 2 ? plainNumber(cells[1]) : Number(parsed?.qty || 0);
         if (!name || !qty) return null;
         const product = findProduct(name);
         const amount = product ? Number(product.basePrice || 0) : 0;
-        return { id: Date.now() + Math.random(), name: name.trim(), qty, amount, subtotal: qty * amount };
+        return { id: Date.now() + Math.random(), name: name.trim(), unit: parsed?.unit || product?.unit || "", qty, amount, subtotal: qty * amount };
       }).filter(Boolean);
     }
 
@@ -753,6 +900,45 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           stock: Number(item.kuantitas || 0),
           barcode: ""
         }));
+    }
+
+    function parseInvoiceDraftFromText(text) {
+      const cleaned = String(text || "").replace(/```json|```/g, "").trim();
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+      if (start < 0 || end < start) throw new Error("Hasil AI belum berbentuk JSON nota.");
+      const invoice = JSON.parse(cleaned.slice(start, end + 1));
+      const rows = invoiceItemsToProducts(invoice).map((row) => ({
+        ...row,
+        id: Date.now() + Math.random()
+      }));
+      if (!rows.length) throw new Error("Tidak ada item valid untuk dijadikan draft.");
+      return rows;
+    }
+
+    function collectInvoiceDraftFromTable() {
+      const rows = [];
+      document.querySelectorAll("tr[data-draft-id]").forEach((tr) => {
+        const row = { id: tr.dataset.draftId };
+        tr.querySelectorAll("[data-draft-field]").forEach((input) => {
+          row[input.dataset.draftField] = input.value;
+        });
+        row.unitContent = plainNumber(row.unitContent) || 1;
+        row.stock = plainNumber(row.stock);
+        row.basePrice = plainNumber(row.basePrice);
+        row.salePrice = plainNumber(row.salePrice);
+        rows.push(row);
+      });
+      saveInvoiceDraftRows(rows);
+      return rows;
+    }
+
+    function refreshInvoiceDraftTable() {
+      const target = el("invoice-draft-table");
+      if (target) {
+        target.innerHTML = invoiceDraftTable();
+        bindInvoiceDraftTable();
+      }
     }
 
     function readFileAsDataUrl(file) {
@@ -813,6 +999,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return Object.keys(map).sort().map((date) => ({ date, profit: map[date] }));
     }
 
+    function filteredPriceHistory(productId) {
+      return (state.data.priceHistory || []).filter((row) => !productId || String(row.productId) === String(productId));
+    }
+
     function superAdmins() {
       return state.data.users.filter((user) => user.role === "Super Admin");
     }
@@ -867,6 +1057,17 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       bindInvoiceAiTools();
       bindSettingsTools();
       bindThemeTools();
+      bindStatsTools();
+      bindBackupTools();
+      bindPwaTools();
+      bindBrandTools();
+    }
+
+    function bindStatsTools() {
+      el("stats-product-filter")?.addEventListener("change", (event) => {
+        localStorage.setItem("statsProductId", event.target.value);
+        render();
+      });
     }
 
     function bindSettingsTools() {
@@ -877,12 +1078,35 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     const defaultTheme = { green: "#24f0c7", orange: "#ff7043", page: "#0b1f24", mode: "dark" };
+    const defaultBrandAssets = {
+      logo: "/assets/images/garneta-basket-logo.svg",
+      watermark: "/assets/images/basket-watermark.svg",
+      opacity: 14
+    };
 
     function currentTheme() {
       try {
         return { ...defaultTheme, ...JSON.parse(localStorage.getItem("themeColors") || "{}") };
       } catch (error) {
         return { ...defaultTheme };
+      }
+    }
+
+    function currentBrandAssets() {
+      try {
+        return { ...defaultBrandAssets, ...JSON.parse(localStorage.getItem("brandAssets") || "{}") };
+      } catch (error) {
+        return { ...defaultBrandAssets };
+      }
+    }
+
+    function applyBrandAssets(assets = currentBrandAssets()) {
+      const logo = el("brand-logo");
+      const watermark = el("page-watermark");
+      if (logo) logo.src = assets.logo || defaultBrandAssets.logo;
+      if (watermark) {
+        watermark.style.backgroundImage = `url("${assets.watermark || defaultBrandAssets.watermark}")`;
+        watermark.style.opacity = String(Math.max(0, Math.min(Number(assets.opacity ?? defaultBrandAssets.opacity), 35)) / 100);
       }
     }
 
@@ -946,6 +1170,89 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       });
     }
 
+    function bindBrandTools() {
+      if (!el("brand-logo-upload")) return;
+      const assets = currentBrandAssets();
+      setBrandPreview(assets);
+
+      el("brand-logo-upload")?.addEventListener("change", async (event) => {
+        try {
+          const file = event.target.files[0];
+          if (!file) return;
+          const next = { ...currentBrandAssets(), logo: await readAssetFile(file) };
+          setBrandPreview(next);
+          applyBrandAssets(next);
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+
+      el("watermark-upload")?.addEventListener("change", async (event) => {
+        try {
+          const file = event.target.files[0];
+          if (!file) return;
+          const next = { ...currentBrandAssets(), watermark: await readAssetFile(file) };
+          setBrandPreview(next);
+          applyBrandAssets(next);
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+
+      el("watermark-opacity")?.addEventListener("input", () => {
+        const next = { ...collectBrandInputs(), opacity: Number(el("watermark-opacity").value) };
+        setBrandPreview(next);
+        applyBrandAssets(next);
+      });
+
+      el("save-brand-assets")?.addEventListener("click", () => {
+        const next = collectBrandInputs();
+        localStorage.setItem("brandAssets", JSON.stringify(next));
+        applyBrandAssets(next);
+        alert("Logo dan watermark berhasil disimpan.");
+      });
+
+      el("reset-brand-assets")?.addEventListener("click", () => {
+        localStorage.removeItem("brandAssets");
+        el("brand-logo-upload").value = "";
+        el("watermark-upload").value = "";
+        setBrandPreview(defaultBrandAssets);
+        applyBrandAssets(defaultBrandAssets);
+      });
+    }
+
+    function collectBrandInputs() {
+      const assets = currentBrandAssets();
+      return {
+        logo: el("logo-preview")?.dataset.image || assets.logo || defaultBrandAssets.logo,
+        watermark: el("watermark-preview")?.dataset.image || assets.watermark || defaultBrandAssets.watermark,
+        opacity: Number(el("watermark-opacity")?.value || assets.opacity || defaultBrandAssets.opacity)
+      };
+    }
+
+    function setBrandPreview(assets) {
+      const next = { ...defaultBrandAssets, ...assets };
+      const logoPreview = el("logo-preview");
+      const watermarkPreview = el("watermark-preview");
+      if (logoPreview) {
+        logoPreview.style.backgroundImage = `url("${next.logo}")`;
+        logoPreview.dataset.image = next.logo;
+      }
+      if (watermarkPreview) {
+        watermarkPreview.style.backgroundImage = `url("${next.watermark}")`;
+        watermarkPreview.style.opacity = String(Math.max(0.18, Number(next.opacity || defaultBrandAssets.opacity) / 100));
+        watermarkPreview.dataset.image = next.watermark;
+      }
+      if (el("watermark-opacity")) el("watermark-opacity").value = Number(next.opacity || defaultBrandAssets.opacity);
+      if (el("watermark-opacity-label")) el("watermark-opacity-label").textContent = `${Number(next.opacity || defaultBrandAssets.opacity)}%`;
+    }
+
+    function readAssetFile(file) {
+      const maxBytes = 1_500_000;
+      if (file.size > maxBytes) throw new Error("Ukuran gambar maksimal 1.5 MB agar aplikasi tetap ringan.");
+      return readFileAsDataUrl(file);
+    }
+
     function readThemeInputs() {
       return {
         mode: el("theme-mode")?.value || defaultTheme.mode,
@@ -960,6 +1267,96 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       if (!preview) return;
       const theme = readThemeInputs();
       preview.style.background = `linear-gradient(135deg, ${theme.green}, ${theme.orange})`;
+    }
+
+    function bindBackupTools() {
+      el("export-excel")?.addEventListener("click", exportExcel);
+      el("export-pdf")?.addEventListener("click", exportPdf);
+      el("download-backup")?.addEventListener("click", downloadBackup);
+      el("restore-backup")?.addEventListener("click", restoreBackup);
+    }
+
+    function bindPwaTools() {
+      el("install-pwa")?.addEventListener("click", async () => {
+        if (!deferredInstallPrompt) {
+          alert("Jika tombol install belum tersedia, buka menu browser lalu pilih Add to Home Screen / Install App.");
+          return;
+        }
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+      });
+    }
+
+    function workbookRows() {
+      return {
+        Barang: state.data.products || [],
+        Supplier: state.data.suppliers || [],
+        Pembelian: state.data.purchases || [],
+        Penjualan: state.data.sales || [],
+        RiwayatHarga: state.data.priceHistory || [],
+        AuditLog: state.data.auditLogs || []
+      };
+    }
+
+    function exportExcel() {
+      if (!window.XLSX) {
+        alert("Library Excel belum termuat. Pastikan internet aktif atau gunakan backup JSON.");
+        return;
+      }
+      const workbook = XLSX.utils.book_new();
+      Object.entries(workbookRows()).forEach(([name, rows]) => {
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), name.slice(0, 31));
+      });
+      XLSX.writeFile(workbook, `inventory-${today()}.xlsx`);
+    }
+
+    function exportPdf() {
+      const rows = workbookRows();
+      const html = Object.entries(rows).map(([title, items]) => `
+        <h2>${title}</h2>
+        ${simpleTable(items.slice(0, 100), Object.keys(items[0] || { kosong: "" }), Object.keys(items[0] || { kosong: "Data" }))}
+      `).join("");
+      const printWindow = window.open("", "_blank");
+      printWindow.document.write(`<html><head><title>Export GARNETA SYSTEM</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:24px}td,th{border:1px solid #ccc;padding:6px;font-size:11px;text-align:left}h2{margin-top:24px}</style></head><body><h1>GARNETA SYSTEM</h1>${html}</body></html>`);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
+
+    async function downloadBackup() {
+      try {
+        const backup = await gas("backupData");
+        downloadText(`backup-inventory-${today()}.json`, JSON.stringify(backup, null, 2), "application/json");
+        await load();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function restoreBackup() {
+      try {
+        const file = el("restore-backup-file")?.files[0];
+        if (!file) throw new Error("Pilih file backup JSON terlebih dahulu.");
+        if (!confirm("Restore akan mengganti data database dengan isi backup. Lanjutkan?")) return;
+        const backup = JSON.parse(await file.text());
+        state.data = await gas("restoreData", { backup });
+        renderShell();
+        render();
+        alert("Restore berhasil.");
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function downloadText(filename, text, type = "text/plain") {
+      const blob = new Blob([text], { type });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
     }
 
     function resolveThemeMode(theme) {
@@ -1275,15 +1672,87 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           alert(error.message);
         }
       });
+
+      el("parse-invoice-draft")?.addEventListener("click", () => {
+        try {
+          const rows = parseInvoiceDraftFromText(el("invoice-ai-result")?.value || "");
+          saveInvoiceDraftRows([...rows, ...invoiceDraftRows()]);
+          refreshInvoiceDraftTable();
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+
+      el("save-invoice-draft")?.addEventListener("click", saveInvoiceDraft);
+      el("clear-invoice-draft")?.addEventListener("click", () => {
+        if (!confirm("Kosongkan draft nota?")) return;
+        saveInvoiceDraftRows([]);
+        refreshInvoiceDraftTable();
+      });
+      bindInvoiceDraftTable();
     }
 
     async function analyzeInvoiceImage(imageDataUrl) {
       el("invoice-ai-result").value = "Menganalisa foto nota...";
       const result = await gas("analyzeInvoiceImage", {
         imageDataUrl,
-        instruction: el("invoice-ai-instruction")?.value || ""
+        instruction: el("invoice-ai-instruction")?.value || invoiceJsonInstruction()
       });
       el("invoice-ai-result").value = result?.hasil || JSON.stringify(result, null, 2);
+      try {
+        const rows = parseInvoiceDraftFromText(el("invoice-ai-result").value);
+        saveInvoiceDraftRows([...rows, ...invoiceDraftRows()]);
+        refreshInvoiceDraftTable();
+      } catch (error) {
+        // Hasil bebas tetap boleh dipakai sebagai teks biasa.
+      }
+    }
+
+    function invoiceJsonInstruction() {
+      return `Ekstrak nota menjadi JSON murni: {"tanggal":"DD/MM/YY","items":[{"nama_barang":"string","kuantitas":number,"harga_modal":number,"tipe_harga":"H.M/pcs atau H.M/dus atau sst"}],"total_belanja":number,"status":"success atau review_required"}. Jangan tambah teks lain.`;
+    }
+
+    function bindInvoiceDraftTable() {
+      document.querySelectorAll("#invoice-draft-table [data-draft-field]").forEach((input) => {
+        input.addEventListener("change", collectInvoiceDraftFromTable);
+      });
+      document.querySelectorAll(".delete-invoice-draft").forEach((button) => {
+        button.addEventListener("click", () => {
+          saveInvoiceDraftRows(collectInvoiceDraftFromTable().filter((row) => String(row.id) !== String(button.dataset.id)));
+          refreshInvoiceDraftTable();
+        });
+      });
+    }
+
+    async function saveInvoiceDraft() {
+      try {
+        const rows = collectInvoiceDraftFromTable().filter((row) => row.name);
+        if (!rows.length) throw new Error("Draft masih kosong.");
+        let total = 0;
+        for (const row of rows) {
+          total += Number(row.basePrice || 0) * Number(row.stock || 0);
+          const existing = findProduct(row.name);
+          if (existing) {
+            await gas("update", { collection: "products", id: existing.id, item: { ...existing, ...row } });
+          } else {
+            await gas("add", { collection: "products", item: row });
+          }
+        }
+        await gas("add", {
+          collection: "purchases",
+          item: {
+            date: today(),
+            invoice: `DRAFT-${Date.now()}`,
+            total,
+            notes: "Dari draft AI nota"
+          }
+        });
+        saveInvoiceDraftRows([]);
+        await load();
+        alert("Draft berhasil disimpan ke Barang dan Pembelian.");
+      } catch (error) {
+        alert(error.message);
+      }
     }
 
     async function openInvoiceCamera() {
@@ -1383,7 +1852,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         const product = findProduct(name);
         const qty = plainNumber(formData.get("qty"));
         const amount = plainNumber(formData.get("amount")) || Number(product?.basePrice || 0);
-        const next = { id, name, qty, amount, subtotal: qty * amount };
+        const next = { id, name, unit: product?.unit || "", qty, amount, subtotal: qty * amount };
         const rows = shoppingRows();
         const exists = rows.some((row) => String(row.id) === String(id));
         saveShoppingRows(exists ? rows.map((row) => String(row.id) === String(id) ? next : row) : [next, ...rows]);
@@ -1562,6 +2031,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     applyTheme();
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+    });
+    if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
+      navigator.serviceWorker.register("/service-worker.js").catch((error) => console.warn(error));
+    }
     setInterval(() => el("clock").textContent = new Date().toLocaleString("id-ID"), 1000);
     load().catch((error) => el("content").innerHTML = `<div class="card"><h2>Error</h2><p>${error.message}</p></div>`);
   </script>

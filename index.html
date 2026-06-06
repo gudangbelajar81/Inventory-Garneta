@@ -40,7 +40,8 @@
     .nav button.active, .nav button:hover { background: linear-gradient(135deg, rgba(36,240,199,.22), rgba(255,112,67,.14)); border-color: rgba(36,240,199,.34); box-shadow: 0 0 22px rgba(36,240,199,.12); }
     .main, .content, .card, .table-wrap { min-width: 0; }
     .main { position: relative; isolation: isolate; }
-    .page-watermark { position: fixed; right: clamp(12px, 5vw, 82px); bottom: clamp(18px, 6vh, 74px); width: min(44vw, 520px); aspect-ratio: 1; background: url("/assets/images/basket-watermark.svg") center / contain no-repeat; opacity: .14; pointer-events: none; z-index: 0; filter: drop-shadow(0 24px 60px rgba(36,240,199,.08)); }
+    .page-watermark { position: fixed; right: clamp(12px, 5vw, 82px); bottom: clamp(18px, 6vh, 74px); width: min(var(--watermark-size, 44vw), 680px); aspect-ratio: 1; background: url("/assets/images/basket-watermark.svg") center / contain no-repeat; opacity: .14; pointer-events: none; z-index: 0; filter: drop-shadow(0 24px 60px rgba(36,240,199,.08)); display: grid; place-items: center; }
+    .page-watermark-text { max-width: 82%; text-align: center; color: var(--watermark-text-color, var(--mint)); font-size: clamp(14px, var(--watermark-text-size, 4vw), 96px); font-weight: 950; letter-spacing: 5px; text-transform: uppercase; text-shadow: 0 12px 34px rgba(0,0,0,.28); transform: translateY(8%); }
     .topbar, .content { position: relative; z-index: 1; }
     .topbar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 18px; background: var(--topbar-bg); border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); box-shadow: 0 16px 40px rgba(0,0,0,.18); }
     .content { padding: 18px; }
@@ -210,7 +211,7 @@
       <div class="nav" id="nav"></div>
     </aside>
     <main class="main">
-      <div class="page-watermark" id="page-watermark"></div>
+      <div class="page-watermark" id="page-watermark"><div class="page-watermark-text" id="page-watermark-text"></div></div>
       <div class="topbar">
         <div>
           <strong id="page-title">Dashboard</strong>
@@ -340,7 +341,7 @@
           ${stat("Barang", d.totalProducts)}
           ${stat("Supplier", d.totalSuppliers)}
           ${stat("Nilai Stok", rupiah(d.stockValue))}
-          ${stat("Keuntungan", rupiah(d.totalProfit))}
+          ${isSuperAdmin() ? stat("Keuntungan", rupiah(d.totalProfit)) : ""}
         </div>
         <div class="card"><h3>AI Nota ke Barang</h3>${invoiceAiTools()}</div>
       </section>`;
@@ -494,22 +495,34 @@ Beras Premium 1"></textarea>
     }
 
     function settings() {
+      const tab = localStorage.getItem("settingsTab") || "api";
+      const titles = {
+        api: ["Pusat API", "Kelola koneksi AI dari server Railway. Key tetap tersembunyi dan hanya dipakai backend."],
+        warna: ["Warna Tampilan", "Racik warna dashboard, sidebar, topbar, dan halaman agar tidak membosankan."],
+        logo: ["Logo & Watermark", "Atur logo, gambar transparan halaman, teks watermark, dan transparansinya."],
+        backup: ["Backup & Export", "Export Excel/PDF, backup database ke JSON, atau restore dari file backup."],
+        install: ["Install di HP", "Pasang GARNETA SYSTEM ke layar utama HP seperti aplikasi native."]
+      };
+      const [title, description] = titles[tab] || titles.api;
       return `<section class="settings-page">
         <div class="settings-hero">
           <div>
             <div class="settings-kicker">Settings</div>
-            <div class="settings-title">Pusat API (Load Balancer)</div>
-            <p class="muted">Kelola koneksi AI dari server Railway. Key tetap tersembunyi dan hanya dipakai backend.</p>
+            <div class="settings-title">${title}</div>
+            <p class="muted">${description}</p>
           </div>
-          <button class="api-primary" id="refresh-ai-settings">RECHECK</button>
+          ${tab === "api" ? `<button class="api-primary" id="refresh-ai-settings">RECHECK</button>` : ""}
         </div>
 
         <div class="settings-tabs">
-          <button>SUPPORT</button>
-          <button>ENGINE</button>
-          <button class="active">PUSAT API</button>
+          ${settingsTabButton("warna", "WARNA", tab)}
+          ${settingsTabButton("api", "PUSAT API", tab)}
+          ${settingsTabButton("logo", "LOGO & WATERMARK", tab)}
+          ${settingsTabButton("backup", "BACKUP", tab)}
+          ${settingsTabButton("install", "INSTALL", tab)}
         </div>
 
+        ${tab === "api" ? `
         <div class="api-center-card">
           <div class="api-section-title">API Keys</div>
           <div id="ai-settings-panel" class="grid">
@@ -528,6 +541,8 @@ Beras Premium 1"></textarea>
             </ol>
           </div>
         </div>
+        ` : ""}
+        ${tab === "warna" ? `
         <div class="theme-panel">
           <div class="api-section-title">Warna Tampilan</div>
           <div class="theme-preview" id="theme-preview"></div>
@@ -549,6 +564,8 @@ Beras Premium 1"></textarea>
           </div>
           <p class="muted">Warna berlaku untuk dashboard, sidebar, topbar, tombol utama, grafik, dan halaman lain.</p>
         </div>
+        ` : ""}
+        ${tab === "logo" ? `
         <div class="theme-panel">
           <div class="api-section-title">Logo & Watermark</div>
           <div class="brand-preview-grid">
@@ -569,12 +586,33 @@ Beras Premium 1"></textarea>
               <strong id="watermark-opacity-label">14%</strong>
             </div>
           </label>
+          <label>Ukuran Gambar Watermark
+            <div class="range-row">
+              <input id="watermark-size" type="range" min="20" max="95" step="1">
+              <strong id="watermark-size-label">44%</strong>
+            </div>
+          </label>
+          <label>Teks Watermark Manual
+            <input id="watermark-text" placeholder="Contoh: GARNETA SYSTEM">
+          </label>
+          <label>Ukuran Teks Watermark
+            <div class="range-row">
+              <input id="watermark-text-size" type="range" min="1" max="9" step=".25">
+              <strong id="watermark-text-size-label">4vw</strong>
+            </div>
+          </label>
+          <label>Warna Teks Watermark
+            <input id="watermark-text-color" type="color">
+          </label>
           <div class="actions">
             <button class="api-primary" id="save-brand-assets" type="button">SIMPAN LOGO</button>
+            <button class="btn danger" id="clear-watermark-text" type="button">HAPUS TEKS</button>
             <button class="btn soft" id="reset-brand-assets" type="button">RESET GAMBAR</button>
           </div>
           <p class="muted">Gunakan PNG transparan atau SVG agar logo terlihat rapi. Watermark disarankan transparansi 8-18% supaya tetap enak dipandang.</p>
         </div>
+        ` : ""}
+        ${tab === "backup" ? `
         <div class="theme-panel">
           <div class="api-section-title">Backup & Export</div>
           <p class="muted">Export Excel/PDF, backup database ke JSON, atau restore dari file backup.</p>
@@ -590,12 +628,19 @@ Beras Premium 1"></textarea>
             <button class="btn danger" id="restore-backup" type="button">RESTORE DATABASE</button>
           </div>
         </div>
+        ` : ""}
+        ${tab === "install" ? `
         <div class="theme-panel">
           <div class="api-section-title">Install di HP</div>
           <p class="muted">Aplikasi sudah disiapkan sebagai PWA. Buka dari browser HP, lalu pilih Add to Home Screen / Install App.</p>
           <button class="btn soft" id="install-pwa" type="button">INSTALL APP</button>
         </div>
+        ` : ""}
       </section>`;
+    }
+
+    function settingsTabButton(key, label, active) {
+      return `<button class="${key === active ? "active" : ""}" data-settings-tab="${key}" type="button">${label}</button>`;
     }
 
     function crudView(collection, title, form, rows) {
@@ -615,9 +660,9 @@ Beras Premium 1"></textarea>
         ${input("category", "Kategori Barang")}
         ${input("name", "Nama Barang", true)}
         ${select("unit", "Unit", ["sak", "karton/dus", "jligen", "kg", "ball", "pcs"])}
-        ${input("unitContent", "Isi/Unit", true, "number")}
-        ${input("basePrice", "Harga Dasar", true, "number")}
-        ${input("salePrice", "Harga Jual/Unit", true, "number")}
+        ${input("unitContent", "Isi/Unit", false, "number")}
+        ${input("basePrice", "Harga Dasar", false, "number")}
+        ${input("salePrice", "Harga Jual/Unit", false, "number")}
         ${input("stock", "Stok", false, "number")}
         ${input("barcode", "Barcode / Kode Scanner")}
         ${formButtons()}
@@ -710,7 +755,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function saleRows() {
-      return actionTable("sales", state.data.sales, ["date", "product", "unitSold", "unitContent", "qty", "profitPerUnit", "profit"], ["Tanggal", "Barang", "Unit", "Isi", "Banyak", "Profit/Unit", "Keuntungan"], priceFormat);
+      const keys = isSuperAdmin()
+        ? ["date", "product", "unitSold", "unitContent", "qty", "profitPerUnit", "profit"]
+        : ["date", "product", "unitSold", "unitContent", "qty"];
+      const labels = isSuperAdmin()
+        ? ["Tanggal", "Barang", "Unit", "Isi", "Banyak", "Profit/Unit", "Keuntungan"]
+        : ["Tanggal", "Barang", "Unit", "Isi", "Banyak"];
+      return actionTable("sales", state.data.sales, keys, labels, priceFormat);
     }
 
     function userRows() {
@@ -1007,6 +1058,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return state.data.users.filter((user) => user.role === "Super Admin");
     }
 
+    function isSuperAdmin() {
+      return state.role === "Super Admin";
+    }
+
     function barChart(values) {
       const max = Math.max(...values.map(Number), 1);
       return `<div class="chart">${values.map((value) => `<div class="bar" title="${rupiah(value)}" style="height:${Math.max(Number(value) / max * 100, 5)}%"></div>`).join("")}</div>`;
@@ -1071,6 +1126,12 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function bindSettingsTools() {
+      document.querySelectorAll("[data-settings-tab]").forEach((button) => {
+        button.addEventListener("click", () => {
+          localStorage.setItem("settingsTab", button.dataset.settingsTab);
+          render();
+        });
+      });
       if (!el("ai-settings-panel")) return;
       loadAiSettings();
       el("refresh-ai-settings")?.addEventListener("click", loadAiSettings);
@@ -1081,7 +1142,11 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     const defaultBrandAssets = {
       logo: "/assets/images/garneta-basket-logo.svg",
       watermark: "/assets/images/basket-watermark.svg",
-      opacity: 14
+      opacity: 14,
+      size: 44,
+      text: "",
+      textSize: 4,
+      textColor: "#8df7df"
     };
 
     function currentTheme() {
@@ -1107,6 +1172,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       if (watermark) {
         watermark.style.backgroundImage = `url("${assets.watermark || defaultBrandAssets.watermark}")`;
         watermark.style.opacity = String(Math.max(0, Math.min(Number(assets.opacity ?? defaultBrandAssets.opacity), 35)) / 100);
+        watermark.style.setProperty("--watermark-size", `${Math.max(20, Math.min(Number(assets.size ?? defaultBrandAssets.size), 95))}vw`);
+      }
+      const watermarkText = el("page-watermark-text");
+      if (watermarkText) {
+        watermarkText.textContent = assets.text || "";
+        watermarkText.style.setProperty("--watermark-text-size", `${Math.max(1, Math.min(Number(assets.textSize ?? defaultBrandAssets.textSize), 9))}vw`);
+        watermarkText.style.setProperty("--watermark-text-color", assets.textColor || defaultBrandAssets.textColor);
       }
     }
 
@@ -1205,11 +1277,43 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         applyBrandAssets(next);
       });
 
+      el("watermark-size")?.addEventListener("input", () => {
+        const next = { ...collectBrandInputs(), size: Number(el("watermark-size").value) };
+        setBrandPreview(next);
+        applyBrandAssets(next);
+      });
+
+      el("watermark-text")?.addEventListener("input", () => {
+        const next = { ...collectBrandInputs(), text: el("watermark-text").value };
+        setBrandPreview(next);
+        applyBrandAssets(next);
+      });
+
+      el("watermark-text-size")?.addEventListener("input", () => {
+        const next = { ...collectBrandInputs(), textSize: Number(el("watermark-text-size").value) };
+        setBrandPreview(next);
+        applyBrandAssets(next);
+      });
+
+      el("watermark-text-color")?.addEventListener("input", () => {
+        const next = { ...collectBrandInputs(), textColor: el("watermark-text-color").value };
+        setBrandPreview(next);
+        applyBrandAssets(next);
+      });
+
       el("save-brand-assets")?.addEventListener("click", () => {
         const next = collectBrandInputs();
         localStorage.setItem("brandAssets", JSON.stringify(next));
         applyBrandAssets(next);
         alert("Logo dan watermark berhasil disimpan.");
+      });
+
+      el("clear-watermark-text")?.addEventListener("click", () => {
+        el("watermark-text").value = "";
+        const next = { ...collectBrandInputs(), text: "" };
+        localStorage.setItem("brandAssets", JSON.stringify(next));
+        setBrandPreview(next);
+        applyBrandAssets(next);
       });
 
       el("reset-brand-assets")?.addEventListener("click", () => {
@@ -1226,7 +1330,11 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return {
         logo: el("logo-preview")?.dataset.image || assets.logo || defaultBrandAssets.logo,
         watermark: el("watermark-preview")?.dataset.image || assets.watermark || defaultBrandAssets.watermark,
-        opacity: Number(el("watermark-opacity")?.value || assets.opacity || defaultBrandAssets.opacity)
+        opacity: Number(el("watermark-opacity")?.value || assets.opacity || defaultBrandAssets.opacity),
+        size: Number(el("watermark-size")?.value || assets.size || defaultBrandAssets.size),
+        text: el("watermark-text")?.value ?? assets.text ?? defaultBrandAssets.text,
+        textSize: Number(el("watermark-text-size")?.value || assets.textSize || defaultBrandAssets.textSize),
+        textColor: el("watermark-text-color")?.value || assets.textColor || defaultBrandAssets.textColor
       };
     }
 
@@ -1245,6 +1353,12 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       }
       if (el("watermark-opacity")) el("watermark-opacity").value = Number(next.opacity || defaultBrandAssets.opacity);
       if (el("watermark-opacity-label")) el("watermark-opacity-label").textContent = `${Number(next.opacity || defaultBrandAssets.opacity)}%`;
+      if (el("watermark-size")) el("watermark-size").value = Number(next.size || defaultBrandAssets.size);
+      if (el("watermark-size-label")) el("watermark-size-label").textContent = `${Number(next.size || defaultBrandAssets.size)}%`;
+      if (el("watermark-text")) el("watermark-text").value = next.text || "";
+      if (el("watermark-text-size")) el("watermark-text-size").value = Number(next.textSize || defaultBrandAssets.textSize);
+      if (el("watermark-text-size-label")) el("watermark-text-size-label").textContent = `${Number(next.textSize || defaultBrandAssets.textSize)}vw`;
+      if (el("watermark-text-color")) el("watermark-text-color").value = next.textColor || defaultBrandAssets.textColor;
     }
 
     function readAssetFile(file) {

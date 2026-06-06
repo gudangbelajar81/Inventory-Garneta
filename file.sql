@@ -59,7 +59,6 @@ CREATE TABLE products (
   sale_price DECIMAL(14,2) NOT NULL DEFAULT 0,
   profit_per_unit DECIMAL(14,2) GENERATED ALWAYS AS (sale_price - cost_price) STORED,
   stock DECIMAL(14,2) NOT NULL DEFAULT 0,
-  min_stock DECIMAL(14,2) NOT NULL DEFAULT 0,
   photo_path VARCHAR(255) NULL,
   barcode VARCHAR(120) NULL,
   qr_code VARCHAR(120) NULL,
@@ -70,8 +69,7 @@ CREATE TABLE products (
     ON DELETE SET NULL
     ON UPDATE CASCADE,
   INDEX idx_products_category (category),
-  INDEX idx_products_name (name),
-  INDEX idx_products_stock_alert (stock, min_stock)
+  INDEX idx_products_name (name)
 ) ENGINE=InnoDB;
 
 CREATE TABLE purchases (
@@ -239,9 +237,8 @@ INSERT INTO products (
   unit_content,
   base_price,
   sale_price,
-  stock,
-  min_stock
+  stock
 ) VALUES
-(1, 'Beras', 'Beras Premium', 'sak', 25, 312500, 14500, 420, 80),
-(1, 'Gula', 'Gula Pasir', 'sak', 50, 660000, 15000, 180, 50),
-(2, 'Minyak', 'Minyak Goreng', 'jligen', 18, 271800, 17000, 72, 90);
+(1, 'Beras', 'Beras Premium', 'sak', 25, 312500, 14500, 420),
+(1, 'Gula', 'Gula Pasir', 'sak', 50, 660000, 15000, 180),
+(2, 'Minyak', 'Minyak Goreng', 'jligen', 18, 271800, 17000, 72);

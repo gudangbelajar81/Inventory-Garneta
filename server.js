@@ -58,7 +58,15 @@ const db = createDatabasePool();
 
 const featureModules = loadFeatureModules();
 
-app.use(express.json({ limit: "2mb" }));
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
+app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
@@ -125,6 +133,13 @@ async function handleAction(action, payload) {
     remove: () => removeRow(payload.collection, payload.id),
     login: () => loginUser(payload.name, payload.password),
     verifySuperAdmin: () => verifySuperAdmin(payload.adminId, payload.password),
+    aiSettings: () => getAiSettings(payload.provider),
+    aiSettingsAll: () => getAllAiSettings(),
+    saveAiSettings: () => saveAiSettings(payload),
+    editAiKey: () => editAiKey(payload),
+    deleteAiKey: () => deleteAiKey(payload),
+    testAiSettings: () => testAiSettings(payload.provider),
+    analyzeInvoiceImage: () => analyzeInvoiceImage(payload),
     modules: () => availableModules()
   };
 
@@ -275,19 +290,11 @@ async function dashboard() {
       (SELECT COALESCE(SUM(stock * cost_price), 0) FROM products) AS stockValue,
       (SELECT COALESCE(SUM(profit), 0) FROM sales) AS totalProfit
   `);
-  const [stockAlerts] = await db.query(`
-    SELECT id, category, name, unit, unit_content, base_price, cost_price, sale_price, stock, min_stock, barcode
-    FROM products
-    WHERE stock <= min_stock
-    ORDER BY name ASC
-  `);
-
   return {
     totalProducts: Number(stats.totalProducts || 0),
     totalSuppliers: Number(stats.totalSuppliers || 0),
     stockValue: Number(stats.stockValue || 0),
-    totalProfit: Number(stats.totalProfit || 0),
-    stockAlerts: stockAlerts.map(mapProduct)
+    totalProfit: Number(stats.totalProfit || 0)
   };
 }
 
@@ -296,7 +303,7 @@ async function listRows(collection) {
 
   if (collection === "products") {
     const [rows] = await db.query(`
-      SELECT id, supplier_id, category, name, unit, unit_content, base_price, cost_price, sale_price, stock, min_stock, barcode
+      SELECT id, supplier_id, category, name, unit, unit_content, base_price, cost_price, sale_price, stock, barcode
       FROM products
       ORDER BY id DESC
     `);
@@ -353,8 +360,8 @@ async function addRow(collection, item = {}) {
   if (collection === "products") {
     const payload = productPayload(item);
     const [result] = await db.query(`
-      INSERT INTO products (supplier_id, category, name, unit, unit_content, base_price, sale_price, stock, min_stock, barcode)
-      VALUES (:supplierId, :category, :name, :unit, :unitContent, :basePrice, :salePrice, :stock, :minStock, :barcode)
+      INSERT INTO products (supplier_id, category, name, unit, unit_content, base_price, sale_price, stock, barcode)
+      VALUES (:supplierId, :category, :name, :unit, :unitContent, :basePrice, :salePrice, :stock, :barcode)
     `, payload);
     await recordPriceHistory(result.insertId, "barang");
     return findRow("products", result.insertId);
@@ -408,7 +415,7 @@ async function updateRow(collection, id, item = {}) {
       UPDATE products
       SET supplier_id = :supplierId, category = :category, name = :name, unit = :unit,
           unit_content = :unitContent, base_price = :basePrice, sale_price = :salePrice,
-          stock = :stock, min_stock = :minStock, barcode = :barcode
+          stock = :stock, barcode = :barcode
       WHERE id = :id
     `, payload);
     if (Number(before.basePrice) !== Number(payload.basePrice)) await recordPriceHistory(id, "barang");
@@ -561,7 +568,6 @@ function productPayload(item) {
     basePrice: number(item.basePrice),
     salePrice: number(item.salePrice),
     stock: number(item.stock),
-    minStock: number(item.minStock),
     barcode: item.barcode || null
   };
 }
@@ -625,7 +631,6 @@ function mapProduct(row) {
     costPrice: Number(row.cost_price || 0),
     salePrice: Number(row.sale_price || 0),
     stock: Number(row.stock || 0),
-    minStock: Number(row.min_stock || 0),
     barcode: row.barcode || ""
   };
 }
@@ -699,6 +704,359 @@ function mapPriceHistory(row) {
     source: "barang",
     createdAt: row.recorded_at
   };
+}
+
+const AI_PROVIDERS = ["gemini", "openai", "groq", "deepseek"];
+const VISION_PROVIDERS = ["gemini", "openai"];
+const AI_KEY_LIMIT = 10;
+
+function providerLabel(provider) {
+  const labels = {
+    gemini: "Gemini",
+    openai: "OpenAI",
+    groq: "Groq",
+    deepseek: "DeepSeek"
+  };
+  return labels[provider] || provider;
+}
+
+function normalizeProvider(provider) {
+  const safe = String(provider || "gemini").toLowerCase();
+  return AI_PROVIDERS.includes(safe) ? safe : "gemini";
+}
+
+function defaultAiModel(provider) {
+  const models = {
+    gemini: "gemini-2.5-flash",
+    openai: "gpt-4.1-mini",
+    groq: "meta-llama/llama-4-scout-17b-16e-instruct",
+    deepseek: "deepseek-chat"
+  };
+  return models[normalizeProvider(provider)];
+}
+
+function providerKeysSettingKey(provider) {
+  return `AI_KEYS_${normalizeProvider(provider).toUpperCase()}`;
+}
+
+function providerModelSettingKey(provider) {
+  return `AI_MODEL_${normalizeProvider(provider).toUpperCase()}`;
+}
+
+async function getSetting(key, fallback = null) {
+  const [rows] = await db.query("SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1", [key]);
+  return rows[0]?.setting_value ?? fallback;
+}
+
+async function setSetting(key, value) {
+  await db.query(`
+    INSERT INTO app_settings (setting_key, setting_value)
+    VALUES (?, ?)
+    ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+  `, [key, value]);
+}
+
+function readEnvKeys(provider) {
+  const upper = normalizeProvider(provider).toUpperCase();
+  const raw = process.env[`AI_KEYS_${upper}`] || process.env[`AI_API_KEY_${upper}`] || "";
+  return raw.split(/\r?\n|,/).map((key) => key.trim()).filter(Boolean);
+}
+
+function parseStoredApiKeys(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map(normalizeApiKeyRecord).filter(Boolean);
+  } catch (error) {
+    return String(raw).split(/\r?\n|,/).map((key) => normalizeApiKeyRecord(key)).filter(Boolean);
+  }
+  return [];
+}
+
+function normalizeApiKeyRecord(value) {
+  if (!value) return null;
+  const record = typeof value === "string" ? { key: value } : value;
+  const key = String(record.key || record.apiKey || "").trim();
+  if (!key) return null;
+  const status = ["live", "dead", "pending"].includes(record.status) ? record.status : "pending";
+  return {
+    id: record.id || crypto.createHash("sha1").update(key).digest("hex").slice(0, 12),
+    key,
+    status,
+    lastChecked: record.lastChecked || null,
+    message: record.message || ""
+  };
+}
+
+function serializeApiKeyList(keys) {
+  return JSON.stringify(keys.slice(0, AI_KEY_LIMIT));
+}
+
+function mergeApiKeyLayers(existing, incoming) {
+  const seen = new Set();
+  return [...existing, ...incoming]
+    .map(normalizeApiKeyRecord)
+    .filter(Boolean)
+    .filter((record) => {
+      const fingerprint = crypto.createHash("sha1").update(record.key).digest("hex");
+      if (seen.has(fingerprint)) return false;
+      seen.add(fingerprint);
+      return true;
+    })
+    .slice(0, AI_KEY_LIMIT);
+}
+
+function maskApiKey(key) {
+  const text = String(key || "");
+  if (text.length <= 10) return "*".repeat(Math.max(text.length, 6));
+  return `${text.slice(0, 6)}${"*".repeat(Math.min(text.length - 10, 18))}${text.slice(-4)}`;
+}
+
+async function getProviderKeyRecords(provider) {
+  const normalized = normalizeProvider(provider);
+  const stored = parseStoredApiKeys(await getSetting(providerKeysSettingKey(normalized), "[]"));
+  const envRecords = readEnvKeys(normalized).map((key) => normalizeApiKeyRecord({ key, status: "live", message: "ENV" }));
+  return mergeApiKeyLayers(stored, envRecords);
+}
+
+async function setProviderKeyRecords(provider, keys) {
+  await setSetting(providerKeysSettingKey(provider), serializeApiKeyList(keys));
+}
+
+async function getAiSettings(provider) {
+  const activeProvider = normalizeProvider(provider || await getSetting("AI_PROVIDER", process.env.AI_PROVIDER || "gemini"));
+  const model = await getSetting(providerModelSettingKey(activeProvider), process.env[`AI_MODEL_${activeProvider.toUpperCase()}`] || defaultAiModel(activeProvider));
+  const keys = await getProviderKeyRecords(activeProvider);
+  return {
+    provider: activeProvider,
+    providerLabel: providerLabel(activeProvider),
+    model: model === "auto" ? defaultAiModel(activeProvider) : model,
+    keyLimit: AI_KEY_LIMIT,
+    totalKeys: keys.length,
+    liveKeys: keys.filter((key) => key.status === "live").length,
+    deadKeys: keys.filter((key) => key.status === "dead").length,
+    keys: keys.map((key, index) => keyPublicInfo(key, activeProvider, index))
+  };
+}
+
+async function getAllAiSettings() {
+  const providerSettings = [];
+  const keys = [];
+  for (const provider of AI_PROVIDERS) {
+    const settings = await getAiSettings(provider);
+    providerSettings.push(settings);
+    keys.push(...settings.keys);
+  }
+
+  return {
+    providers: providerSettings,
+    keys,
+    totalKeys: keys.length,
+    liveKeys: keys.filter((key) => key.status === "live").length,
+    deadKeys: keys.filter((key) => key.status === "dead").length,
+    pendingKeys: keys.filter((key) => key.status === "pending").length
+  };
+}
+
+function keyPublicInfo(key, provider, index) {
+  return {
+    id: key.id,
+    provider,
+    providerLabel: providerLabel(provider),
+    layer: index + 1,
+    masked: maskApiKey(key.key),
+    status: key.status || "pending",
+    model: defaultAiModel(provider),
+    lastChecked: key.lastChecked,
+    message: key.message || ""
+  };
+}
+
+async function saveAiSettings(payload = {}) {
+  const provider = normalizeProvider(payload.provider);
+  const incoming = (Array.isArray(payload.apiKeys) ? payload.apiKeys : [])
+    .map((key) => normalizeApiKeyRecord({ key, status: "pending", message: "Belum dicek" }))
+    .filter(Boolean);
+  const existing = await getProviderKeyRecords(provider);
+  const merged = mergeApiKeyLayers(existing, incoming);
+  await setSetting("AI_PROVIDER", provider);
+  await setSetting(providerModelSettingKey(provider), payload.model && payload.model !== "auto" ? payload.model : defaultAiModel(provider));
+  await setProviderKeyRecords(provider, merged);
+  return getAiSettings(provider);
+}
+
+async function editAiKey(payload = {}) {
+  const provider = normalizeProvider(payload.provider);
+  const keys = await getProviderKeyRecords(provider);
+  const index = keys.findIndex((key) => key.id === payload.keyId);
+  if (index < 0) throw new Error("API key tidak ditemukan.");
+  const replacement = normalizeApiKeyRecord({ key: payload.apiKey, status: "pending", message: "Belum dicek" });
+  if (!replacement) throw new Error("API key pengganti wajib diisi.");
+  keys[index] = replacement;
+  await setProviderKeyRecords(provider, mergeApiKeyLayers([], keys));
+  return getAiSettings(provider);
+}
+
+async function deleteAiKey(payload = {}) {
+  const provider = normalizeProvider(payload.provider);
+  const keys = await getProviderKeyRecords(provider);
+  const next = keys.filter((key) => key.id !== payload.keyId);
+  await setProviderKeyRecords(provider, next);
+  return getAiSettings(provider);
+}
+
+async function testAiSettings(provider) {
+  const selected = normalizeProvider(provider);
+  const keys = await getProviderKeyRecords(selected);
+  if (!keys.length) throw new Error("API_KEY_NOT_CONFIGURED_ON_RAILWAY");
+
+  const checked = [];
+  for (const key of keys) {
+    checked.push(await checkApiKey(selected, key));
+  }
+  await setProviderKeyRecords(selected, checked);
+  const live = checked.filter((key) => key.status === "live").length;
+  return {
+    provider: selected,
+    model: defaultAiModel(selected),
+    message: live ? `${live} API key aktif.` : "Belum ada key LIVE. Key dengan error jaringan dibiarkan PENDING.",
+    keys: checked.map((key, index) => keyPublicInfo(key, selected, index))
+  };
+}
+
+async function checkApiKey(provider, keyRecord) {
+  const checkedAt = new Date().toISOString();
+  try {
+    const response = await fetchWithTimeout(healthCheckUrl(provider, keyRecord.key), healthCheckOptions(provider, keyRecord.key), 12000);
+    if (response.ok) {
+      return { ...keyRecord, status: "live", lastChecked: checkedAt, message: "OK" };
+    }
+    if ([401, 403, 429].includes(response.status)) {
+      return { ...keyRecord, status: "dead", lastChecked: checkedAt, message: `HTTP ${response.status}` };
+    }
+    return { ...keyRecord, status: keyRecord.status === "dead" ? "pending" : keyRecord.status, lastChecked: checkedAt, message: `HTTP ${response.status}` };
+  } catch (error) {
+    return { ...keyRecord, status: keyRecord.status === "dead" ? "pending" : keyRecord.status, lastChecked: checkedAt, message: error.message };
+  }
+}
+
+function healthCheckUrl(provider, apiKey) {
+  const urls = {
+    gemini: `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
+    openai: "https://api.openai.com/v1/models",
+    groq: "https://api.groq.com/openai/v1/models",
+    deepseek: "https://api.deepseek.com/models"
+  };
+  return urls[normalizeProvider(provider)];
+}
+
+function healthCheckOptions(provider, apiKey) {
+  if (provider === "gemini") return { method: "GET" };
+  return { method: "GET", headers: { Authorization: `Bearer ${apiKey}` } };
+}
+
+async function analyzeInvoiceImage(payload = {}) {
+  const imageDataUrl = payload.imageDataUrl || payload.imageData || "";
+  if (!imageDataUrl.startsWith("data:image/")) throw new Error("Foto nota wajib dikirim.");
+  const instruction = payload.instruction || "Baca isi foto nota ini dengan teliti dan berikan hasil sesuai data yang terlihat.";
+  const providers = await getVisionProviders();
+
+  for (const provider of providers) {
+    for (const key of provider.keys) {
+      try {
+        const hasil = await executeVisionRequest(provider.provider, key.key, imageDataUrl, instruction);
+        if (hasil) return { hasil, provider: provider.provider, model: provider.model };
+      } catch (error) {
+        logger.warn("Provider AI gagal, mencoba layer berikutnya.", {
+          provider: provider.provider,
+          key: maskApiKey(key.key),
+          error: error.message
+        });
+      }
+    }
+  }
+
+  throw new Error("Semua API Provider gagal atau belum ada API key vision LIVE/PENDING.");
+}
+
+async function getVisionProviders() {
+  const active = normalizeProvider(await getSetting("AI_PROVIDER", process.env.AI_PROVIDER || "gemini"));
+  const order = [active, ...VISION_PROVIDERS].filter((provider, index, arr) => VISION_PROVIDERS.includes(provider) && arr.indexOf(provider) === index);
+  const providers = [];
+  for (const provider of order) {
+    const keys = (await getProviderKeyRecords(provider)).filter((key) => key.status !== "dead");
+    if (keys.length) {
+      const model = await getSetting(providerModelSettingKey(provider), defaultAiModel(provider));
+      providers.push({ provider, model: model === "auto" ? defaultAiModel(provider) : model, keys });
+    }
+  }
+  return providers;
+}
+
+async function executeVisionRequest(provider, apiKey, imageDataUrl, instruction) {
+  if (provider === "gemini") return executeGeminiVision(apiKey, imageDataUrl, instruction);
+  if (provider === "openai") return executeOpenAiVision(apiKey, imageDataUrl, instruction);
+  throw new Error(`${providerLabel(provider)} belum mendukung analisa gambar di aplikasi ini.`);
+}
+
+async function executeGeminiVision(apiKey, imageDataUrl, instruction) {
+  const { mimeType, data } = splitDataUrl(imageDataUrl);
+  const model = defaultAiModel("gemini");
+  const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{
+        role: "user",
+        parts: [
+          { text: instruction },
+          { inline_data: { mime_type: mimeType, data } }
+        ]
+      }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+    })
+  }, 45000);
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(json.error?.message || `Gemini HTTP ${response.status}`);
+  return json.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
+}
+
+async function executeOpenAiVision(apiKey, imageDataUrl, instruction) {
+  const response = await fetchWithTimeout("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: defaultAiModel("openai"),
+      input: [{
+        role: "user",
+        content: [
+          { type: "input_text", text: instruction },
+          { type: "input_image", image_url: imageDataUrl }
+        ]
+      }],
+      temperature: 0.1,
+      max_output_tokens: 2048
+    })
+  }, 45000);
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(json.error?.message || `OpenAI HTTP ${response.status}`);
+  return json.output_text || json.output?.flatMap((item) => item.content || []).map((part) => part.text || "").join("").trim();
+}
+
+function splitDataUrl(dataUrl) {
+  const match = String(dataUrl).match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) throw new Error("Format foto tidak valid.");
+  return { mimeType: match[1], data: match[2] };
+}
+
+async function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function assertCollection(collection) {

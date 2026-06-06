@@ -59,7 +59,7 @@
     .chart { display: flex; align-items: end; gap: 8px; height: 180px; padding-top: 12px; }
     .bar { min-width: 24px; flex: 1; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--orange), var(--green)); }
     textarea.input-area { min-height: 120px; resize: vertical; }
-    video.scanner-preview { width: 100%; max-height: 240px; border-radius: 8px; border: 1px solid var(--line); background: #0f172a; object-fit: cover; }
+    video.scanner-preview { width: 100%; height: min(62vh, 520px); min-height: 260px; border-radius: 14px; border: 1px solid var(--line); background: #020617; object-fit: contain; }
     .settings-page { background: radial-gradient(circle at 20% 0%, rgba(34,211,238,.16), transparent 28%), #090a10; color: #f8fafc; border-radius: 8px; padding: 22px; min-height: calc(100vh - 118px); }
     .settings-hero, .api-center-card, .api-help-card { background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(148,163,184,.18); border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.32); }
     .settings-hero { padding: 22px; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
@@ -144,7 +144,7 @@
       th { font-size: 10px; letter-spacing: .2px; }
       .chart { height: 126px; gap: 5px; }
       .bar { min-width: 12px; border-radius: 6px 6px 0 0; }
-      video.scanner-preview { max-height: 190px; border-radius: 16px; }
+      video.scanner-preview { height: min(58vh, 460px); min-height: 280px; border-radius: 16px; }
       .settings-page { padding: 12px; border-radius: 18px; min-height: auto; }
       .settings-hero { padding: 14px; align-items: flex-start; }
       .settings-title { font-size: 18px; }
@@ -171,6 +171,7 @@
       .actions { align-items: stretch; }
       .actions .btn { flex: 1 1 auto; }
       table { min-width: 560px; }
+      video.scanner-preview { height: 64vh; min-height: 320px; }
     }
     @media (max-width: 520px) and (orientation: portrait) {
       body { font-size: 12.5px; }
@@ -324,7 +325,6 @@
           ${stat("Keuntungan", rupiah(d.totalProfit))}
         </div>
         <div class="card"><h3>AI Nota ke Barang</h3>${invoiceAiTools()}</div>
-        <div class="card"><h3>Stok Menipis</h3>${simpleTable(d.stockAlerts || [], ["name", "stock", "minStock"], ["Barang", "Stok", "Minimal"])}</div>
       </section>`;
     }
 
@@ -509,12 +509,11 @@ Beras Premium 1"></textarea>
         ${hiddenId()}
         ${input("category", "Kategori Barang")}
         ${input("name", "Nama Barang", true)}
-        ${select("unit", "Unit", ["sak", "karton/dus", "jligen", "pcs"])}
+        ${select("unit", "Unit", ["sak", "karton/dus", "jligen", "kg", "ball", "pcs"])}
         ${input("unitContent", "Isi/Unit", true, "number")}
         ${input("basePrice", "Harga Dasar", true, "number")}
         ${input("salePrice", "Harga Jual/Unit", true, "number")}
         ${input("stock", "Stok", false, "number")}
-        ${input("minStock", "Stok Minimal", false, "number")}
         ${input("barcode", "Barcode / Kode Scanner")}
         ${formButtons()}
       </form>`;
@@ -539,7 +538,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         <div class="actions">
           <button class="btn soft" id="parse-products-wa">Proses Paste WA</button>
         </div>
-        <p class="muted">Format header yang didukung: nama, kategori, unit, isi/unit, harga dasar, harga jual, stok, stok minimal, barcode. Jika hanya "Nama 5", stok akan diisi 5.</p>
+        <p class="muted">Format header yang didukung: nama, kategori, unit, isi/unit, harga dasar, harga jual, stok, barcode. Jika hanya "Nama 5", stok akan diisi 5.</p>
       </div>`;
     }
 
@@ -550,7 +549,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           <label>Nama Barang<input id="scanner-product-name" placeholder="Nama barang dari hasil scan"></label>
           <label>Kategori<input id="scanner-product-category" value="Umum"></label>
           <label>Harga Dasar<input id="scanner-base-price" type="number" value="0"></label>
-          <label>Unit<select id="scanner-unit"><option>sak</option><option>karton/dus</option><option>jligen</option><option>pcs</option></select></label>
+          <label>Unit<select id="scanner-unit"><option>sak</option><option>karton/dus</option><option>jligen</option><option>kg</option><option>ball</option><option>pcs</option></select></label>
           <label>Isi/Unit<input id="scanner-unit-content" type="number" value="1"></label>
           <label>Harga Jual<input id="scanner-sale-price" type="number" value="0"></label>
           <label>Stok<input id="scanner-stock" type="number" value="0"></label>
@@ -690,8 +689,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         basePrice: plainNumber(cells[4]),
         salePrice: plainNumber(cells[5]),
         stock: plainNumber(cells[6]),
-        minStock: plainNumber(cells[7]),
-        barcode: cells[8] || ""
+        barcode: cells[7] || ""
       };
     }
 
@@ -711,7 +709,6 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           basePrice: 0,
           salePrice: 0,
           stock: plainNumber(match[2]),
-          minStock: 0,
           barcode: ""
         };
       }).filter((row) => row && row.name);
@@ -754,7 +751,6 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           basePrice: Number(item.harga_modal || 0),
           salePrice: 0,
           stock: Number(item.kuantitas || 0),
-          minStock: 0,
           barcode: ""
         }));
     }
@@ -1000,13 +996,16 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         const settings = await gas("aiSettings", { provider: selectedProvider });
         const allSettings = await gas("aiSettingsAll");
         const keyRows = renderApiKeyLayers(allSettings.keys || []);
+        const providerRows = renderProviderSummaries(allSettings.providers || []);
         el("ai-settings-panel").innerHTML = `
           <div class="api-badges">
             <span class="api-badge">PROVIDER: ${settings.provider.toUpperCase()}</span>
             <span class="api-badge">MODEL: AUTO (${settings.model})</span>
-            <span class="api-badge ${allSettings.liveKeys ? "ok" : "warn"}">LIVE: ${allSettings.liveKeys}/${allSettings.totalKeys || settings.keyLimit}</span>
+            <span class="api-badge ${allSettings.liveKeys ? "ok" : "warn"}">LIVE: ${allSettings.liveKeys}/${allSettings.totalKeys || 0}</span>
             <span class="api-badge ${allSettings.deadKeys ? "warn" : "ok"}">DEAD: ${allSettings.deadKeys}</span>
+            <span class="api-badge warn">PENDING: ${allSettings.pendingKeys || 0}</span>
           </div>
+          <div class="api-key-list">${providerRows}</div>
           <div class="api-key-box">
             <label>API KEY LAYERS SEMUA PROVIDER</label>
             <div class="api-key-list">${keyRows}</div>
@@ -1043,6 +1042,15 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       }
     }
 
+    function renderProviderSummaries(providers) {
+      return providers.map((provider) => `
+        <div class="api-key-item">
+          <span><strong>${provider.providerLabel}</strong><br><small>${provider.totalKeys} key tersimpan, ${provider.liveKeys} LIVE, ${provider.deadKeys} DEAD</small></span>
+          <span class="api-badge ${provider.totalKeys ? "ok" : "warn"}">${provider.totalKeys ? "TERDAFTAR" : "KOSONG"}</span>
+        </div>
+      `).join("");
+    }
+
     function renderApiKeyLayers(keys) {
       if (!keys.length) {
         return `<div class="api-key-item"><span>Belum ada layer API key tersimpan.</span><span class="api-badge warn">EMPTY</span></div>`;
@@ -1053,7 +1061,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           <div class="api-key-display-row">
             <span>
               <strong>${key.providerLabel}</strong> LAYER ${key.layer} · ${key.masked}<br>
-              <small>Model otomatis: ${key.model}</small>
+              <small>Model otomatis: ${key.model}${key.message ? ` - ${key.message}` : ""}</small>
             </span>
             <span class="actions">
               <button class="btn soft edit-ai-key" data-provider="${key.provider}" data-key-id="${key.id}" type="button">EDIT</button>
@@ -1211,7 +1219,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           apiKeys: collectAiKeyValues()
         });
         target.textContent = "API settings berhasil disimpan.";
-        await loadAiSettings();
+        await loadAiSettings(el("ai-provider").value);
       } catch (error) {
         target.textContent = error.message;
       }
@@ -1226,7 +1234,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         });
         const dead = (result.keys || []).filter((key) => key.status === "dead").length;
         target.textContent = `${result.message} Provider: ${result.provider}, Model: ${result.model}, Dead: ${dead}`;
-        await loadAiSettings();
+        await loadAiSettings(el("ai-provider")?.value);
       } catch (error) {
         target.textContent = error.message === "API_KEY_NOT_CONFIGURED_ON_RAILWAY"
           ? "API key belum diatur. Isi dari halaman Pusat API lalu simpan."
@@ -1351,8 +1359,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             unitContent: plainNumber(el("scanner-unit-content").value) || 1,
             basePrice: plainNumber(el("scanner-base-price").value),
             salePrice: plainNumber(el("scanner-sale-price").value),
-            stock: plainNumber(el("scanner-stock").value),
-            minStock: 0
+            stock: plainNumber(el("scanner-stock").value)
           };
           await gas("add", { collection: "products", item });
           await stopScanner();

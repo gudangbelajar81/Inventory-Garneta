@@ -57,6 +57,7 @@ function createDatabasePool() {
 const db = createDatabasePool();
 
 const featureModules = loadFeatureModules();
+const tableColumnCache = new Map();
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -364,8 +365,12 @@ async function listRows(collection) {
   }
 
   if (collection === "auditLogs") {
+    const columns = await getTableColumns("activity_logs");
+    const messageExpr = columns.has("activity")
+      ? "al.activity AS activity, al.detail AS detail"
+      : "al.message AS activity, NULL AS detail";
     const [rows] = await db.query(`
-      SELECT al.id, al.user_id, u.name AS user_name, al.activity, al.detail, al.created_at
+      SELECT al.id, al.user_id, u.name AS user_name, ${messageExpr}, al.created_at
       FROM activity_logs al
       LEFT JOIN users u ON u.id = al.user_id
       ORDER BY al.id DESC
@@ -574,7 +579,14 @@ async function recordPriceHistory(productId, source) {
 }
 
 async function recordAudit(message, userId = null) {
-  await db.query("INSERT INTO activity_logs (user_id, activity, detail) VALUES (?, ?, ?)", [userId, message, null]);
+  const columns = await getTableColumns("activity_logs");
+  if (columns.has("activity")) {
+    await db.query("INSERT INTO activity_logs (user_id, activity, detail) VALUES (?, ?, ?)", [userId, message, null]);
+    return;
+  }
+  if (columns.has("message")) {
+    await db.query("INSERT INTO activity_logs (user_id, message) VALUES (?, ?)", [userId, message]);
+  }
 }
 
 async function validateUserDelete(id) {
@@ -754,6 +766,14 @@ function mapAuditLog(row) {
   };
 }
 
+async function getTableColumns(table, connection = db, refresh = false) {
+  if (!refresh && tableColumnCache.has(table)) return tableColumnCache.get(table);
+  const [rows] = await connection.query(`SHOW COLUMNS FROM ${table}`);
+  const columns = new Set(rows.map((row) => row.Field));
+  tableColumnCache.set(table, columns);
+  return columns;
+}
+
 async function backupData() {
   const tables = ["suppliers", "products", "purchases", "sales", "users", "price_history", "activity_logs", "app_settings"];
   const backup = {
@@ -799,7 +819,12 @@ async function restoreData(backup) {
     }
 
     await connection.query("SET FOREIGN_KEY_CHECKS = 1");
-    await connection.query("INSERT INTO activity_logs (activity) VALUES (?)", ["Restore database dari backup"]);
+    const auditColumns = await getTableColumns("activity_logs", connection, true);
+    if (auditColumns.has("activity")) {
+      await connection.query("INSERT INTO activity_logs (activity) VALUES (?)", ["Restore database dari backup"]);
+    } else if (auditColumns.has("message")) {
+      await connection.query("INSERT INTO activity_logs (message) VALUES (?)", ["Restore database dari backup"]);
+    }
     await connection.commit();
   } catch (error) {
     await connection.rollback();

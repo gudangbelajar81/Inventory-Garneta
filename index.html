@@ -257,7 +257,7 @@
 
   <script>
     const menus = [
-      ["dashboard", "Dashboard"], ["barang", "Barang"], ["supplier", "Supplier"],
+      ["dashboard", "Dashboard"], ["neural-hub", "🧠 Neural Hub"], ["barang", "Barang"], ["supplier", "Supplier"],
       ["pembelian", "Pembelian"], ["kalkulator", "Kalkulator Belanja"], ["penjualan", "Penjualan"], ["laporan", "Laporan"],
       ["statistik", "Statistik"], ["audit", "Audit Log"], ["users", "Users"], ["settings", "Setting"]
     ];
@@ -329,9 +329,48 @@
         el("content").innerHTML = `<div class="card"><h2>Akses dibatasi</h2><p class="muted">Menu ini hanya bisa diakses Super Admin.</p></div>`;
         return;
       }
-      const views = { dashboard, barang, supplier, pembelian, kalkulator, penjualan, laporan, statistik, audit, users, settings };
+      const views = { dashboard, "neural-hub": neuralHub, barang, supplier, pembelian, kalkulator, penjualan, laporan, statistik, audit, users, settings };
       el("content").innerHTML = views[state.route]();
       bindForms();
+    }
+
+    function neuralHub() {
+      const modules = [
+        { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
+        { id: "penjualan", name: "Penjualan", icon: "💵", desc: "Input transaksi", core: true },
+        { id: "pembelian", name: "Pembelian", icon: "🛒", desc: "Restock barang" },
+        { id: "kalkulator", name: "Kalkulator", icon: "🧮", desc: "Hitung belanja" },
+        { id: "supplier", name: "Supplier", icon: "🏭", desc: "Data supplier" },
+        { id: "laporan", name: "Laporan", icon: "📈", desc: "Laporan harian" },
+        { id: "statistik", name: "Statistik", icon: "📊", desc: "Analisis data" },
+        { id: "users", name: "Users", icon: "👤", desc: "Manajemen user" },
+        { id: "audit", name: "Audit Log", icon: "📋", desc: "Riwayat aktivitas" },
+        { id: "settings", name: "Setting", icon: "⚙️", desc: "Pengaturan" }
+      ];
+      
+      const d = state.data.dashboard || {};
+      
+      return `<section class="grid">
+        <div class="grid stats">
+          ${stat("Total Barang", d.totalProducts)}
+          ${stat("Supplier", d.totalSuppliers)}
+          ${stat("Nilai Stok", rupiah(d.stockValue))}
+          ${isSuperAdmin() ? stat("Keuntungan", rupiah(d.totalProfit)) : ""}
+        </div>
+        <div class="card">
+          <h2>🧠 Neural Hub - AI Command Center</h2>
+          <p class="muted">Pusat kendali sistem - klik modul untuk navigasi cepat</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:16px;">
+            ${modules.map(m => `
+              <button class="btn ${m.core ? 'primary' : 'soft'}" onclick="state.route='${m.id}';renderShell();render()" style="padding:16px;text-align:center;flex-direction:column;gap:8px;height:auto;">
+                <span style="font-size:2rem">${m.icon}</span>
+                <span style="font-weight:700">${m.name}</span>
+                <span style="font-size:11px;opacity:0.8">${m.desc}</span>
+              </button>
+            `).join("")}
+          </div>
+        </div>
+      </section>`;
     }
 
     function dashboard() {

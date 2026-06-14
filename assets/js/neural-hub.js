@@ -202,8 +202,29 @@ const NeuralHub = {
   // Navigate to module
   navigateToModule(moduleName) {
     console.log(`Navigating to: ${moduleName}`);
-    // Implement actual navigation logic here
-    // window.location.href = `/${moduleName.toLowerCase().replace(' ', '-')}`;
+    
+    // Map module names to actual routes
+    const routeMap = {
+      'Cari Barang': '/modules/pencarian/',
+      'Barang': '/modules/barang/',
+      'Penjualan': '/modules/penjualan/',
+      'Pembelian': '/modules/pembelian/',
+      'Kalkulator': '/modules/kalkulator-belanja/',
+      'Supplier': '/modules/supplier/',
+      'Laporan': '/modules/laporan/',
+      'Statistik': '/modules/statistik/',
+      'Users': '/modules/users/',
+      'Audit Log': '/modules/audit/',
+      'Setting': '/modules/settings/',
+      'Scanner': '/modules/scanner/'
+    };
+    
+    const route = routeMap[moduleName];
+    if (route) {
+      window.location.href = route;
+    } else {
+      console.warn(`No route found for module: ${moduleName}`);
+    }
   },
 
   // Handle search input

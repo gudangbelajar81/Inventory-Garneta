@@ -133,6 +133,7 @@
   </style>
 </head>
 <body>
+  <script src="assets/js/neural-hub.js"></script>
   <div class="app">
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -224,76 +225,76 @@
         <!-- Neural Hub Grid -->
         <div class="hub-grid">
           <!-- Core Operations - Layer 1 -->
-          <div class="neural-card core" onclick="alert('Cari Barang')">
+          <div class="neural-card core" data-module="cari-barang">
             <div class="card-icon">🔍</div>
             <div class="card-title">Cari Barang</div>
             <div class="card-desc">Pencarian cepat</div>
           </div>
           
-          <div class="neural-card core" onclick="alert('Barang')">
+          <div class="neural-card core" data-module="barang">
             <div class="card-icon">📦</div>
             <div class="card-title">Barang</div>
             <div class="card-desc">Manajemen produk</div>
           </div>
           
-          <div class="neural-card core" onclick="alert('Penjualan')">
+          <div class="neural-card core" data-module="penjualan">
             <div class="card-icon">💵</div>
             <div class="card-title">Penjualan</div>
             <div class="card-desc">Input transaksi</div>
           </div>
           
-          <div class="neural-card" onclick="alert('Pembelian')">
+          <div class="neural-card" data-module="pembelian">
             <div class="card-icon">🛒</div>
             <div class="card-title">Pembelian</div>
             <div class="card-desc">Restock barang</div>
           </div>
           
           <!-- Secondary Operations - Layer 2 -->
-          <div class="neural-card" onclick="alert('Kalkulator')">
+          <div class="neural-card" data-module="kalkulator">
             <div class="card-icon">🧮</div>
             <div class="card-title">Kalkulator</div>
             <div class="card-desc">Hitung belanja</div>
           </div>
           
-          <div class="neural-card" onclick="alert('Supplier')">
+          <div class="neural-card" data-module="supplier">
             <div class="card-icon">🏭</div>
             <div class="card-title">Supplier</div>
             <div class="card-desc">Data supplier</div>
           </div>
           
           <!-- Analytics - Layer 3 -->
-          <div class="neural-card" onclick="alert('Laporan')">
+          <div class="neural-card" data-module="laporan">
             <div class="card-icon">📈</div>
             <div class="card-title">Laporan</div>
             <div class="card-desc">Laporan harian</div>
           </div>
           
-          <div class="neural-card" onclick="alert('Statistik')">
+          <div class="neural-card" data-module="statistik">
             <div class="card-icon">📊</div>
             <div class="card-title">Statistik</div>
             <div class="card-desc">Analisis data</div>
           </div>
           
           <!-- System - Layer 4 -->
-          <div class="neural-card" onclick="alert('Users')">
+          <div class="neural-card" data-module="users">
             <div class="card-icon">👤</div>
             <div class="card-title">Users</div>
             <div class="card-desc">Manajemen user</div>
           </div>
           
-          <div class="neural-card" onclick="alert('Audit Log')">
+          <div class="neural-card" data-module="audit">
             <div class="card-icon">📋</div>
             <div class="card-title">Audit Log</div>
             <div class="card-desc">Riwayat aktivitas</div>
           </div>
           
-          <div class="neural-card" onclick="alert('Setting')">
+          <div class="neural-card" data-module="setting">
             <div class="card-icon">⚙️</div>
             <div class="card-title">Setting</div>
             <div class="card-desc">Pengaturan</div>
           </div>
           
-          <div class="neural-card" onclick="alert('Scanner')">
+          <div class="neural-card" data-module="scanner">
             <div class="card-icon">📷</div>
             <div class="card-title">Scanner</div>
             <div class="card-desc">Scan barcode</div>

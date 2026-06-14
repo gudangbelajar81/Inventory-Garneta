@@ -76,6 +76,10 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+app.get("/neural-hub", (req, res) => {
+  res.sendFile(path.join(__dirname, "neural-hub.html"));
+});
+
 app.get("/manifest.webmanifest", (req, res) => {
   res.type("application/manifest+json").sendFile(path.join(__dirname, "manifest.webmanifest"));
 });

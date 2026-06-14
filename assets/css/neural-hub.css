@@ -1,0 +1,334 @@
+/* ============================================
+   GARNETA NEURAL HUB - UI/UX Redesign
+   AI Command Center Dashboard Styles
+   ============================================ */
+
+/* CSS Variables - Neural Hub Theme */
+:root {
+  /* Core Colors */
+  --gnh-bg-primary: #0b1f24;
+  --gnh-bg-secondary: #102a31;
+  --gnh-bg-tertiary: #142f38;
+  --gnh-cyan: #24f0c7;
+  --gnh-cyan-soft: #8df7df;
+  --gnh-cyan-glow: rgba(36, 240, 199, 0.4);
+  --gnh-orange: #ff7043;
+  --gnh-orange-soft: #ffb399;
+  --gnh-orange-glow: rgba(255, 112, 67, 0.4);
+  --gnh-text-primary: #e8fbff;
+  --gnh-text-secondary: #8fb4bd;
+  --gnh-text-muted: #5a7a80;
+  
+  /* Neural Network Colors */
+  --gnh-node-core: #24f0c7;
+  --gnh-node-secondary: #ff7043;
+  --gnh-node-tertiary: #8df7df;
+  --gnh-connection: rgba(141, 247, 223, 0.25);
+  --gnh-connection-active: rgba(36, 240, 199, 0.9);
+  --gnh-particle: rgba(36, 240, 199, 0.6);
+  
+  /* Glassmorphism */
+  --gnh-glass-bg: rgba(16, 42, 49, 0.85);
+  --gnh-glass-border: rgba(141, 247, 223, 0.15);
+  --gnh-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  
+  /* Spacing */
+  --gnh-space-xs: 0.25rem;
+  --gnh-space-sm: 0.5rem;
+  --gnh-space-md: 1rem;
+  --gnh-space-lg: 1.5rem;
+  --gnh-space-xl: 2rem;
+  --gnh-space-2xl: 3rem;
+  
+  /* Typography */
+  --gnh-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --gnh-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  
+  /* Animation */
+  --gnh-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --gnh-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --gnh-duration-fast: 150ms;
+  --gnh-duration-normal: 300ms;
+  --gnh-duration-slow: 500ms;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--gnh-font-sans);
+  background: 
+    radial-gradient(ellipse at 20% 0%, rgba(36, 240, 199, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 0%, rgba(255, 112, 67, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(36, 240, 199, 0.04) 0%, transparent 40%),
+    var(--gnh-bg-primary);
+  color: var(--gnh-text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ============================================
+   NEURAL HUB LAYOUT
+   ============================================ */
+
+.neural-hub {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Background Grid Pattern */
+.neural-hub::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(36, 240, 199, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36, 240, 199, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ============================================
+   SIDEBAR - NEURAL NAVIGATION
+   ============================================ */
+
+.neural-sidebar {
+  background: linear-gradient(180deg, 
+    rgba(13, 38, 45, 0.98) 0%, 
+    rgba(8, 24, 29, 0.99) 100%);
+  border-right: 1px solid var(--gnh-glass-border);
+  padding: var(--gnh-space-lg);
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 280px;
+  z-index: 100;
+  overflow-y: auto;
+  backdrop-filter: blur(20px);
+}
+
+/* Brand Section */
+.neural-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--gnh-space-md);
+  margin-bottom: var(--gnh-space-xl);
+  padding-bottom: var(--gnh-space-lg);
+  border-bottom: 1px solid var(--gnh-glass-border);
+}
+
+.neural-brand-logo {
+  width: 48px;
+  height: 48px;
+  position: relative;
+}
+
+.neural-brand-logo svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 20px var(--gnh-cyan-glow));
+}
+
+.neural-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.neural-brand-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--gnh-text-primary);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.neural-brand-subtitle {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--gnh-cyan);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* Navigation Groups */
+.neural-nav-group {
+  margin-bottom: var(--gnh-space-lg);
+}
+
+.neural-nav-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--gnh-text-muted);
+  text-transform: uppercase;
+  margin-bottom: var(--gnh-space-sm);
+  padding-left: var(--gnh-space-sm);
+}
+
+.neural-nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gnh-space-xs);
+}
+
+.neural-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gnh-space-sm);
+  padding: var(--gnh-space-sm) var(--gnh-space-md);
+  border-radius: 10px;
+  color: var(--gnh-text-secondary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all var(--gnh-duration-fast) var(--gnh-ease-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.neural-nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, 
+    rgba(36, 240, 199, 0.1) 0%, 
+    rgba(255, 112, 67, 0.05) 100%);
+  opacity: 0;
+  transition: opacity var(--gnh-duration-fast) var(--gnh-ease-smooth);
+}
+
+.neural-nav-item:hover::before,
+.neural-nav-item.active::before {
+  opacity: 1;
+}
+
+.neural-nav-item:hover {
+  color: var(--gnh-text-primary);
+  border-color: rgba(36, 240, 199, 0.3);
+}
+
+.neural-nav-item.active {
+  color: var(--gnh-cyan);
+  border: 1px solid rgba(36, 240, 199, 0.4);
+  background: rgba(36, 240, 199, 0.08);
+  box-shadow: 
+    0 0 20px rgba(36, 240, 199, 0.1),
+    inset 0 0 20px rgba(36, 240, 199, 0.05);
+}
+
+.neural-nav-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+/* Quick Search in Sidebar */
+.neural-quick-search {
+  margin-bottom: var(--gnh-space-lg);
+  position: relative;
+}
+
+.neural-quick-search input {
+  width: 100%;
+  padding: var(--gnh-space-sm) var(--gnh-space-md);
+  padding-left: 2.5rem;
+  background: rgba(6, 19, 24, 0.68);
+  border: 1px solid var(--gnh-glass-border);
+  border-radius: 10px;
+  color: var(--gnh-text-primary);
+  font-size: 0.875rem;
+  transition: all var(--gnh-duration-fast) var(--gnh-ease-smooth);
+}
+
+.neural-quick-search input:focus {
+  outline: none;
+  border-color: var(--gnh-cyan);
+  box-shadow: 0 0 0 3px rgba(36, 240, 199, 0.1);
+}
+
+.neural-quick-search input::placeholder {
+  color: var(--gnh-text-muted);
+}
+
+.neural-quick-search-icon {
+  position: absolute;
+  left: var(--gnh-space-md);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gnh-text-muted);
+  font-size: 0.875rem;
+}
+
+/* ============================================
+   MAIN CONTENT AREA
+   ============================================ */
+
+.neural-main {
+  margin-left: 280px;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* Top Bar */
+.neural-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gnh-space-md) var(--gnh-space-xl);
+  background: rgba(9, 28, 34, 0.86);
+  border-bottom: 1px solid var(--gnh-glass-border);
+  backdrop-filter: blur(14px);
+}
+
+.neural-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--gnh-space-md);
+}
+
+.neural-page-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gnh-text-primary);
+}
+
+.neural-clock {
+  font-size: 0.75rem;
+  color: var(--gnh-text-secondary);
+  font-family: var(--gnh-font-mono);
+}
+
+.neural-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--gnh-space-md);
+}
+
+.neural-role-badge {
+  padding: var(--gnh-space-xs) var(--gnh-space-sm);
+  background: rgba

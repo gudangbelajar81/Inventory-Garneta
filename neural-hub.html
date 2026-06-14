@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GARNETA NEURAL HUB</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0b1f24;
+      color: #e8fbff;
+      min-height: 100vh;
+    }
+    .app { display: flex; min-height: 100vh; }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: linear-gradient(180deg, #0d262d, #08181d);
+      border-right: 1px solid rgba(141, 247, 223, 0.15);
+      padding: 1.5rem;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(141, 247, 223, 0.15); }
+    .brand-logo { width: 48px; height: 48px; background: linear-gradient(135deg, #24f0c7, #ff7043); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.5rem; color: #0b1f24; }
+    .brand-text h1 { font-size: 1.125rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+    .brand-text span { font-size: 0.625rem; color: #24f0c7; letter-spacing: 2px; }
+    
+    .nav-group { margin-bottom: 1.5rem; }
+    .nav-label { font-size: 0.625rem; font-weight: 700; letter-spacing: 2px; color: #5a7a80; text-transform: uppercase; margin-bottom: 0.5rem; padding-left: 0.5rem; }
+    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.875rem; border-radius: 10px; color: #8fb4bd; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.15s; margin-bottom: 0.25rem; }
+    .nav-item:hover { background: rgba(36, 240, 199, 0.08); color: #e8fbff; }
+    .nav-item.active { background: rgba(36, 240, 199, 0.12); color: #24f0c7; border: 1px solid rgba(36, 240, 199, 0.3); }
+    
+    /* Main */
+    .main { flex: 1; margin-left: 280px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: rgba(9, 28, 34, 0.9); border-bottom: 1px solid rgba(141, 247, 223, 0.15); }
+    .topbar h2 { font-size: 1.25rem; font-weight: 700; }
+    .role-badge { padding: 0.375rem 0.75rem; background: rgba(36, 240, 199, 0.1); border: 1px solid rgba(36, 240, 199, 0.3); border-radius: 20px; font-size: 0.75rem; color: #24f0c7; font-weight: 600; }
+    
+    /* Neural Hub */
+    .hub-container { padding: 3rem; display: flex; flex-direction: column; align-items: center; min-height: calc(100vh - 70px); }
+    .hub-title { text-align: center; margin-bottom: 3rem; }
+    .hub-title h1 { font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .hub-title p { color: #8fb4bd; font-size: 0.875rem; }
+    
+    .hub-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; max-width: 1000px; width: 100%; }
+    
+    .neural-card {
+      background: rgba(16, 42, 49, 0.8);
+      border: 1px solid rgba(141, 247, 223, 0.2);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .neural-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(36, 240, 199, 0.1), rgba(255, 112, 67, 0.05));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .neural-card:hover::before { opacity: 1; }
+    
+    .neural-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(36, 240, 199, 0.4);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(36, 240, 199, 0.1);
+    }
+    
+    .card-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .card-desc { font-size: 0.75rem; color: #8fb4bd; }
+    
+    .neural-card.core { border-color: rgba(36, 240, 199, 0.4); }
+    .neural-card.core .card-icon { filter: drop-shadow(0 0 10px rgba(36, 240, 199, 0.5)); }
+    
+    /* Search Hub */
+    .search-hub { width: 100%; max-width: 600px; margin-bottom: 3rem; }
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(16, 42, 49, 0.95);
+      border: 1px solid rgba(141, 247, 223, 0.3);
+      border-radius: 16px;
+      padding: 1rem 1.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    .search-box input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #e8fbff;
+      font-size: 1rem;
+      outline: none;
+    }
+    .search-box input::placeholder { color: #5a7a80; }
+    
+    /* Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; max-width: 1000px; width: 100%; }
+    .stat-card {
+      background: rgba(16, 42, 49, 0.6);
+      border: 1px solid rgba(141, 247, 223, 0.1);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #24f0c7; }
+    .stat-label { font-size: 0.75rem; color: #8fb4bd; }
+    
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .hub-grid { grid-template-columns: repeat(3, 1fr); }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .hub-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">G</div>
+        <div class="brand-text">
+          <h1>GARNETA</h1>
+          <span>NEURAL HUB</span>
+        </div>
+      </div>
+      
+      <div class="nav-group">
+        <div class="nav-label">MASTER DATA</div>
+        <div class="nav-item active"><span>🔍</span> Cari Barang</div>
+        <div class="nav-item"><span>📦</span> Barang</div>
+        <div class="nav-item"><span>🏭</span> Supplier</div>
+        <div class="nav-item"><span>👤</span> Users</div>
+      </div>
+      
+      <div class="nav-group">
+        <div class="nav-label">TRANSAKSI</div>
+        <div class="nav-item"><span>🛒</span> Pembelian</div>
+        <div class="nav-item"><span>💵</span> Penjualan</div>
+      </div>
+      
+      <div class="nav-group">
+        <div class="nav-label">TOOLS</div>
+        <div class="nav-item"><span>🧮</span> Kalkulator Belanja</div>
+      </div>
+      
+      <div class="nav-group">
+        <div class="nav-label">ANALITIK</div>
+        <div class="nav-item"><span>📈</span> Laporan</div>
+        <div class="nav-item"><span>📊</span> Statistik</div>
+      </div>
+      
+      <div class="nav-group">
+        <div class="nav-label">SISTEM</div>
+        <div class="nav-item"><span>📋</span> Audit Log</div>
+        <div class="nav-item"><span>⚙️</span> Setting</div>
+      </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main">
+      <div class="topbar">
+        <h2>🏠 Neural Hub Dashboard</h2>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <span class="role-badge">Super Admin</span>
+          <button class="btn-primary" style="padding: 0.5rem 1rem; border-radius: 8px; border: none; background: linear-gradient(135deg, #24f0c7, #ff7043); color: #0b1f24; font-weight: 600; cursor: pointer;">Logout</button>
+        </div>
+      </div>
+      
+      <div class="hub-container">
+        <div class="hub-title">
+          <h1>Garneta Neural Hub</h1>
+          <p>AI Command Center - Pusat Kendali Sistem</p>
+        </div>
+        
+        <!-- Search Hub -->
+        <div class="search-hub">
+          <div class="search-box">
+            <span>🔍</span>
+            <input type="text" placeholder="Cari barang, barcode, kategori, atau supplier...">
+            <span style="color: #5a7a80; font-size: 0.75rem;">⌘K</span>
+          </div>
+        </div>
+        
+        <!-- Stats Row -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-value">1,247</div>
+            <div class="stat-label">Total Barang</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">89</div>
+            <div class="stat-label">Supplier</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">Rp 45.2M</div>
+            <div class="stat-label">Nilai Stok</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">Rp 12.8M</div>
+            <div class="stat-label">Keuntungan</div>
+          </div>
+        </div>
+        
+        <!-- Neural Hub Grid -->
+        <div class="hub-grid">
+          <!-- Core Operations - Layer 1 -->
+          <div class="neural-card core" onclick="alert('Cari Barang')">
+            <div class="card-icon">🔍</div>
+            <div class="card-title">Cari Barang</div>
+            <div class="card-desc">Pencarian cepat</div>
+          </div>
+          
+          <div class="neural-card core" onclick="alert('Barang')">
+            <div class="card-icon">📦</div>
+            <div class="card-title">Barang</div>
+            <div class="card-desc">Manajemen produk</div>
+          </div>
+          
+          <div class="neural-card core" onclick="alert('Penjualan')">
+            <div class="card-icon">💵</div>
+            <div class="card-title">Penjualan</div>
+            <div class="card-desc">Input transaksi</div>
+          </div>
+          
+          <div class="neural-card" onclick="alert('Pembelian')">
+            <div class="card-icon">🛒</div>
+            <div class="card-title">Pembelian</div>
+            <div class="card-desc">Restock barang</div>
+          </div>
+          
+          <!-- Secondary Operations - Layer 2 -->
+          <div class="neural-card" onclick="alert('Kalkulator')">
+            <div class="card-icon">🧮</div>
+            <div class="card-title">Kalkulator</div>
+            <div class="card-desc">Hitung belanja</div>
+          </div>
+          
+          <div class="neural-card" onclick="alert('Supplier')">
+            <div class="card-icon">🏭</div>
+            <div class="card-title">Supplier</div>
+            <div class="card-desc">Data supplier</div>
+          </div>
+          
+          <!-- Analytics - Layer 3 -->
+          <div class="neural-card" onclick="alert('Laporan')">
+            <div class="card-icon">📈</div>
+            <div class="card-title">Laporan</div>
+            <div class="card-desc">Laporan harian</div>
+          </div>
+          
+          <div class="neural-card" onclick="alert('Statistik')">
+            <div class="card-icon">📊</div>
+            <div class="card-title">Statistik</div>
+            <div class="card-desc">Analisis data</div>
+          </div>
+          
+          <!-- System - Layer 4 -->
+          <div class="neural-card" onclick="alert('Users')">
+            <div class="card-icon">👤</div>
+            <div class="card-title">Users</div>
+            <div class="card-desc">Manajemen user</div>
+          </div>
+          
+          <div class="neural-card" onclick="alert('Audit Log')">
+            <div class="card-icon">📋</div>
+            <div class="card-title">Audit Log</div>
+            <div class="card-desc">Riwayat aktivitas</div>
+          </div>
+          
+          <div class="neural-card" onclick="alert('Setting')">
+            <div class="card-icon">⚙️</div>
+            <div class="card-title">Setting</div>
+            <div class="card-desc">Pengaturan</div>
+          </div>
+          
+          <div class="neural-card" onclick="alert('Scanner')">
+            <div class="card-icon">📷</div>
+            <div class="card-title">Scanner</div>
+            <div class="card-desc">Scan barcode</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+       

@@ -276,6 +276,8 @@
       currentUser: JSON.parse(localStorage.getItem("currentUser") || "null"),
       data: { products: [], suppliers: [], purchases: [], sales: [], users: [], priceHistory: [], auditLogs: [], dashboard: {} }
     };
+    // Expose state to window for Smart Search
+    window.state = state;
     let scannerStream = null;
     let scannerActive = false;
     let invoiceStream = null;

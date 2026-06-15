@@ -771,6 +771,7 @@
       
       const workspaces = [
         { id: 'form', icon: '🧮', label: 'Form' },
+        { id: 'ai-input', icon: '🎤', label: 'AI Input' },
         { id: 'wa', icon: '📋', label: 'Copy WA' },
         { id: 'list', icon: '🛒', label: 'Daftar' }
       ];
@@ -803,6 +804,15 @@
               </form>
             </div>
           </div>`;
+          break;
+        case 'ai-input':
+          workspaceContent = `<div class="workspace-content">
+            ${window.generateAIInputPanel ? window.generateAIInputPanel('kalkulator') : '<div class="card"><p>AI Input Center loading...</p></div>'}
+          </div>`;
+          // Initialize AI Input Center after render
+          setTimeout(() => {
+            if (window.initAIInputCenter) window.initAIInputCenter();
+          }, 100);
           break;
         case 'wa':
           workspaceContent = `<div class="workspace-content">

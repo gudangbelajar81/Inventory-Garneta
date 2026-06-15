@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/assets/css/neural-dashboard.css">
   <link rel="stylesheet" href="/assets/css/progressive-ui.css">
   <link rel="stylesheet" href="/assets/css/smart-search.css">
+  <link rel="stylesheet" href="/assets/css/ai-input-center.css">
   <style>
     :root {
       --green: #24f0c7;
@@ -310,6 +311,7 @@
   <script src="/assets/js/neural-dashboard.js"></script>
   <script src="/assets/js/progressive-ui.js"></script>
   <script src="/assets/js/smart-search.js"></script>
+  <script src="/assets/js/ai-input-center.js"></script>
   <script>
     const menus = [
       ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"], ["supplier", "🏭 Supplier"],
@@ -530,6 +532,7 @@
       const workspaces = [
         { id: 'search', icon: '🔍', label: 'Cari' },
         { id: 'form', icon: '➕', label: 'Form' },
+        { id: 'ai-input', icon: '🎤', label: 'AI Input' },
         { id: 'ai', icon: '🤖', label: 'AI Nota' },
         { id: 'import', icon: '📥', label: 'Import' },
         { id: 'scanner', icon: '📷', label: 'Scanner' },
@@ -571,6 +574,15 @@
               ${productForm()}
             </div>
           </div>`;
+          break;
+        case 'ai-input':
+          workspaceContent = `<div class="workspace-content">
+            ${window.generateAIInputPanel ? window.generateAIInputPanel('barang') : '<div class="card"><p>AI Input Center loading...</p></div>'}
+          </div>`;
+          // Initialize AI Input Center after render
+          setTimeout(() => {
+            if (window.initAIInputCenter) window.initAIInputCenter();
+          }, 100);
           break;
         case 'ai':
           workspaceContent = `<div class="workspace-content">

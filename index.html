@@ -119,6 +119,53 @@
     .range-row { display: grid; grid-template-columns: 1fr 54px; gap: 10px; align-items: center; }
     .edit-overlay { display: none; }
     .edit-overlay.active { display: grid; }
+    
+    /* Workspace Toolbar Styles */
+    .barang-workspace { display: flex; flex-direction: column; gap: 16px; }
+    .workspace-toolbar { 
+      display: flex; 
+      gap: 8px; 
+      padding: 12px; 
+      background: var(--card-bg); 
+      border: 1px solid var(--line); 
+      border-radius: 12px; 
+      flex-wrap: wrap;
+    }
+    .workspace-tab { 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      padding: 10px 16px; 
+      border: 1px solid rgba(141,247,223,.2); 
+      border-radius: 10px; 
+      background: rgba(255,255,255,.05); 
+      color: var(--nav-text); 
+      cursor: pointer; 
+      font-weight: 700; 
+      font-size: 13px;
+      transition: all 0.2s ease;
+    }
+    .workspace-tab:hover { 
+      background: rgba(36,240,199,.15); 
+      border-color: rgba(36,240,199,.4); 
+    }
+    .workspace-tab.active { 
+      background: linear-gradient(135deg, rgba(36,240,199,.25), rgba(255,112,67,.15)); 
+      border-color: rgba(36,240,199,.5); 
+      box-shadow: 0 4px 12px rgba(36,240,199,.15);
+    }
+    .workspace-icon { font-size: 16px; }
+    .workspace-label { white-space: nowrap; }
+    .workspace-content { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    
+    @media (max-width: 768px) {
+      .workspace-toolbar { padding: 8px; gap: 6px; }
+      .workspace-tab { padding: 8px 12px; font-size: 12px; }
+      .workspace-icon { font-size: 14px; }
+      .workspace-label { display: none; }
+    }
+    
     @media (min-width: 901px) and (max-width: 1200px) {
       .app { grid-template-columns: 220px 1fr; }
       .forms { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -470,77 +517,98 @@
       </div>`;
     }
 
+    // Workspace state for Barang page
+    window.barangWorkspace = localStorage.getItem('barangWorkspace') || 'list';
+    
+    function switchBarangWorkspace(workspace) {
+      window.barangWorkspace = workspace;
+      localStorage.setItem('barangWorkspace', workspace);
+      render();
+    }
+    
     function barang() {
-      return `<section class="grid">
-        <!-- Search Section -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('barang-search')">
-            <h3>🔍 Pencarian Barang</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="barang-search" class="collapse-content">
-            <div class="search-container">
-              <input type="text" id="search-barang-input" placeholder="Cari nama, kategori, atau barcode..." oninput="searchBarang(this.value)">
-              <button class="btn soft" onclick="clearSearchBarang()">Clear</button>
+      const workspaces = [
+        { id: 'search', icon: '🔍', label: 'Cari' },
+        { id: 'form', icon: '➕', label: 'Form' },
+        { id: 'ai', icon: '🤖', label: 'AI Nota' },
+        { id: 'import', icon: '📥', label: 'Import' },
+        { id: 'scanner', icon: '📷', label: 'Scanner' },
+        { id: 'list', icon: '📋', label: 'Daftar' }
+      ];
+      
+      const activeWorkspace = window.barangWorkspace || 'list';
+      
+      // Render toolbar
+      const toolbar = `<div class="workspace-toolbar">
+        ${workspaces.map(ws => `
+          <button class="workspace-tab ${activeWorkspace === ws.id ? 'active' : ''}" 
+                  onclick="switchBarangWorkspace('${ws.id}')">
+            <span class="workspace-icon">${ws.icon}</span>
+            <span class="workspace-label">${ws.label}</span>
+          </button>
+        `).join('')}
+      </div>`;
+      
+      // Render active workspace content
+      let workspaceContent = '';
+      switch(activeWorkspace) {
+        case 'search':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>🔍 Pencarian Barang</h3>
+              <div class="search-container">
+                <input type="text" id="search-barang-input" placeholder="Cari nama, kategori, atau barcode..." oninput="searchBarang(this.value)">
+                <button class="btn soft" onclick="clearSearchBarang()">Clear</button>
+              </div>
+              <div id="search-barang-results" style="margin-top:12px;"></div>
             </div>
-            <div id="search-barang-results" style="margin-top:12px;"></div>
-          </div>
-        </div>
-        
-        <!-- AI Nota Section -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('barang-ai-nota')">
-            <h3>🤖 AI Nota ke Barang</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="barang-ai-nota" class="collapse-content">
-            ${invoiceAiTools()}
-          </div>
-        </div>
-        
-        <!-- Form Barang -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('barang-form')">
-            <h3>📝 Form Barang</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="barang-form" class="collapse-content">
-            ${productForm()}
-          </div>
-        </div>
-        
-        <!-- Import Barang -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('barang-import')">
-            <h3>📥 Import Barang</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="barang-import" class="collapse-content collapsed">
-            ${productImportTools()}
-          </div>
-        </div>
-        
-        <!-- Scanner HP -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('barang-scanner')">
-            <h3>📱 Scanner HP</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="barang-scanner" class="collapse-content collapsed">
-            ${productScannerTools()}
-          </div>
-        </div>
-        
-        <!-- Daftar Barang -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('barang-list')">
-            <h3>📋 Daftar Barang (${state.data.products?.length || 0})</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="barang-list" class="collapse-content">
-            ${productRows()}
-          </div>
-        </div>
+          </div>`;
+          break;
+        case 'form':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📝 Form Barang</h3>
+              ${productForm()}
+            </div>
+          </div>`;
+          break;
+        case 'ai':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>🤖 AI Nota ke Barang</h3>
+              ${invoiceAiTools()}
+            </div>
+          </div>`;
+          break;
+        case 'import':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📥 Import Barang</h3>
+              ${productImportTools()}
+            </div>
+          </div>`;
+          break;
+        case 'scanner':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📷 Scanner HP</h3>
+              ${productScannerTools()}
+            </div>
+          </div>`;
+          break;
+        case 'list':
+        default:
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📋 Daftar Barang (${state.data.products?.length || 0})</h3>
+              ${productRows()}
+            </div>
+          </div>`;
+      }
+      
+      return `<section class="barang-workspace">
+        ${toolbar}
+        ${workspaceContent}
       </section>`;
     }
 

@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/assets/css/app-updates.css">
   <link rel="stylesheet" href="/assets/css/neural-dashboard.css">
   <link rel="stylesheet" href="/assets/css/progressive-ui.css">
+  <link rel="stylesheet" href="/assets/css/smart-search.css">
   <style>
     :root {
       --green: #24f0c7;
@@ -261,6 +262,7 @@
   <script src="/assets/js/app-updates.js"></script>
   <script src="/assets/js/neural-dashboard.js"></script>
   <script src="/assets/js/progressive-ui.js"></script>
+  <script src="/assets/js/smart-search.js"></script>
   <script>
     const menus = [
       ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"], ["supplier", "🏭 Supplier"],
@@ -395,6 +397,11 @@
       
       const d = state.data.dashboard || {};
       
+      // Schedule Smart Search initialization after render
+      setTimeout(function() {
+        if (window.initSmartSearch) window.initSmartSearch();
+      }, 0);
+      
       return `<section class="grid">
         <div class="grid stats">
           ${stat("Total Barang", d.totalProducts)}
@@ -403,14 +410,11 @@
           ${isSuperAdmin() ? stat("Keuntungan", rupiah(d.totalProfit)) : ""}
         </div>
         
-        <!-- Search Hub -->
+        <!-- Smart Search Hub -->
         <div class="card">
-          <h2>🔍 Pencarian Cepat</h2>
-          <div class="grid forms" style="grid-template-columns: 1fr auto;">
-            <input type="text" id="global-search" placeholder="Cari barang, supplier, kategori..." style="min-height:44px;">
-            <button class="btn primary" onclick="performGlobalSearch()">Cari</button>
-          </div>
-          <div id="search-results" style="margin-top:12px;"></div>
+          <h2>🔍 Smart Search</h2>
+          <p class="muted">Cari barang atau supplier, lalu lakukan aksi cepat</p>
+          <div id="smart-search-container" style="margin-top:12px;"></div>
         </div>
         
         <div class="card">

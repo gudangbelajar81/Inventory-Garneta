@@ -612,181 +612,282 @@
       </section>`;
     }
 
+    // Workspace state for Supplier page
+    window.supplierWorkspace = localStorage.getItem('supplierWorkspace') || 'list';
+    
+    function switchSupplierWorkspace(workspace) {
+      window.supplierWorkspace = workspace;
+      localStorage.setItem('supplierWorkspace', workspace);
+      render();
+    }
+    
     function supplier() {
-      return `<section class="grid">
-        <!-- Search Section -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('supplier-search')">
-            <h3>🔍 Pencarian Supplier</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="supplier-search" class="collapse-content">
-            <div class="search-container">
-              <input type="text" id="search-supplier-input" placeholder="Cari nama, telepon, atau alamat..." oninput="searchSupplier(this.value)">
-              <button class="btn soft" onclick="clearSearchSupplier()">Clear</button>
+      const workspaces = [
+        { id: 'search', icon: '🔍', label: 'Cari' },
+        { id: 'form', icon: '➕', label: 'Form' },
+        { id: 'list', icon: '📋', label: 'Daftar' }
+      ];
+      
+      const activeWorkspace = window.supplierWorkspace || 'list';
+      
+      const toolbar = `<div class="workspace-toolbar">
+        ${workspaces.map(ws => `
+          <button class="workspace-tab ${activeWorkspace === ws.id ? 'active' : ''}" 
+                  onclick="switchSupplierWorkspace('${ws.id}')">
+            <span class="workspace-icon">${ws.icon}</span>
+            <span class="workspace-label">${ws.label}</span>
+          </button>
+        `).join('')}
+      </div>`;
+      
+      let workspaceContent = '';
+      switch(activeWorkspace) {
+        case 'search':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>🔍 Pencarian Supplier</h3>
+              <div class="search-container">
+                <input type="text" id="search-supplier-input" placeholder="Cari nama, telepon, atau alamat..." oninput="searchSupplier(this.value)">
+                <button class="btn soft" onclick="clearSearchSupplier()">Clear</button>
+              </div>
+              <div id="search-supplier-results" style="margin-top:12px;"></div>
             </div>
-            <div id="search-supplier-results" style="margin-top:12px;"></div>
-          </div>
-        </div>
-        
-        <!-- Form Supplier -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('supplier-form')">
-            <h3>📝 Form Supplier</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="supplier-form" class="collapse-content">
-            ${supplierForm()}
-          </div>
-        </div>
-        
-        <!-- Daftar Supplier -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('supplier-list')">
-            <h3>📋 Daftar Supplier (${state.data.suppliers?.length || 0})</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="supplier-list" class="collapse-content">
-            ${supplierRows()}
-          </div>
-        </div>
+          </div>`;
+          break;
+        case 'form':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📝 Form Supplier</h3>
+              ${supplierForm()}
+            </div>
+          </div>`;
+          break;
+        case 'list':
+        default:
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📋 Daftar Supplier (${state.data.suppliers?.length || 0})</h3>
+              ${supplierRows()}
+            </div>
+          </div>`;
+      }
+      
+      return `<section class="barang-workspace">
+        ${toolbar}
+        ${workspaceContent}
       </section>`;
     }
 
+    // Workspace state for Pembelian page
+    window.pembelianWorkspace = localStorage.getItem('pembelianWorkspace') || 'list';
+    
+    function switchPembelianWorkspace(workspace) {
+      window.pembelianWorkspace = workspace;
+      localStorage.setItem('pembelianWorkspace', workspace);
+      render();
+    }
+    
     function pembelian() {
-      return `<section class="grid">
-        <!-- Search Section -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('pembelian-search')">
-            <h3>🔍 Pencarian Pembelian</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="pembelian-search" class="collapse-content">
-            <div class="search-container">
-              <input type="text" id="search-pembelian-input" placeholder="Cari supplier, barang, atau tanggal..." oninput="searchPembelian(this.value)">
-              <button class="btn soft" onclick="clearSearchPembelian()">Clear</button>
+      const workspaces = [
+        { id: 'search', icon: '🔍', label: 'Cari' },
+        { id: 'form', icon: '➕', label: 'Form' },
+        { id: 'list', icon: '📋', label: 'Daftar' }
+      ];
+      
+      const activeWorkspace = window.pembelianWorkspace || 'list';
+      
+      const toolbar = `<div class="workspace-toolbar">
+        ${workspaces.map(ws => `
+          <button class="workspace-tab ${activeWorkspace === ws.id ? 'active' : ''}" 
+                  onclick="switchPembelianWorkspace('${ws.id}')">
+            <span class="workspace-icon">${ws.icon}</span>
+            <span class="workspace-label">${ws.label}</span>
+          </button>
+        `).join('')}
+      </div>`;
+      
+      let workspaceContent = '';
+      switch(activeWorkspace) {
+        case 'search':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>🔍 Pencarian Pembelian</h3>
+              <div class="search-container">
+                <input type="text" id="search-pembelian-input" placeholder="Cari supplier, barang, atau tanggal..." oninput="searchPembelian(this.value)">
+                <button class="btn soft" onclick="clearSearchPembelian()">Clear</button>
+              </div>
+              <div id="search-pembelian-results" style="margin-top:12px;"></div>
             </div>
-            <div id="search-pembelian-results" style="margin-top:12px;"></div>
-          </div>
-        </div>
-        
-        <!-- Form Pembelian -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('pembelian-form')">
-            <h3>📝 Form Pembelian</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="pembelian-form" class="collapse-content">
-            ${purchaseForm()}
-          </div>
-        </div>
-        
-        <!-- Daftar Pembelian -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('pembelian-list')">
-            <h3>📋 Daftar Pembelian (${state.data.purchases?.length || 0})</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="pembelian-list" class="collapse-content">
-            ${purchaseRows()}
-          </div>
-        </div>
+          </div>`;
+          break;
+        case 'form':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📝 Form Pembelian</h3>
+              ${purchaseForm()}
+            </div>
+          </div>`;
+          break;
+        case 'list':
+        default:
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📋 Daftar Pembelian (${state.data.purchases?.length || 0})</h3>
+              ${purchaseRows()}
+            </div>
+          </div>`;
+      }
+      
+      return `<section class="barang-workspace">
+        ${toolbar}
+        ${workspaceContent}
       </section>`;
     }
 
+    // Workspace state for Kalkulator page
+    window.kalkulatorWorkspace = localStorage.getItem('kalkulatorWorkspace') || 'list';
+    
+    function switchKalkulatorWorkspace(workspace) {
+      window.kalkulatorWorkspace = workspace;
+      localStorage.setItem('kalkulatorWorkspace', workspace);
+      render();
+    }
+    
     function kalkulator() {
       const rows = shoppingRows();
       const total = rows.reduce((sum, row) => sum + shoppingSubtotal(row), 0);
-      return `<section class="grid">
-        <!-- Form Kalkulator -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('kalkulator-form')">
-            <h3>🧮 Form Kalkulator</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="kalkulator-form" class="collapse-content">
-            <form id="shopping-form" class="grid forms">
-              ${hiddenId()}
-              <label>Nama Barang<input name="name" list="shopping-products" required placeholder="Contoh: Beras Premium"></label>
-              <datalist id="shopping-products">${state.data.products.map((p) => `<option value="${p.name}"></option>`).join("")}</datalist>
-              ${input("qty", "Banyak Beli", true, "number")}
-              ${input("amount", "Harga Dasar", false, "number")}
-              ${formButtons()}
-            </form>
-          </div>
-        </div>
-        
-        <!-- Copy Paste WA -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('kalkulator-wa')">
-            <h3>📋 Copy Paste dari WA</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="kalkulator-wa" class="collapse-content">
-        <label>Daftar Belanja
-          <textarea id="shopping-wa-text" class="input-area expandable" placeholder="Contoh:
+      
+      const workspaces = [
+        { id: 'form', icon: '🧮', label: 'Form' },
+        { id: 'wa', icon: '📋', label: 'Copy WA' },
+        { id: 'list', icon: '🛒', label: 'Daftar' }
+      ];
+      
+      const activeWorkspace = window.kalkulatorWorkspace || 'list';
+      
+      const toolbar = `<div class="workspace-toolbar">
+        ${workspaces.map(ws => `
+          <button class="workspace-tab ${activeWorkspace === ws.id ? 'active' : ''}" 
+                  onclick="switchKalkulatorWorkspace('${ws.id}')">
+            <span class="workspace-icon">${ws.icon}</span>
+            <span class="workspace-label">${ws.label}</span>
+          </button>
+        `).join('')}
+      </div>`;
+      
+      let workspaceContent = '';
+      switch(activeWorkspace) {
+        case 'form':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>🧮 Form Kalkulator</h3>
+              <form id="shopping-form" class="grid forms">
+                ${hiddenId()}
+                <label>Nama Barang<input name="name" list="shopping-products" required placeholder="Contoh: Beras Premium"></label>
+                <datalist id="shopping-products">${state.data.products.map((p) => `<option value="${p.name}"></option>`).join("")}</datalist>
+                ${input("qty", "Banyak Beli", true, "number")}
+                ${input("amount", "Harga Dasar", false, "number")}
+                ${formButtons()}
+              </form>
+            </div>
+          </div>`;
+          break;
+        case 'wa':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📋 Copy Paste dari WA</h3>
+              <label>Daftar Belanja
+                <textarea id="shopping-wa-text" class="input-area expandable" placeholder="Contoh:
 Payung 5
 Gula Pasir 2
 Beras Premium 1"></textarea>
-        </label>
-            <div class="actions">
-              <button class="btn soft" id="parse-shopping-wa">Proses Paste WA</button>
-              <button class="btn danger" id="clear-shopping">Kosongkan</button>
+              </label>
+              <div class="actions">
+                <button class="btn soft" id="parse-shopping-wa">Proses Paste WA</button>
+                <button class="btn danger" id="clear-shopping">Kosongkan</button>
+              </div>
             </div>
-          </div>
-        </div>
-        
-        <!-- Daftar Belanja -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('kalkulator-list')">
-            <h3>🛒 Daftar Belanja - Total: ${rupiah(total)}</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="kalkulator-list" class="collapse-content">
-            ${shoppingTable(rows)}
-          </div>
-        </div>
+          </div>`;
+          break;
+        case 'list':
+        default:
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>🛒 Daftar Belanja - Total: ${rupiah(total)}</h3>
+              ${shoppingTable(rows)}
+            </div>
+          </div>`;
+      }
+      
+      return `<section class="barang-workspace">
+        ${toolbar}
+        ${workspaceContent}
       </section>`;
     }
 
+    // Workspace state for Penjualan page
+    window.penjualanWorkspace = localStorage.getItem('penjualanWorkspace') || 'list';
+    
+    function switchPenjualanWorkspace(workspace) {
+      window.penjualanWorkspace = workspace;
+      localStorage.setItem('penjualanWorkspace', workspace);
+      render();
+    }
+    
     function penjualan() {
-      return `<section class="grid">
-        <!-- Search Section -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('penjualan-search')">
-            <h3>🔍 Pencarian Penjualan</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="penjualan-search" class="collapse-content">
-            <div class="search-container">
-              <input type="text" id="search-penjualan-input" placeholder="Cari barang atau tanggal..." oninput="searchPenjualan(this.value)">
-              <button class="btn soft" onclick="clearSearchPenjualan()">Clear</button>
+      const workspaces = [
+        { id: 'search', icon: '🔍', label: 'Cari' },
+        { id: 'form', icon: '➕', label: 'Form' },
+        { id: 'list', icon: '📋', label: 'Daftar' }
+      ];
+      
+      const activeWorkspace = window.penjualanWorkspace || 'list';
+      
+      const toolbar = `<div class="workspace-toolbar">
+        ${workspaces.map(ws => `
+          <button class="workspace-tab ${activeWorkspace === ws.id ? 'active' : ''}" 
+                  onclick="switchPenjualanWorkspace('${ws.id}')">
+            <span class="workspace-icon">${ws.icon}</span>
+            <span class="workspace-label">${ws.label}</span>
+          </button>
+        `).join('')}
+      </div>`;
+      
+      let workspaceContent = '';
+      switch(activeWorkspace) {
+        case 'search':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>🔍 Pencarian Penjualan</h3>
+              <div class="search-container">
+                <input type="text" id="search-penjualan-input" placeholder="Cari barang atau tanggal..." oninput="searchPenjualan(this.value)">
+                <button class="btn soft" onclick="clearSearchPenjualan()">Clear</button>
+              </div>
+              <div id="search-penjualan-results" style="margin-top:12px;"></div>
             </div>
-            <div id="search-penjualan-results" style="margin-top:12px;"></div>
-          </div>
-        </div>
-        
-        <!-- Form Penjualan -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('penjualan-form')">
-            <h3>📝 Form Penjualan</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="penjualan-form" class="collapse-content">
-            ${saleForm()}
-          </div>
-        </div>
-        
-        <!-- Daftar Penjualan -->
-        <div class="card">
-          <div class="collapse-header" onclick="toggleCollapse('penjualan-list')">
-            <h3>📋 Daftar Penjualan (${state.data.sales?.length || 0})</h3>
-            <span class="collapse-icon">▼</span>
-          </div>
-          <div id="penjualan-list" class="collapse-content">
-            ${saleRows()}
-          </div>
-        </div>
+          </div>`;
+          break;
+        case 'form':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📝 Form Penjualan</h3>
+              ${saleForm()}
+            </div>
+          </div>`;
+          break;
+        case 'list':
+        default:
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📋 Daftar Penjualan (${state.data.sales?.length || 0})</h3>
+              ${saleRows()}
+            </div>
+          </div>`;
+      }
+      
+      return `<section class="barang-workspace">
+        ${toolbar}
+        ${workspaceContent}
       </section>`;
     }
 

@@ -1,11 +1,20 @@
 /**
  * GARNETA SMART SEARCH + QUICK ACTION
- * Layer baru di Dashboard untuk pencarian cepat dan aksi langsung
+ * Pusat pencarian aplikasi - Compact First, Expand When Needed
+ * Tidak mengubah backend, database, API, atau modul yang sudah ada
  */
 
 (function() {
   'use strict';
 
+  // Smart Search State
+  const searchState = {
+    query: '',
+    results: [],
+    isOpen: false
+  };
+
+  // Initialize Smart Search
   window.initSmartSearch = function() {
     const container = document.getElementById('smart-search-container');
     if (!container) return;
@@ -13,7 +22,7 @@
     container.innerHTML = '<div class="smart-search-wrapper">' +
       '<div class="smart-search-input-box">' +
         '<span class="smart-search-icon">🔍</span>' +
-        '<input type="text" id="smart-search-input" class="smart-search-input" placeholder="Cari barang, supplier, atau scan barcode..." autocomplete="off">' +
+        '<input type="text" id="smart-search-input" class="smart-search-input" placeholder="Cari barang, supplier, barcode..." autocomplete="off">' +
         '<span class="smart-search-shortcut">Ctrl+K</span>' +
       '</div>' +
       '<div id="smart-search-dropdown" class="smart-search-dropdown hidden">' +
@@ -28,6 +37,7 @@
     const input = document.getElementById('smart-search-input');
     if (!input) return;
 
+    // Keyboard shortcut Ctrl+K
     document.addEventListener('keydown', function(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
@@ -39,6 +49,7 @@
       }
     });
 
+    // Realtime search
     input.addEventListener('input', function(e) {
       const query = e.target.value.trim();
       if (query.length < 2) {
@@ -48,12 +59,14 @@
       performSearch(query);
     });
 
+    // Focus shows results if has query
     input.addEventListener('focus', function() {
       if (input.value.trim().length >= 2) {
         performSearch(input.value.trim());
       }
     });
 
+    // Click outside closes dropdown
     document.addEventListener('click', function(e) {
       if (!e.target.closest('.smart-search-wrapper')) {
         closeDropdown();
@@ -68,7 +81,7 @@
     const data = window.state.data;
     const lowerQuery = query.toLowerCase();
 
-    // Search products
+    // Search products (Barang)
     if (data.products) {
       data.products.forEach(function(p) {
         if ((p.name && p.name.toLowerCase().includes(lowerQuery)) ||
@@ -109,7 +122,7 @@
     if (barangResults.length > 0) {
       html += '<div class="smart-search-section"><div class="smart-search-section-title">📦 Barang</div>';
       barangResults.forEach(function(r) {
-        html += renderBarangCard(r.data);
+        html += renderBarangQuickCard(r.data);
       });
       html += '</div>';
     }
@@ -117,7 +130,7 @@
     if (supplierResults.length > 0) {
       html += '<div class="smart-search-section"><div class="smart-search-section-title">🏭 Supplier</div>';
       supplierResults.forEach(function(r) {
-        html += renderSupplierCard(r.data);
+        html += renderSupplierQuickCard(r.data);
       });
       html += '</div>';
     }
@@ -125,43 +138,54 @@
     container.innerHTML = html;
   }
 
-  function renderBarangCard(product) {
+  function renderBarangQuickCard(product) {
     const stockClass = (product.stock || 0) < 10 ? 'stock-low' : (product.stock || 0) < 50 ? 'stock-medium' : 'stock-high';
+    const supplier = findSupplierForProduct(product);
     
     return '<div class="quick-action-card">' +
       '<div class="quick-action-header">' +
-        '<div class="quick-action-title">' + escapeHtml(product.name) + '</div>' +
+        '<div class="quick-action-title">📦 ' + escapeHtml(product.name) + '</div>' +
         '<div class="quick-action-category">' + escapeHtml(product.category || 'Umum') + '</div>' +
       '</div>' +
       '<div class="quick-action-info">' +
-        '<div class="quick-action-stat"><span class="stat-label">Stok</span><span class="stat-value ' + stockClass + '">' + (product.stock || 0) + ' ' + (product.unit || 'pcs') + '</span></div>' +
-        '<div class="quick-action-stat"><span class="stat-label">Harga Jual</span><span class="stat-value">' + formatRupiah(product.salePrice || 0) + '</span></div>' +
-        '<div class="quick-action-stat"><span class="stat-label">Harga Dasar</span><span class="stat-value">' + formatRupiah(product.basePrice || 0) + '</span></div>' +
+        '<div class="quick-action-row"><span class="info-label">Kategori:</span><span class="info-value">' + escapeHtml(product.category || 'Umum') + '</span></div>' +
+        '<div class="quick-action-row"><span class="info-label">Stok:</span><span class="info-value ' + stockClass + '">' + (product.stock || 0) + ' ' + (product.unit || 'pcs') + '</span></div>' +
+        '<div class="quick-action-row"><span class="info-label">Harga Jual:</span><span class="info-value">' + formatRupiah(product.salePrice || 0) + '</span></div>' +
+        (supplier ? '<div class="quick-action-row"><span class="info-label">Supplier:</span><span class="info-value">' + escapeHtml(supplier.name) + '</span></div>' : '') +
       '</div>' +
       '<div class="quick-action-buttons">' +
         '<button class="btn primary" onclick="quickActionJual(\'' + product.id + '\')">🛒 Jual</button>' +
         '<button class="btn soft" onclick="quickActionEditBarang(\'' + product.id + '\')">✏️ Edit</button>' +
-        '<button class="btn soft" onclick="quickActionTambahStok(\'' + product.id + '\')">📦 +Stok</button>' +
-        '<button class="btn soft" onclick="quickActionLihatSupplier(\'' + product.id + '\')">🏭 Supplier</button>' +
+        '<button class="btn soft" onclick="quickActionLihatSupplier(\'' + product.id + '\')">🏢 Supplier</button>' +
+        '<button class="btn soft" onclick="quickActionHistoriBarang(\'' + product.id + '\')">📜 Histori</button>' +
+        '<button class="btn soft" onclick="quickActionTambahStok(\'' + product.id + '\')">➕ Stok</button>' +
       '</div>' +
     '</div>';
   }
 
-  function renderSupplierCard(supplier) {
+  function renderSupplierQuickCard(supplier) {
     return '<div class="quick-action-card supplier-card">' +
       '<div class="quick-action-header">' +
-        '<div class="quick-action-title">' + escapeHtml(supplier.name) + '</div>' +
+        '<div class="quick-action-title">🏭 ' + escapeHtml(supplier.name) + '</div>' +
         '<div class="quick-action-category">Supplier</div>' +
       '</div>' +
       '<div class="quick-action-info">' +
-        '<div class="quick-action-stat"><span class="stat-label">Telepon</span><span class="stat-value">' + escapeHtml(supplier.phone || '-') + '</span></div>' +
-        '<div class="quick-action-stat"><span class="stat-label">Alamat</span><span class="stat-value">' + escapeHtml(supplier.address || '-') + '</span></div>' +
+        '<div class="quick-action-row"><span class="info-label">Telepon:</span><span class="info-value">' + escapeHtml(supplier.phone || '-') + '</span></div>' +
+        '<div class="quick-action-row"><span class="info-label">Alamat:</span><span class="info-value">' + escapeHtml(supplier.address || '-') + '</span></div>' +
       '</div>' +
       '<div class="quick-action-buttons">' +
         '<button class="btn soft" onclick="quickActionEditSupplier(\'' + supplier.id + '\')">✏️ Edit</button>' +
         '<button class="btn soft" onclick="quickActionLihatBarangSupplier(\'' + supplier.id + '\')">📦 Lihat Barang</button>' +
       '</div>' +
     '</div>';
+  }
+
+  function findSupplierForProduct(product) {
+    if (!window.state || !window.state.data || !window.state.data.suppliers) return null;
+    if (product.supplierId) {
+      return window.state.data.suppliers.find(function(s) { return String(s.id) === String(product.supplierId); });
+    }
+    return null;
   }
 
   function openDropdown() {
@@ -229,6 +253,20 @@
     } else {
       alert('Supplier tidak ditemukan untuk barang ini');
     }
+  };
+
+  window.quickActionHistoriBarang = function(productId) {
+    window.state.route = 'statistik';
+    if (window.renderShell) window.renderShell();
+    if (window.render) window.render();
+    setTimeout(function() {
+      localStorage.setItem('statsProductId', productId);
+      const select = document.getElementById('stats-product-filter');
+      if (select) {
+        select.value = productId;
+        select.dispatchEvent(new Event('change'));
+      }
+    }, 100);
   };
 
   window.quickActionEditSupplier = function(supplierId) {

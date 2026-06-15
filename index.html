@@ -454,10 +454,10 @@
           <button class="btn soft" id="parse-invoice-draft">Jadikan Draft</button>
         </div>
         <label>Perintah AI
-          <textarea id="invoice-ai-instruction" class="input-area" placeholder="Contoh: ambil nama barang dan harga saja. Atau: jumlahkan total belanja pada nota ini."></textarea>
+          <textarea id="invoice-ai-instruction" class="input-area expandable" placeholder="Contoh: ambil nama barang dan harga saja. Atau: jumlahkan total belanja pada nota ini."></textarea>
         </label>
         <label>Hasil
-          <textarea id="invoice-ai-result" class="input-area" placeholder="Hasil AI akan muncul di sini dan bisa diedit/copy."></textarea>
+          <textarea id="invoice-ai-result" class="input-area expandable" placeholder="Hasil AI akan muncul di sini dan bisa diedit/copy."></textarea>
         </label>
         <div>
           <div class="actions" style="justify-content:space-between">
@@ -658,12 +658,12 @@
             <span class="collapse-icon">▼</span>
           </div>
           <div id="kalkulator-wa" class="collapse-content">
-            <label>Daftar Belanja
-              <textarea id="shopping-wa-text" class="input-area" placeholder="Contoh:
+        <label>Daftar Belanja
+          <textarea id="shopping-wa-text" class="input-area expandable" placeholder="Contoh:
 Payung 5
 Gula Pasir 2
 Beras Premium 1"></textarea>
-            </label>
+        </label>
             <div class="actions">
               <button class="btn soft" id="parse-shopping-wa">Proses Paste WA</button>
               <button class="btn danger" id="clear-shopping">Kosongkan</button>
@@ -960,7 +960,7 @@ Beras Premium 1"></textarea>
           </div>
         </div>
         <label>Copy paste dari WA / Spreadsheet
-          <textarea id="product-wa-text" class="input-area" placeholder="Contoh:
+          <textarea id="product-wa-text" class="input-area expandable" placeholder="Contoh:
 Beras Premium, Beras, sak, 25, 312500, 14500, 10
 Gula Pasir 2
 Payung, Tepung, sak, 25, 170000, 8500"></textarea>

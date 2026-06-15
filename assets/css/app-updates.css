@@ -1,7 +1,64 @@
 /**
  * GARNETA SYSTEM - UI Updates CSS
- * Collapse/Expand and Search styles
+ * Collapse/Expand, Search styles, Compact UI
+ * Compact First, Expand When Needed
  */
+
+/* Compact Textarea - Default 3 baris */
+textarea.input-area,
+textarea {
+  min-height: 72px !important;
+  max-height: 300px;
+  resize: vertical;
+}
+
+/* Compact Input - 1 baris */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="password"],
+select {
+  min-height: 40px !important;
+  padding: 8px 10px !important;
+}
+
+/* Scrollable textarea untuk data panjang */
+textarea.scrollable {
+  overflow-y: auto;
+}
+
+/* Compact Card Padding */
+.card {
+  padding: 14px !important;
+}
+
+/* Compact Form Grid */
+.grid.forms {
+  gap: 10px;
+}
+
+/* Compact Label */
+label {
+  font-size: 12px !important;
+  gap: 4px !important;
+}
+
+/* Compact Button */
+.btn {
+  min-height: 36px !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+}
+
+/* Expandable Textarea - bisa diperbesar */
+textarea.expandable {
+  min-height: 72px;
+  transition: min-height 0.2s ease;
+}
+
+textarea.expandable:focus {
+  min-height: 120px;
+}
 
 /* Collapse/Expand Styles */
 .collapse-header {

@@ -17,15 +17,34 @@
   // Initialize Smart Search
   window.initSmartSearch = function() {
     const container = document.getElementById('smart-search-container');
-    if (!container) return;
+    if (!container) {
+      console.log('Smart Search: container not found');
+      return;
+    }
 
-    // Check if data is loaded, if not retry after 500ms
-    if (!window.state || !window.state.data || !window.state.data.products) {
+    // Check if data is loaded
+    if (!window.state || !window.state.data) {
+      console.log('Smart Search: data not loaded yet, retrying...');
       setTimeout(window.initSmartSearch, 500);
       return;
     }
 
-    container.innerHTML = '<div class="smart-search-wrapper">' +
+    // Check if products array exists (even if empty)
+    if (!Array.isArray(window.state.data.products)) {
+      console.log('Smart Search: products not ready, retrying...');
+      setTimeout(window.initSmartSearch, 500);
+      return;
+    }
+
+    console.log('Smart Search: initializing with', window.state.data.products.length, 'products');
+
+    // Clear container first
+    container.innerHTML = '';
+
+    // Create wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'smart-search-wrapper';
+    wrapper.innerHTML = 
       '<div class="smart-search-input-box">' +
         '<span class="smart-search-icon">🔍</span>' +
         '<input type="text" id="smart-search-input" class="smart-search-input" placeholder="Cari barang, supplier, barcode..." autocomplete="off">' +
@@ -33,10 +52,11 @@
       '</div>' +
       '<div id="smart-search-dropdown" class="smart-search-dropdown hidden">' +
         '<div id="smart-search-results" class="smart-search-results"></div>' +
-      '</div>' +
-    '</div>';
-
+      '</div>';
+    
+    container.appendChild(wrapper);
     bindEvents();
+    console.log('Smart Search: initialized successfully');
   };
 
   function bindEvents() {

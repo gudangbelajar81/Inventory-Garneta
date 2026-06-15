@@ -395,10 +395,15 @@
         { id: "settings", name: "Setting", icon: "⚙️", desc: "Pengaturan" }
       ];
       
-      // Schedule Smart Search initialization after render
+      // Initialize Smart Search after DOM is ready and data is loaded
       setTimeout(function() {
-        if (window.initSmartSearch) window.initSmartSearch();
-      }, 0);
+        console.log('Dashboard: initializing Smart Search...');
+        if (window.initSmartSearch) {
+          window.initSmartSearch();
+        } else {
+          console.error('Dashboard: initSmartSearch not found');
+        }
+      }, 100);
       
       return `<section class="grid" style="min-height:calc(100vh - 140px);">
         <!-- Smart Search -->

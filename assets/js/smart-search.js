@@ -19,6 +19,12 @@
     const container = document.getElementById('smart-search-container');
     if (!container) return;
 
+    // Check if data is loaded, if not retry after 500ms
+    if (!window.state || !window.state.data || !window.state.data.products) {
+      setTimeout(window.initSmartSearch, 500);
+      return;
+    }
+
     container.innerHTML = '<div class="smart-search-wrapper">' +
       '<div class="smart-search-input-box">' +
         '<span class="smart-search-icon">🔍</span>' +

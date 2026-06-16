@@ -912,6 +912,7 @@ Beras Premium 1"></textarea>
       const tab = localStorage.getItem("settingsTab") || "api";
       const titles = {
         api: ["Pusat API", "Kelola koneksi AI dari server Railway. Key tetap tersembunyi dan hanya dipakai backend."],
+        tema: ["Tema Dashboard", "Pilih tema Neural Hub, Cyber Dashboard, Dark Minimal, atau Ocean Deep."],
         warna: ["Warna Tampilan", "Racik warna dashboard, sidebar, topbar, dan halaman agar tidak membosankan."],
         logo: ["Logo & Watermark", "Atur logo, gambar transparan halaman, teks watermark, dan transparansinya."],
         backup: ["Backup & Export", "Export Excel/PDF, backup database ke JSON, atau restore dari file backup."],
@@ -929,12 +930,26 @@ Beras Premium 1"></textarea>
         </div>
 
         <div class="settings-tabs">
+          ${settingsTabButton("tema", "TEMA", tab)}
           ${settingsTabButton("warna", "WARNA", tab)}
           ${settingsTabButton("api", "PUSAT API", tab)}
           ${settingsTabButton("logo", "LOGO & WATERMARK", tab)}
           ${settingsTabButton("backup", "BACKUP", tab)}
           ${settingsTabButton("install", "INSTALL", tab)}
         </div>
+
+        ${tab === "tema" ? `
+        <div class="theme-panel">
+          <div class="api-section-title">🎨 Tema Dashboard</div>
+          <p class="muted">Pilih tema yang sesuai dengan preferensi Anda. Tema akan diterapkan ke seluruh aplikasi.</p>
+          <div class="theme-grid" style="grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
+            ${renderThemeOption('neural', 'Neural Hub', 'Tema default dengan aksen cyan', '#0b1f24', '#24f0c7', tab)}
+            ${renderThemeOption('cyber', 'Cyber Dashboard', 'Tema futuristik dengan aksen magenta', '#0a0a0f', '#ff00ff', tab)}
+            ${renderThemeOption('dark', 'Dark Minimal', 'Tema gelap minimalis', '#0d0d0d', '#60a5fa', tab)}
+            ${renderThemeOption('ocean', 'Ocean Deep', 'Tema biru laut yang tenang', '#0c1a2d', '#00d4ff', tab)}
+          </div>
+        </div>
+        ` : ""}
 
         ${tab === "api" ? `
         <div class="api-center-card">
@@ -1055,6 +1070,103 @@ Beras Premium 1"></textarea>
 
     function settingsTabButton(key, label, active) {
       return `<button class="${key === active ? "active" : ""}" data-settings-tab="${key}" type="button">${label}</button>`;
+    }
+
+    function renderThemeOption(key, name, desc, bgColor, accentColor, activeTab) {
+      const currentTheme = localStorage.getItem('garneta_theme') || 'neural';
+      const isActive = currentTheme === key;
+      return `
+        <div class="theme-option-card ${isActive ? 'active' : ''}" data-theme="${key}" style="cursor:pointer; padding:16px; border:2px solid ${isActive ? accentColor : 'rgba(148,163,184,.24)'}; border-radius:16px; background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); transition:all 0.3s ease;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+            <div style="width:48px; height:48px; border-radius:12px; background:${bgColor}; border:2px solid ${accentColor}; display:flex; align-items:center; justify-content:center;">
+              <div style="width:16px; height:16px; border-radius:50%; background:${accentColor}; box-shadow:0 0 8px ${accentColor};"></div>
+            </div>
+            <div>
+              <div style="font-weight:700; color:#f8fafc;">${name}</div>
+              <div style="font-size:12px; color:#94a3b8;">${desc}</div>
+            </div>
+          </div>
+          ${isActive ? '<div style="text-align:center; padding:4px 12px; background:' + accentColor + '; color:#0f172a; border-radius:8px; font-size:12px; font-weight:700;">✓ AKTIF</div>' : '<div style="text-align:center; padding:4px 12px; background:rgba(148,163,184,.2); color:#94a3b8; border-radius:8px; font-size:12px;">Klik untuk aktifkan</div>'}
+        </div>
+      `;
+    }
+
+    function bindThemeSelector() {
+      document.querySelectorAll('[data-theme]').forEach(card => {
+        card.addEventListener('click', () => {
+          const themeKey = card.dataset.theme;
+          applyGarnetaTheme(themeKey);
+          // Re-render settings to update UI
+          render();
+        });
+      });
+    }
+
+    function applyGarnetaTheme(themeKey) {
+      const themes = {
+        neural: {
+          '--neural-bg': '#0b1f24',
+          '--neural-surface': '#102a31',
+          '--neural-surface-2': '#142f38',
+          '--neural-cyan': '#24f0c7',
+          '--neural-cyan-glow': 'rgba(36, 240, 199, 0.4)',
+          '--neural-mint': '#8df7df',
+          '--neural-orange': '#ff7043',
+          '--neural-text': '#e8fbff',
+          '--neural-text-soft': '#8fb4bd',
+          '--neural-glass': 'rgba(16, 42, 49, 0.85)',
+          '--neural-glass-border': 'rgba(141, 247, 223, 0.2)'
+        },
+        cyber: {
+          '--neural-bg': '#0a0a0f',
+          '--neural-surface': '#12121a',
+          '--neural-surface-2': '#1a1a25',
+          '--neural-cyan': '#ff00ff',
+          '--neural-cyan-glow': 'rgba(255, 0, 255, 0.4)',
+          '--neural-mint': '#ff66ff',
+          '--neural-orange': '#00ffff',
+          '--neural-text': '#ffffff',
+          '--neural-text-soft': '#a0a0b0',
+          '--neural-glass': 'rgba(18, 18, 26, 0.9)',
+          '--neural-glass-border': 'rgba(255, 0, 255, 0.3)'
+        },
+        dark: {
+          '--neural-bg': '#0d0d0d',
+          '--neural-surface': '#1a1a1a',
+          '--neural-surface-2': '#262626',
+          '--neural-cyan': '#60a5fa',
+          '--neural-cyan-glow': 'rgba(96, 165, 250, 0.4)',
+          '--neural-mint': '#93c5fd',
+          '--neural-orange': '#f87171',
+          '--neural-text': '#f5f5f5',
+          '--neural-text-soft': '#a3a3a3',
+          '--neural-glass': 'rgba(26, 26, 26, 0.9)',
+          '--neural-glass-border': 'rgba(96, 165, 250, 0.2)'
+        },
+        ocean: {
+          '--neural-bg': '#0c1a2d',
+          '--neural-surface': '#132a47',
+          '--neural-surface-2': '#1a3a5c',
+          '--neural-cyan': '#00d4ff',
+          '--neural-cyan-glow': 'rgba(0, 212, 255, 0.4)',
+          '--neural-mint': '#7dd3fc',
+          '--neural-orange': '#fbbf24',
+          '--neural-text': '#e0f2fe',
+          '--neural-text-soft': '#94a3b8',
+          '--neural-glass': 'rgba(19, 42, 71, 0.9)',
+          '--neural-glass-border': 'rgba(0, 212, 255, 0.25)'
+        }
+      };
+      
+      const theme = themes[themeKey];
+      if (!theme) return;
+      
+      const root = document.documentElement;
+      Object.entries(theme).forEach(([key, value]) => {
+        root.style.setProperty(key, value);
+      });
+      
+      localStorage.setItem('garneta_theme', themeKey);
     }
 
     function crudView(collection, title, form, rows) {
@@ -1544,6 +1656,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       bindInvoiceAiTools();
       bindSettingsTools();
       bindThemeTools();
+      bindThemeSelector();
       bindStatsTools();
       bindBackupTools();
       bindPwaTools();

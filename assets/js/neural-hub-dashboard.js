@@ -94,27 +94,6 @@
           ` : ''}
         </div>
 
-        <!-- Quick Stats Panel -->
-        <div class="quick-stats-panel">
-          <div class="quick-stat-item">
-            <span class="quick-stat-value">${data.products?.length || 0}</span>
-            <span class="quick-stat-label">Total Barang</span>
-          </div>
-          <div class="quick-stat-item">
-            <span class="quick-stat-value">${getLowStockCount(data)}</span>
-            <span class="quick-stat-label">Stok Rendah</span>
-          </div>
-          <div class="quick-stat-item">
-            <span class="quick-stat-value">${data.suppliers?.length || 0}</span>
-            <span class="quick-stat-label">Supplier</span>
-          </div>
-          ${isSuperAdmin ? `
-          <div class="quick-stat-item">
-            <span class="quick-stat-value">${formatCurrency(getTodayProfit(data))}</span>
-            <span class="quick-stat-label">Profit Hari Ini</span>
-          </div>
-          ` : ''}
-        </div>
       </div>
 
       <!-- Floating Menu Overlay -->

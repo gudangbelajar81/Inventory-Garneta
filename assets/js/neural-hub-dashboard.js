@@ -12,7 +12,7 @@
     setupEventListeners();
   }
 
-  // Create Neural Dashboard HTML - Minimalist
+  // Create Neural Dashboard HTML - Minimalist dengan Animasi Super Keren
   function createNeuralDashboard() {
     const dashboard = document.getElementById('neural-dashboard-container');
     if (!dashboard) return;
@@ -21,17 +21,26 @@
 
     dashboard.innerHTML = `
       <div class="neural-dashboard neural-dashboard-minimal">
-        <!-- Logo G Center - SUPER BESAR -->
+        <!-- Logo G Center - SUPER BESAR dengan Animasi Keren -->
         <div class="logo-g-center" id="logo-g-trigger" title="Klik untuk membuka menu">
+          <!-- Outer Ring -->
+          <div class="logo-g-ring-outer"></div>
+          <!-- Ripple Effect -->
+          <div class="logo-g-ripple"></div>
+          <!-- Particles Container -->
+          <div class="logo-g-particles" id="logo-particles"></div>
+          <!-- Scan Line -->
+          <div class="logo-g-scanline"></div>
+          <!-- Logo Image -->
           <img src="/assets/images/garneta-logo-g.svg" alt="Garneta G" class="logo-g-image">
         </div>
 
         <!-- Smart Search Hub - Compact -->
         <div class="smart-search-hub">
-          <div class="smart-search-container">
+          <div class="smart-search-container" id="smart-search-trigger">
             <div class="smart-search-input-wrapper">
               <span class="smart-search-icon">🔍</span>
-              <input type="text" class="smart-search-input" placeholder="Cari barang, supplier, transaksi..." id="neural-search-input">
+              <input type="text" class="smart-search-input" placeholder="Cari barang, supplier, transaksi..." id="neural-search-input" autocomplete="off">
               <span class="smart-search-shortcut">⌘K</span>
             </div>
           </div>
@@ -75,6 +84,12 @@
 
   // Setup event listeners
   function setupEventListeners() {
+    // Initialize particles
+    createParticles();
+    
+    // Initialize gyroscope effect
+    initGyroscope();
+
     // Logo G click - toggle menu
     const logoG = document.getElementById('logo-g-trigger');
     if (logoG) {
@@ -111,15 +126,68 @@
       }
     });
 
-    // Search input
+    // Search input - Connect to existing Smart Search
     const searchInput = document.getElementById('neural-search-input');
+    const searchContainer = document.getElementById('smart-search-trigger');
+    
+    if (searchContainer) {
+      searchContainer.addEventListener('click', () => {
+        // Focus on the actual Smart Search input if it exists
+        const smartSearchInput = document.getElementById('smart-search-input');
+        if (smartSearchInput) {
+          smartSearchInput.focus();
+          smartSearchInput.select();
+        } else {
+          // If Smart Search not initialized, initialize it
+          if (window.initSmartSearch) {
+            window.initSmartSearch();
+            setTimeout(() => {
+              const newSearchInput = document.getElementById('smart-search-input');
+              if (newSearchInput) {
+                newSearchInput.focus();
+                newSearchInput.select();
+              }
+            }, 300);
+          }
+        }
+      });
+    }
+    
     if (searchInput) {
       searchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           const query = searchInput.value.trim();
-          if (query && window.performSearch) {
-            window.performSearch(query);
+          if (query) {
+            // Try to use existing Smart Search
+            if (window.initSmartSearch) {
+              window.initSmartSearch();
+              setTimeout(() => {
+                const smartSearchInput = document.getElementById('smart-search-input');
+                if (smartSearchInput) {
+                  smartSearchInput.value = query;
+                  smartSearchInput.focus();
+                  // Trigger search
+                  if (typeof performSearch === 'function') {
+                    performSearch(query);
+                  }
+                }
+              }, 300);
+            }
           }
+        }
+      });
+      
+      // Also trigger on click
+      searchInput.addEventListener('click', () => {
+        if (window.initSmartSearch) {
+          window.initSmartSearch();
+          setTimeout(() => {
+            const smartSearchInput = document.getElementById('smart-search-input');
+            if (smartSearchInput) {
+              smartSearchInput.focus();
+              smartSearchInput.select();
+            }
+          }, 300);
         }
       });
     }
@@ -149,6 +217,84 @@
     if (!menuOverlay) return;
 
     menuOverlay.classList.toggle('active');
+  }
+
+  // Create floating particles around logo
+  function createParticles() {
+    const container = document.getElementById('logo-particles');
+    if (!container) return;
+
+    const particleCount = 12;
+    
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'logo-g-particle';
+      
+      // Random position around the logo
+      const angle = (i / particleCount) * 360;
+      const distance = 120 + Math.random() * 40;
+      const tx = Math.cos(angle * Math.PI / 180) * distance;
+      const ty = Math.sin(angle * Math.PI / 180) * distance;
+      
+      particle.style.setProperty('--tx', `${tx}px`);
+      particle.style.setProperty('--ty', `${ty}px`);
+      particle.style.left = '50%';
+      particle.style.top = '50%';
+      particle.style.animationDelay = `${i * 0.4}s`;
+      particle.style.animationDuration = `${4 + Math.random() * 2}s`;
+      
+      container.appendChild(particle);
+    }
+  }
+
+  // Initialize gyroscope 3D effect
+  function initGyroscope() {
+    const logoG = document.getElementById('logo-g-trigger');
+    const logoImage = logoG?.querySelector('.logo-g-image');
+    if (!logoG || !logoImage) return;
+
+    // Mouse move effect
+    logoG.addEventListener('mousemove', (e) => {
+      const rect = logoG.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      const mouseX = e.clientX - centerX;
+      const mouseY = e.clientY - centerY;
+      
+      // Calculate rotation (limited to ±15 degrees)
+      const rotateY = (mouseX / rect.width) * 30;
+      const rotateX = -(mouseY / rect.height) * 30;
+      
+      logoImage.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+    });
+
+    // Reset on mouse leave
+    logoG.addEventListener('mouseleave', () => {
+      logoImage.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+    });
+
+    // Touch device support
+    logoG.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1) {
+        const rect = logoG.getBoundingClientRect();
+        const touch = e.touches[0];
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        const touchX = touch.clientX - centerX;
+        const touchY = touch.clientY - centerY;
+        
+        const rotateY = (touchX / rect.width) * 20;
+        const rotateX = -(touchY / rect.height) * 20;
+        
+        logoImage.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      }
+    });
+
+    logoG.addEventListener('touchend', () => {
+      logoImage.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
+    });
   }
 
   // Expose functions globally

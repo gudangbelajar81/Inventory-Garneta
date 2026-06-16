@@ -128,58 +128,107 @@
   font-family: monospace;
 }
 
-/* Logo G Center - SUPER BESAR memenuhi halaman */
+/* Logo G Center - SUPER KEREN dengan semua efek terbaik */
 .logo-g-center {
   position: relative;
   width: clamp(280px, 65vw, 600px);
   height: clamp(280px, 65vw, 600px);
   margin: 0 auto;
   cursor: pointer;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+  transform-style: preserve-3d;
+  perspective: 1000px;
 }
 
-.logo-g-center:hover {
-  transform: scale(1.02);
-}
-
+/* Layer 1: Aura Breathing Background */
 .logo-g-center::before {
   content: '';
   position: absolute;
-  top: -10%;
-  left: -10%;
-  right: -10%;
-  bottom: -10%;
+  top: -20%;
+  left: -20%;
+  right: -20%;
+  bottom: -20%;
   border-radius: 50%;
-  background: radial-gradient(circle, 
-    rgba(36, 240, 199, 0.15) 0%, 
-    rgba(36, 240, 199, 0.05) 40%,
-    transparent 70%);
-  animation: pulse-glow-super 4s ease-in-out infinite;
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(36, 240, 199, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(255, 0, 255, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(36, 240, 199, 0.2) 0%, transparent 70%);
+  animation: aura-breath 3s ease-in-out infinite;
+  filter: blur(20px);
 }
 
+/* Layer 2: Rotating Ring */
 .logo-g-center::after {
   content: '';
   position: absolute;
-  top: -5%;
-  left: -5%;
-  right: -5%;
-  bottom: -5%;
+  top: -8%;
+  left: -8%;
+  right: -8%;
+  bottom: -8%;
   border-radius: 50%;
-  border: 2px solid rgba(36, 240, 199, 0.1);
-  animation: rotate-ring 20s linear infinite;
+  border: 3px solid transparent;
+  border-top-color: rgba(36, 240, 199, 0.6);
+  border-right-color: rgba(255, 0, 255, 0.4);
+  border-bottom-color: rgba(36, 240, 199, 0.3);
+  animation: rotate-ring 8s linear infinite;
+  box-shadow: 
+    0 0 30px rgba(36, 240, 199, 0.3),
+    inset 0 0 30px rgba(36, 240, 199, 0.1);
 }
 
-@keyframes pulse-glow-super {
+/* Layer 3: Second Counter-Rotating Ring */
+.logo-g-ring-outer {
+  position: absolute;
+  top: -15%;
+  left: -15%;
+  right: -15%;
+  bottom: -15%;
+  border-radius: 50%;
+  border: 2px dashed rgba(36, 240, 199, 0.3);
+  animation: rotate-ring-reverse 15s linear infinite;
+  pointer-events: none;
+}
+
+/* Layer 4: Scan Line Effect */
+.logo-g-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(36, 240, 199, 0.8) 50%, 
+    transparent 100%);
+  animation: scan-line 3s ease-in-out infinite;
+  opacity: 0.6;
+  pointer-events: none;
+  border-radius: 2px;
+}
+
+/* Layer 5: Particle Container */
+.logo-g-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Animations */
+@keyframes aura-breath {
   0%, 100% { 
-    opacity: 0.4; 
+    opacity: 0.6; 
     transform: scale(1); 
   }
   50% { 
-    opacity: 0.8; 
-    transform: scale(1.15); 
+    opacity: 1; 
+    transform: scale(1.2); 
   }
 }
 
@@ -188,17 +237,139 @@
   100% { transform: rotate(360deg); }
 }
 
+@keyframes rotate-ring-reverse {
+  0% { transform: rotate(360deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes scan-line {
+  0% { 
+    top: 0; 
+    opacity: 0;
+  }
+  10% { 
+    opacity: 0.8;
+  }
+  90% { 
+    opacity: 0.8;
+  }
+  100% { 
+    top: 100%; 
+    opacity: 0;
+  }
+}
+
+/* Logo Image with 3D Transform */
 .logo-g-image {
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  object-fit: cover;
+  filter: drop-shadow(0 0 40px rgba(36, 240, 199, 0.5));
+  transition: all 0.3s ease;
+  transform-style: preserve-3d;
+  animation: logo-float 4s ease-in-out infinite;
+}
+
+@keyframes logo-float {
+  0%, 100% { 
+    transform: translateY(0) rotateY(0deg); 
+  }
+  25% { 
+    transform: translateY(-10px) rotateY(5deg); 
+  }
+  50% { 
+    transform: translateY(0) rotateY(0deg); 
+  }
+  75% { 
+    transform: translateY(10px) rotateY(-5deg); 
+  }
+}
+
+/* Hover Effects */
+.logo-g-center:hover .logo-g-image {
+  filter: drop-shadow(0 0 80px rgba(36, 240, 199, 0.8));
+  animation: logo-glitch 0.3s ease;
+}
+
+@keyframes logo-glitch {
+  0% { transform: translate(0); filter: hue-rotate(0deg); }
+  20% { transform: translate(-2px, 2px); filter: hue-rotate(90deg); }
+  40% { transform: translate(2px, -2px); filter: hue-rotate(180deg); }
+  60% { transform: translate(-2px, -2px); filter: hue-rotate(270deg); }
+  80% { transform: translate(2px, 2px); filter: hue-rotate(360deg); }
+  100% { transform: translate(0); filter: hue-rotate(0deg); }
+}
+
+/* Ripple Effect Container */
+.logo-g-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  object-fit: cover;
-  filter: drop-shadow(0 0 40px rgba(36, 240, 199, 0.4));
-  transition: filter 0.3s ease;
+  pointer-events: none;
 }
 
-.logo-g-center:hover .logo-g-image {
-  filter: drop-shadow(0 0 60px rgba(36, 240, 199, 0.6));
+.logo-g-ripple::before,
+.logo-g-ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(36, 240, 199, 0.3);
+  animation: ripple-out 3s ease-out infinite;
+}
+
+.logo-g-ripple::after {
+  animation-delay: 1.5s;
+}
+
+@keyframes ripple-out {
+  0% {
+    width: 100%;
+    height: 100%;
+    opacity: 0.6;
+  }
+  100% {
+    width: 200%;
+    height: 200%;
+    opacity: 0;
+  }
+}
+
+/* Particle Styles */
+.logo-g-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(36, 240, 199, 0.8);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: particle-float 5s ease-in-out infinite;
+}
+
+@keyframes particle-float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx, 50px), var(--ty, -50px)) scale(0);
+    opacity: 0;
+  }
 }
 
 /* Hint text dihapus untuk tampilan yang lebih elegan */

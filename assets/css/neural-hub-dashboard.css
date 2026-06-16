@@ -38,6 +38,7 @@
 .neural-dashboard-minimal .smart-search-hub {
   max-width: 350px;
   margin-bottom: 0;
+  position: relative;
 }
 
 .dashboard-hint {
@@ -47,6 +48,159 @@
   margin-top: 8px;
   text-align: center;
   letter-spacing: 1px;
+}
+
+/* Neural Search Dropdown */
+.neural-search-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--neural-glass);
+  border: 1px solid var(--neural-glass-border);
+  border-radius: 12px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 100;
+  animation: dropdown-appear 0.3s ease;
+}
+
+.neural-search-dropdown.hidden {
+  display: none;
+}
+
+@keyframes dropdown-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.neural-search-results {
+  padding: 8px;
+}
+
+.neural-search-section {
+  margin-bottom: 12px;
+}
+
+.neural-search-section:last-child {
+  margin-bottom: 0;
+}
+
+.neural-search-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--neural-cyan);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--neural-line);
+  margin-bottom: 8px;
+}
+
+.neural-search-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.neural-search-item:hover {
+  background: rgba(36, 240, 199, 0.1);
+  border-color: rgba(36, 240, 199, 0.3);
+}
+
+.neural-search-item-icon {
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(36, 240, 199, 0.1);
+  border-radius: 8px;
+}
+
+.neural-search-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.neural-search-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--neural-text);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.neural-search-item-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--neural-text-soft);
+}
+
+.neural-search-item-category {
+  background: rgba(36, 240, 199, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.neural-search-item-stock {
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.neural-search-item-stock.stock-low {
+  background: rgba(255, 112, 67, 0.2);
+  color: var(--neural-orange);
+}
+
+.neural-search-item-stock.stock-medium {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.neural-search-item-stock.stock-high {
+  background: rgba(36, 240, 199, 0.2);
+  color: var(--neural-cyan);
+}
+
+.neural-search-item-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neural-cyan);
+  white-space: nowrap;
+}
+
+.neural-search-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--neural-text-soft);
+}
+
+.neural-search-empty span {
+  font-size: 32px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.neural-search-empty p {
+  font-size: 13px;
 }
 
 /* Background Grid Pattern */

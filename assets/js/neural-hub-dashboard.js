@@ -1,4 +1,4 @@
-/**
+r/**
  * Neural Hub Dashboard - Minimalist Version
  * Logo G Super Besar dengan Menu Overlay
  */
@@ -35,7 +35,7 @@
           <img src="/assets/images/garneta-logo-g.svg" alt="Garneta G" class="logo-g-image">
         </div>
 
-        <!-- Smart Search Hub - Compact -->
+        <!-- Smart Search Hub - Compact dengan Dropdown -->
         <div class="smart-search-hub">
           <div class="smart-search-container" id="smart-search-trigger">
             <div class="smart-search-input-wrapper">
@@ -43,6 +43,10 @@
               <input type="text" class="smart-search-input" placeholder="Cari barang, supplier, transaksi..." id="neural-search-input" autocomplete="off">
               <span class="smart-search-shortcut">⌘K</span>
             </div>
+          </div>
+          <!-- Search Results Dropdown -->
+          <div id="neural-search-dropdown" class="neural-search-dropdown hidden">
+            <div id="neural-search-results" class="neural-search-results"></div>
           </div>
         </div>
 
@@ -89,6 +93,9 @@
     
     // Initialize gyroscope effect
     initGyroscope();
+    
+    // Initialize search
+    initSearch();
 
     // Logo G click - toggle menu
     const logoG = document.getElementById('logo-g-trigger');
@@ -217,6 +224,191 @@
     if (!menuOverlay) return;
 
     menuOverlay.classList.toggle('active');
+  }
+
+  // Search Functions
+  function initSearch() {
+    const searchInput = document.getElementById('neural-search-input');
+    const dropdown = document.getElementById('neural-search-dropdown');
+    
+    if (!searchInput) return;
+
+    // Real-time search
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.trim();
+      if (query.length < 2) {
+        closeSearchDropdown();
+        return;
+      }
+      performNeuralSearch(query);
+    });
+
+    // Focus shows results if has query
+    searchInput.addEventListener('focus', () => {
+      if (searchInput.value.trim().length >= 2) {
+        performNeuralSearch(searchInput.value.trim());
+      }
+    });
+
+    // Click outside closes dropdown
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.smart-search-hub')) {
+        closeSearchDropdown();
+      }
+    });
+  }
+
+  function performNeuralSearch(query) {
+    if (!window.state || !window.state.data) {
+      console.log('Data not loaded yet');
+      return;
+    }
+
+    const results = [];
+    const data = window.state.data;
+    const lowerQuery = query.toLowerCase();
+
+    // Search products (Barang)
+    if (data.products) {
+      data.products.forEach((p) => {
+        if ((p.name && p.name.toLowerCase().includes(lowerQuery)) ||
+            (p.category && p.category.toLowerCase().includes(lowerQuery)) ||
+            (p.barcode && p.barcode.toLowerCase().includes(lowerQuery))) {
+          results.push({ type: 'barang', data: p });
+        }
+      });
+    }
+
+    // Search suppliers
+    if (data.suppliers) {
+      data.suppliers.forEach((s) => {
+        if ((s.name && s.name.toLowerCase().includes(lowerQuery)) ||
+            (s.phone && s.phone.toLowerCase().includes(lowerQuery))) {
+          results.push({ type: 'supplier', data: s });
+        }
+      });
+    }
+
+    renderSearchResults(results.slice(0, 10), query);
+    openSearchDropdown();
+  }
+
+  function renderSearchResults(results, query) {
+    const container = document.getElementById('neural-search-results');
+    if (!container) return;
+
+    if (results.length === 0) {
+      container.innerHTML = `<div class="neural-search-empty"><span>🔍</span><p>Tidak ada hasil untuk "${escapeHtml(query)}"</p></div>`;
+      return;
+    }
+
+    let html = '';
+    const barangResults = results.filter((r) => r.type === 'barang');
+    const supplierResults = results.filter((r) => r.type === 'supplier');
+
+    if (barangResults.length > 0) {
+      html += '<div class="neural-search-section"><div class="neural-search-section-title">📦 Barang</div>';
+      barangResults.forEach((r) => {
+        html += renderBarangResult(r.data);
+      });
+      html += '</div>';
+    }
+
+    if (supplierResults.length > 0) {
+      html += '<div class="neural-search-section"><div class="neural-search-section-title">🏭 Supplier</div>';
+      supplierResults.forEach((r) => {
+        html += renderSupplierResult(r.data);
+      });
+      html += '</div>';
+    }
+
+    container.innerHTML = html;
+    
+    // Bind click events
+    container.querySelectorAll('.neural-search-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const type = item.dataset.type;
+        const id = item.dataset.id;
+        handleSearchResultClick(type, id);
+      });
+    });
+  }
+
+  function renderBarangResult(product) {
+    const stockClass = (product.stock || 0) < 10 ? 'stock-low' : (product.stock || 0) < 50 ? 'stock-medium' : 'stock-high';
+    
+    return `
+      <div class="neural-search-item" data-type="barang" data-id="${product.id}">
+        <div class="neural-search-item-icon">📦</div>
+        <div class="neural-search-item-info">
+          <div class="neural-search-item-title">${escapeHtml(product.name)}</div>
+          <div class="neural-search-item-meta">
+            <span class="neural-search-item-category">${escapeHtml(product.category || 'Umum')}</span>
+            <span class="neural-search-item-stock ${stockClass}">Stok: ${product.stock || 0}</span>
+          </div>
+        </div>
+        <div class="neural-search-item-price">${formatRupiah(product.salePrice || 0)}</div>
+      </div>
+    `;
+  }
+
+  function renderSupplierResult(supplier) {
+    return `
+      <div class="neural-search-item" data-type="supplier" data-id="${supplier.id}">
+        <div class="neural-search-item-icon">🏭</div>
+        <div class="neural-search-item-info">
+          <div class="neural-search-item-title">${escapeHtml(supplier.name)}</div>
+          <div class="neural-search-item-meta">
+            <span class="neural-search-item-phone">${escapeHtml(supplier.phone || '-')}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function handleSearchResultClick(type, id) {
+    closeSearchDropdown();
+    
+    if (type === 'barang') {
+      window.state.route = 'barang';
+      if (window.renderShell) window.renderShell();
+      if (window.render) window.render();
+      setTimeout(() => {
+        if (window.fillForm) window.fillForm('products', id);
+      }, 100);
+    } else if (type === 'supplier') {
+      window.state.route = 'supplier';
+      if (window.renderShell) window.renderShell();
+      if (window.render) window.render();
+      setTimeout(() => {
+        if (window.fillForm) window.fillForm('suppliers', id);
+      }, 100);
+    }
+  }
+
+  function openSearchDropdown() {
+    const dropdown = document.getElementById('neural-search-dropdown');
+    if (dropdown) dropdown.classList.remove('hidden');
+  }
+
+  function closeSearchDropdown() {
+    const dropdown = document.getElementById('neural-search-dropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function formatRupiah(value) {
+    return new Intl.NumberFormat('id-ID', { 
+      style: 'currency', 
+      currency: 'IDR', 
+      maximumFractionDigits: 0 
+    }).format(Number(value || 0));
   }
 
   // Create floating particles around logo

@@ -43,17 +43,8 @@
       <div class="menu-overlay" id="menu-overlay">
         <div class="menu-overlay-content">
           <img src="/assets/images/garneta-logo-g.svg" alt="Garneta G" class="menu-overlay-logo" id="menu-close-trigger">
-          <div class="menu-grid">
-            ${createMenuItem('barang', '📦', 'Barang')}
-            ${createMenuItem('penjualan', '💵', 'Penjualan')}
-            ${createMenuItem('supplier', '🏭', 'Supplier')}
-            ${createMenuItem('pembelian', '🛒', 'Pembelian')}
-            ${createMenuItem('kalkulator', '🧮', 'Kalkulator')}
-            ${isSuperAdmin ? createMenuItem('laporan', '📈', 'Laporan') : ''}
-            ${isSuperAdmin ? createMenuItem('statistik', '📊', 'Statistik') : ''}
-            ${isSuperAdmin ? createMenuItem('audit', '📋', 'Audit') : ''}
-            ${isSuperAdmin ? createMenuItem('users', '👤', 'Users') : ''}
-            ${createMenuItem('settings', '⚙️', 'Setting')}
+          <div class="menu-grid" id="menu-grid-container">
+            <!-- Menu items akan di-render oleh setupEventListeners -->
           </div>
           <span class="menu-close-hint">Klik logo untuk tutup</span>
         </div>
@@ -71,8 +62,49 @@
     `;
   }
 
+  // Check if Super Admin
+  function isSuperAdmin() {
+    return window.state && window.state.role === "Super Admin";
+  }
+
+  // Get menu items based on role
+  function getMenuItems() {
+    const adminItems = [
+      { id: 'barang', icon: '📦', label: 'Barang' },
+      { id: 'penjualan', icon: '💵', label: 'Penjualan' },
+      { id: 'supplier', icon: '🏭', label: 'Supplier' }
+    ];
+
+    const superAdminItems = [
+      { id: 'barang', icon: '📦', label: 'Barang' },
+      { id: 'penjualan', icon: '💵', label: 'Penjualan' },
+      { id: 'pembelian', icon: '🛒', label: 'Pembelian' },
+      { id: 'kalkulator', icon: '🧮', label: 'Kalkulator' },
+      { id: 'supplier', icon: '🏭', label: 'Supplier' },
+      { id: 'laporan', icon: '📈', label: 'Laporan' },
+      { id: 'statistik', icon: '📊', label: 'Statistik' },
+      { id: 'audit', icon: '📋', label: 'Audit' },
+      { id: 'users', icon: '👤', label: 'Users' },
+      { id: 'settings', icon: '⚙️', label: 'Setting' }
+    ];
+
+    return isSuperAdmin() ? superAdminItems : adminItems;
+  }
+
+  // Render menu items based on role
+  function renderMenuItems() {
+    const container = document.getElementById('menu-grid-container');
+    if (!container) return;
+
+    const items = getMenuItems();
+    container.innerHTML = items.map(item => createMenuItem(item.id, item.icon, item.label)).join('');
+  }
+
   // Setup event listeners
   function setupEventListeners() {
+    // Render menu items berdasarkan role
+    renderMenuItems();
+
     // Initialize particles
     createParticles();
     

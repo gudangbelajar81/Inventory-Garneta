@@ -649,7 +649,6 @@
     
     function supplier() {
       const workspaces = [
-        { id: 'search', icon: '🔍', label: 'Cari' },
         { id: 'form', icon: '➕', label: 'Form' },
         { id: 'list', icon: '📋', label: 'Daftar' }
       ];
@@ -668,18 +667,6 @@
       
       let workspaceContent = '';
       switch(activeWorkspace) {
-        case 'search':
-          workspaceContent = `<div class="workspace-content">
-            <div class="card">
-              <h3>🔍 Pencarian Supplier</h3>
-              <div class="search-container">
-                <input type="text" id="search-supplier-input" placeholder="Cari nama, telepon, atau alamat..." oninput="searchSupplier(this.value)">
-                <button class="btn soft" onclick="clearSearchSupplier()">Clear</button>
-              </div>
-              <div id="search-supplier-results" style="margin-top:12px;"></div>
-            </div>
-          </div>`;
-          break;
         case 'form':
           workspaceContent = `<div class="workspace-content">
             <div class="card">
@@ -872,7 +859,6 @@ Beras Premium 1"></textarea>
     
     function penjualan() {
       const workspaces = [
-        { id: 'search', icon: '🔍', label: 'Cari' },
         { id: 'form', icon: '➕', label: 'Form' },
         { id: 'list', icon: '📋', label: 'Daftar' }
       ];
@@ -891,18 +877,6 @@ Beras Premium 1"></textarea>
       
       let workspaceContent = '';
       switch(activeWorkspace) {
-        case 'search':
-          workspaceContent = `<div class="workspace-content">
-            <div class="card">
-              <h3>🔍 Pencarian Penjualan</h3>
-              <div class="search-container">
-                <input type="text" id="search-penjualan-input" placeholder="Cari barang atau tanggal..." oninput="searchPenjualan(this.value)">
-                <button class="btn soft" onclick="clearSearchPenjualan()">Clear</button>
-              </div>
-              <div id="search-penjualan-results" style="margin-top:12px;"></div>
-            </div>
-          </div>`;
-          break;
         case 'form':
           workspaceContent = `<div class="workspace-content">
             <div class="card">

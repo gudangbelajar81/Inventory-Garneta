@@ -313,12 +313,6 @@
   <script src="/assets/js/smart-search.js"></script>
   <script src="/assets/js/ai-input-center.js"></script>
   <script>
-    const menus = [
-      ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"], ["supplier", "🏭 Supplier"],
-      ["pembelian", "🛒 Pembelian"], ["kalkulator", "🧮 Kalkulator"], ["penjualan", "💵 Penjualan"], ["laporan", "📈 Laporan"],
-      ["statistik", "📊 Statistik"], ["audit", "📋 Audit"], ["users", "👤 Users"], ["settings", "⚙️ Setting"]
-    ];
-
     const state = {
       route: "dashboard",
       role: localStorage.getItem("role") || "Admin",
@@ -1529,6 +1523,24 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     function isSuperAdmin() {
       return state.role === "Super Admin";
     }
+
+    // Menu untuk Admin (hanya 4 menu)
+    const adminMenus = [
+      ["dashboard", "🏠 Dashboard"],
+      ["barang", "📦 Barang"],
+      ["supplier", "🏭 Supplier"],
+      ["penjualan", "💵 Penjualan"]
+    ];
+    
+    // Menu untuk Super Admin (semua menu)
+    const superAdminMenus = [
+      ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"], ["supplier", "🏭 Supplier"],
+      ["pembelian", "🛒 Pembelian"], ["kalkulator", "🧮 Kalkulator"], ["penjualan", "💵 Penjualan"], ["laporan", "📈 Laporan"],
+      ["statistik", "📊 Statistik"], ["audit", "📋 Audit"], ["users", "👤 Users"], ["settings", "⚙️ Setting"]
+    ];
+    
+    // Pilih menu berdasarkan role
+    const menus = isSuperAdmin() ? superAdminMenus : adminMenus;
 
     function barChart(values) {
       const max = Math.max(...values.map(Number), 1);

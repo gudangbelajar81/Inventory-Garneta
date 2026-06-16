@@ -43,11 +43,11 @@
   pointer-events: none;
 }
 
-/* Smart Search Hub */
+/* Smart Search Hub - Diperkecil */
 .smart-search-hub {
   width: 100%;
-  max-width: 600px;
-  margin-bottom: 32px;
+  max-width: 400px;
+  margin-bottom: 16px;
   position: relative;
   z-index: 10;
 }
@@ -55,30 +55,30 @@
 .smart-search-container {
   background: var(--neural-glass);
   border: 1px solid var(--neural-glass-border);
-  border-radius: 16px;
-  padding: 16px 20px;
+  border-radius: 12px;
+  padding: 10px 14px;
   backdrop-filter: blur(20px);
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(36, 240, 199, 0.1);
   transition: all 0.3s ease;
 }
 
 .smart-search-container:focus-within {
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.3),
     0 0 0 2px rgba(36, 240, 199, 0.3),
-    0 0 30px rgba(36, 240, 199, 0.1);
+    0 0 20px rgba(36, 240, 199, 0.1);
 }
 
 .smart-search-input-wrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .smart-search-icon {
-  font-size: 20px;
+  font-size: 16px;
   color: var(--neural-cyan);
   opacity: 0.8;
 }
@@ -88,30 +88,31 @@
   background: transparent;
   border: none;
   color: var(--neural-text);
-  font-size: 16px;
+  font-size: 14px;
   outline: none;
 }
 
 .smart-search-input::placeholder {
   color: var(--neural-text-soft);
+  font-size: 13px;
 }
 
 .smart-search-shortcut {
   background: rgba(36, 240, 199, 0.1);
   border: 1px solid rgba(36, 240, 199, 0.2);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 12px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
   color: var(--neural-cyan);
   font-family: monospace;
 }
 
-/* Logo G Center */
+/* Logo G Center - Diperbesar dan Responsive */
 .logo-g-center {
   position: relative;
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 48px;
+  width: clamp(100px, 25vw, 200px);
+  height: clamp(100px, 25vw, 200px);
+  margin: 0 auto 32px;
   cursor: pointer;
   transition: transform 0.3s ease;
 }
@@ -123,10 +124,10 @@
 .logo-g-center::before {
   content: '';
   position: absolute;
-  top: -20px;
-  left: -20px;
-  right: -20px;
-  bottom: -20px;
+  top: -15%;
+  left: -15%;
+  right: -15%;
+  bottom: -15%;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(36, 240, 199, 0.1) 0%, transparent 70%);
   animation: pulse-glow 3s ease-in-out infinite;
@@ -147,21 +148,171 @@
 
 .logo-g-menu-hint {
   position: absolute;
-  bottom: -30px;
+  bottom: -24px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--neural-text-soft);
   opacity: 0.7;
   white-space: nowrap;
 }
 
-/* Neural Hub Container */
+/* Neural Hub Container - Diperbesar dan Full Width */
 .neural-hub-container {
   position: relative;
   width: 100%;
-  max-width: 900px;
+  max-width: 100%;
   margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 50vh;
+}
+
+/* Layer Containers - Diperbesar */
+.neural-layer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(16px, 4vw, 48px);
+  margin-bottom: clamp(24px, 5vh, 48px);
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.neural-layer-1 {
+  gap: clamp(24px, 6vw, 72px);
+}
+
+.neural-layer-2 {
+  gap: clamp(20px, 5vw, 48px);
+}
+
+.neural-layer-3 {
+  gap: clamp(16px, 4vw, 32px);
+  opacity: 0.7;
+}
+
+/* Neural Nodes - Diperbesar */
+.neural-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(6px, 1.5vh, 12px);
+  padding: clamp(16px, 3vw, 32px) clamp(20px, 4vw, 40px);
+  background: var(--neural-glass);
+  border: 1px solid var(--neural-glass-border);
+  border-radius: clamp(12px, 2vw, 20px);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  min-width: clamp(80px, 15vw, 140px);
+  flex: 1;
+  max-width: clamp(120px, 20vw, 200px);
+}
+
+.neural-node:hover {
+  transform: translateY(-4px) scale(1.05);
+  border-color: rgba(36, 240, 199, 0.4);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    0 0 30px rgba(36, 240, 199, 0.15);
+}
+
+.neural-node-icon {
+  font-size: clamp(24px, 5vw, 48px);
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.neural-node-label {
+  font-size: clamp(11px, 2vw, 16px);
+  font-weight: 600;
+  color: var(--neural-text);
+  text-align: center;
+}
+
+.neural-node-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--neural-cyan);
+  color: var(--neural-bg);
+  font-size: clamp(8px, 1.5vw, 12px);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Mobile Responsive - Nodes lebih besar di HP */
+@media (max-width: 768px) {
+  .neural-dashboard {
+    padding: 16px;
+    min-height: calc(100vh - 100px);
+  }
+  
+  .smart-search-hub {
+    max-width: 100%;
+    margin-bottom: 12px;
+  }
+  
+  .logo-g-center {
+    width: clamp(80px, 30vw, 150px);
+    height: clamp(80px, 30vw, 150px);
+    margin-bottom: 24px;
+  }
+  
+  .neural-hub-container {
+    min-height: 60vh;
+  }
+  
+  .neural-layer {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .neural-layer-1 {
+    gap: 16px;
+  }
+  
+  .neural-node {
+    padding: 16px 20px;
+    min-width: 70px;
+    flex: 1;
+  }
+  
+  .neural-node-icon {
+    font-size: 28px;
+  }
+  
+  .neural-node-label {
+    font-size: 11px;
+  }
+}
+
+/* Desktop Large - Nodes lebih besar */
+@media (min-width: 1200px) {
+  .neural-dashboard {
+    padding: 40px;
+  }
+  
+  .neural-hub-container {
+    max-width: 1200px;
+  }
+  
+  .neural-layer {
+    gap: 48px;
+  }
+  
+  .neural-node {
+    padding: 32px 48px;
+    min-width: 160px;
+  }
 }
 
 /* Connection Lines SVG */

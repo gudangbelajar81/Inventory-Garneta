@@ -506,7 +506,13 @@
     }
     
     function barang() {
-      const workspaces = [
+      // Admin: hanya search & form. Super Admin: semua tab
+      const adminWorkspaces = [
+        { id: 'search', icon: '🔍', label: 'Cari' },
+        { id: 'form', icon: '➕', label: 'Form' }
+      ];
+
+      const superAdminWorkspaces = [
         { id: 'search', icon: '🔍', label: 'Cari' },
         { id: 'form', icon: '➕', label: 'Form' },
         { id: 'ai-input', icon: '🎤', label: 'AI Input' },
@@ -515,6 +521,8 @@
         { id: 'scanner', icon: '📷', label: 'Scanner' },
         { id: 'list', icon: '📋', label: 'Daftar' }
       ];
+
+      const workspaces = isSuperAdmin() ? superAdminWorkspaces : adminWorkspaces;
       
       const activeWorkspace = window.barangWorkspace || 'list';
       

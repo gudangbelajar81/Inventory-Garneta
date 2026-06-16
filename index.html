@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/assets/css/progressive-ui.css">
   <link rel="stylesheet" href="/assets/css/smart-search.css">
   <link rel="stylesheet" href="/assets/css/ai-input-center.css">
+  <link rel="stylesheet" href="/assets/css/neural-hub-dashboard.css">
   <style>
     :root {
       --green: #24f0c7;
@@ -312,6 +313,7 @@
   <script src="/assets/js/progressive-ui.js"></script>
   <script src="/assets/js/smart-search.js"></script>
   <script src="/assets/js/ai-input-center.js"></script>
+  <script src="/assets/js/neural-hub-dashboard.js"></script>
   <script>
     const state = {
       route: "dashboard",
@@ -437,59 +439,15 @@
     }
 
     function dashboard() {
-      // Modul untuk Admin (hanya 4)
-      const adminModules = [
-        { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
-        { id: "penjualan", name: "Penjualan", icon: "💵", desc: "Input transaksi", core: true },
-        { id: "supplier", name: "Supplier", icon: "🏭", desc: "Data supplier" }
-      ];
-      
-      // Modul untuk Super Admin (semua)
-      const superAdminModules = [
-        { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
-        { id: "penjualan", name: "Penjualan", icon: "💵", desc: "Input transaksi", core: true },
-        { id: "pembelian", name: "Pembelian", icon: "🛒", desc: "Restock barang" },
-        { id: "kalkulator", name: "Kalkulator", icon: "🧮", desc: "Hitung belanja" },
-        { id: "supplier", name: "Supplier", icon: "🏭", desc: "Data supplier" },
-        { id: "laporan", name: "Laporan", icon: "📈", desc: "Laporan harian" },
-        { id: "statistik", name: "Statistik", icon: "📊", desc: "Analisis data" },
-        { id: "users", name: "Users", icon: "👤", desc: "Manajemen user" },
-        { id: "audit", name: "Audit", icon: "📋", desc: "Riwayat aktivitas" },
-        { id: "settings", name: "Setting", icon: "⚙️", desc: "Pengaturan" }
-      ];
-      
-      const modules = isSuperAdmin() ? superAdminModules : adminModules;
-      
-      // Initialize Smart Search after DOM is ready and data is loaded
+      // Initialize Neural Hub Dashboard
       setTimeout(function() {
-        console.log('Dashboard: initializing Smart Search...');
-        if (window.initSmartSearch) {
-          window.initSmartSearch();
-        } else {
-          console.error('Dashboard: initSmartSearch not found');
+        if (window.NeuralHub) {
+          window.NeuralHub.init();
         }
       }, 100);
       
-      return `<section class="grid" style="min-height:calc(100vh - 140px);">
-        <!-- Smart Search -->
-        <div class="card" style="padding:20px;">
-          <div id="smart-search-container"></div>
-        </div>
-        
-        <!-- Neural Hub - Pusat Kendali -->
-        <div class="card" style="flex:1;display:flex;flex-direction:column;padding:24px;">
-          <h2 style="font-size:1.5rem;margin-bottom:8px;">🧠 Neural Hub</h2>
-          <p class="muted" style="margin-bottom:20px;">Pusat kendali sistem - klik modul untuk navigasi cepat</p>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;flex:1;">
-            ${modules.map(m => `
-              <button class="btn ${m.core ? 'primary' : 'soft'}" onclick="state.route='${m.id}';renderShell();render()" style="padding:24px 16px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;height:auto;min-height:140px;border-radius:16px;">
-                <span style="font-size:3rem">${m.icon}</span>
-                <span style="font-weight:700;font-size:1.1rem;">${m.name}</span>
-                <span style="font-size:12px;opacity:0.8;">${m.desc}</span>
-              </button>
-            `).join("")}
-          </div>
-        </div>
+      return `<section id="neural-dashboard-container" style="min-height:calc(100vh - 140px);">
+        <!-- Neural Hub Dashboard akan di-render oleh JavaScript -->
       </section>`;
     }
 

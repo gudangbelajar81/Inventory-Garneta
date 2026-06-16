@@ -1,56 +1,32 @@
 /**
- * Neural Hub Dashboard - Garneta System Control Center
- * Hub and Spoke Architecture with Collapsible Sidebar
+ * Neural Hub Dashboard - Minimalist Version
+ * Logo G Super Besar dengan Menu Overlay
  */
 
 (function() {
   'use strict';
 
-  // Neural Hub State
-  const neuralHubState = {
-    menuOpen: false,
-    activeNode: null,
-    connections: []
-  };
-
-  // Module definitions with layers
-  const modules = {
-    core: [
-      { id: 'barang', icon: '📦', label: 'Barang', badge: 'products' },
-      { id: 'penjualan', icon: '💵', label: 'Penjualan', badge: 'todaySales' },
-      { id: 'supplier', icon: '🏭', label: 'Supplier', badge: 'suppliers' }
-    ],
-    business: [
-      { id: 'pembelian', icon: '🛒', label: 'Pembelian', super: true },
-      { id: 'kalkulator', icon: '🧮', label: 'Kalkulator', super: true },
-      { id: 'statistik', icon: '📊', label: 'Statistik', super: true },
-      { id: 'laporan', icon: '📑', label: 'Laporan', super: true }
-    ],
-    system: [
-      { id: 'users', icon: '👤', label: 'Users', super: true },
-      { id: 'audit', icon: '📋', label: 'Audit', super: true },
-      { id: 'settings', icon: '⚙️', label: 'Setting', super: true }
-    ]
-  };
-
   // Initialize Neural Hub
   function initNeuralHub() {
     createNeuralDashboard();
     setupEventListeners();
-    animateNodes();
   }
 
-  // Create Neural Dashboard HTML
+  // Create Neural Dashboard HTML - Minimalist
   function createNeuralDashboard() {
     const dashboard = document.getElementById('neural-dashboard-container');
     if (!dashboard) return;
 
     const isSuperAdmin = window.isSuperAdmin ? window.isSuperAdmin() : false;
-    const data = window.state?.data || {};
 
     dashboard.innerHTML = `
-      <div class="neural-dashboard">
-        <!-- Smart Search Hub -->
+      <div class="neural-dashboard neural-dashboard-minimal">
+        <!-- Logo G Center - SUPER BESAR -->
+        <div class="logo-g-center" id="logo-g-trigger" title="Klik untuk membuka menu">
+          <img src="/assets/images/garneta-logo-g.svg" alt="Garneta G" class="logo-g-image">
+        </div>
+
+        <!-- Smart Search Hub - Compact -->
         <div class="smart-search-hub">
           <div class="smart-search-container">
             <div class="smart-search-input-wrapper">
@@ -61,39 +37,8 @@
           </div>
         </div>
 
-        <!-- Logo G Center -->
-        <div class="logo-g-center" id="logo-g-trigger" title="Klik untuk membuka menu">
-          <img src="/assets/images/garneta-logo-g.svg" alt="Garneta G" class="logo-g-image">
-          <span class="logo-g-menu-hint">Klik untuk menu</span>
-        </div>
-
-        <!-- Neural Hub Container -->
-        <div class="neural-hub-container">
-          <!-- SVG Connection Lines -->
-          <svg class="neural-connections" id="neural-connections">
-            <!-- Lines will be drawn dynamically -->
-          </svg>
-
-          <!-- Layer 1: Core Operations -->
-          <div class="neural-layer neural-layer-1" id="layer-1">
-            ${modules.core.map(mod => createNodeHTML(mod, data, isSuperAdmin)).join('')}
-          </div>
-
-          <!-- Layer 2: Business Tools -->
-          ${isSuperAdmin ? `
-          <div class="neural-layer neural-layer-2" id="layer-2">
-            ${modules.business.map(mod => createNodeHTML(mod, data, isSuperAdmin)).join('')}
-          </div>
-          ` : ''}
-
-          <!-- Layer 3: System -->
-          ${isSuperAdmin ? `
-          <div class="neural-layer neural-layer-3" id="layer-3">
-            ${modules.system.map(mod => createNodeHTML(mod, data, isSuperAdmin)).join('')}
-          </div>
-          ` : ''}
-        </div>
-
+        <!-- Hint -->
+        <p class="dashboard-hint">Klik logo untuk membuka menu</p>
       </div>
 
       <!-- Floating Menu Overlay -->
@@ -101,126 +46,31 @@
         <div class="menu-overlay-content">
           <img src="/assets/images/garneta-logo-g.svg" alt="Garneta G" class="menu-overlay-logo" id="menu-close-trigger">
           <div class="menu-grid">
-            ${[...modules.core, ...modules.business, ...modules.system]
-              .filter(mod => !mod.super || isSuperAdmin)
-              .map(mod => `
-                <div class="menu-item" data-route="${mod.id}">
-                  <span class="menu-item-icon">${mod.icon}</span>
-                  <span class="menu-item-label">${mod.label}</span>
-                </div>
-              `).join('')}
+            ${createMenuItem('barang', '📦', 'Barang')}
+            ${createMenuItem('penjualan', '💵', 'Penjualan')}
+            ${createMenuItem('supplier', '🏭', 'Supplier')}
+            ${createMenuItem('pembelian', '🛒', 'Pembelian')}
+            ${createMenuItem('kalkulator', '🧮', 'Kalkulator')}
+            ${isSuperAdmin ? createMenuItem('laporan', '📈', 'Laporan') : ''}
+            ${isSuperAdmin ? createMenuItem('statistik', '📊', 'Statistik') : ''}
+            ${isSuperAdmin ? createMenuItem('audit', '📋', 'Audit') : ''}
+            ${isSuperAdmin ? createMenuItem('users', '👤', 'Users') : ''}
+            ${createMenuItem('settings', '⚙️', 'Setting')}
           </div>
           <span class="menu-close-hint">Klik logo untuk tutup</span>
         </div>
       </div>
     `;
-
-    // Draw connection lines after DOM is ready
-    setTimeout(drawConnectionLines, 100);
   }
 
-  // Create Node HTML
-  function createNodeHTML(mod, data, isSuperAdmin) {
-    const badge = getBadgeValue(mod.badge, data);
-    const superClass = mod.super ? 'super-admin' : '';
-    const coreClass = modules.core.find(m => m.id === mod.id) ? 'core' : '';
-    
+  // Create Menu Item HTML
+  function createMenuItem(id, icon, label) {
     return `
-      <div class="neural-node ${coreClass} ${superClass}" data-route="${mod.id}" title="${mod.label}">
-        <span class="neural-node-icon">${mod.icon}</span>
-        <span class="neural-node-label">${mod.label}</span>
-        ${badge ? `<span class="neural-node-badge">${badge}</span>` : ''}
+      <div class="menu-item" data-route="${id}">
+        <span class="menu-item-icon">${icon}</span>
+        <span class="menu-item-label">${label}</span>
       </div>
     `;
-  }
-
-  // Get badge value
-  function getBadgeValue(badgeType, data) {
-    if (!badgeType) return '';
-    
-    switch(badgeType) {
-      case 'products':
-        return data.products?.length || 0;
-      case 'suppliers':
-        return data.suppliers?.length || 0;
-      case 'todaySales':
-        const today = new Date().toISOString().slice(0, 10);
-        const todaySales = data.sales?.filter(s => s.date === today)?.length || 0;
-        return todaySales > 0 ? todaySales : '';
-      default:
-        return '';
-    }
-  }
-
-  // Get low stock count
-  function getLowStockCount(data) {
-    if (!data.products) return 0;
-    return data.products.filter(p => p.stock <= 5).length;
-  }
-
-  // Get today's profit
-  function getTodayProfit(data) {
-    if (!data.sales) return 0;
-    const today = new Date().toISOString().slice(0, 10);
-    return data.sales
-      .filter(s => s.date === today)
-      .reduce((sum, s) => sum + (s.profit || 0), 0);
-  }
-
-  // Format currency
-  function formatCurrency(value) {
-    if (typeof value === 'string') return value;
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0
-    }).format(value || 0);
-  }
-
-  // Draw connection lines
-  function drawConnectionLines() {
-    const svg = document.getElementById('neural-connections');
-    if (!svg) return;
-
-    const container = svg.parentElement;
-    const rect = container.getBoundingClientRect();
-    
-    svg.setAttribute('width', rect.width);
-    svg.setAttribute('height', rect.height);
-
-    // Get all nodes
-    const nodes = container.querySelectorAll('.neural-node');
-    const nodePositions = [];
-
-    nodes.forEach(node => {
-      const nodeRect = node.getBoundingClientRect();
-      nodePositions.push({
-        id: node.dataset.route,
-        x: nodeRect.left - rect.left + nodeRect.width / 2,
-        y: nodeRect.top - rect.top + nodeRect.height / 2
-      });
-    });
-
-    // Draw lines between related nodes
-    const connections = [
-      ['barang', 'penjualan'],
-      ['barang', 'supplier'],
-      ['supplier', 'pembelian'],
-      ['penjualan', 'laporan'],
-      ['pembelian', 'statistik'],
-      ['laporan', 'statistik']
-    ];
-
-    let svgContent = '';
-    connections.forEach(([from, to]) => {
-      const fromNode = nodePositions.find(n => n.id === from);
-      const toNode = nodePositions.find(n => n.id === to);
-      if (fromNode && toNode) {
-        svgContent += `<line x1="${fromNode.x}" y1="${fromNode.y}" x2="${toNode.x}" y2="${toNode.y}" class="connection-line" data-from="${from}" data-to="${to}"/>`;
-      }
-    });
-
-    svg.innerHTML = svgContent;
   }
 
   // Setup event listeners
@@ -247,18 +97,8 @@
       });
     }
 
-    // Node clicks
+    // Menu item clicks
     document.addEventListener('click', (e) => {
-      const node = e.target.closest('.neural-node');
-      if (node) {
-        const route = node.dataset.route;
-        if (route && window.state) {
-          window.state.route = route;
-          if (window.renderShell) window.renderShell();
-          if (window.render) window.render();
-        }
-      }
-
       const menuItem = e.target.closest('.menu-item');
       if (menuItem) {
         const route = menuItem.dataset.route;
@@ -294,14 +134,12 @@
         }
       }
 
-      if (e.key === 'Escape' && neuralHubState.menuOpen) {
-        toggleMenu();
+      if (e.key === 'Escape') {
+        const menuOverlay = document.getElementById('menu-overlay');
+        if (menuOverlay && menuOverlay.classList.contains('active')) {
+          toggleMenu();
+        }
       }
-    });
-
-    // Window resize - redraw connections
-    window.addEventListener('resize', () => {
-      setTimeout(drawConnectionLines, 100);
     });
   }
 
@@ -310,23 +148,7 @@
     const menuOverlay = document.getElementById('menu-overlay');
     if (!menuOverlay) return;
 
-    neuralHubState.menuOpen = !neuralHubState.menuOpen;
-    menuOverlay.classList.toggle('active', neuralHubState.menuOpen);
-  }
-
-  // Animate nodes on load
-  function animateNodes() {
-    const nodes = document.querySelectorAll('.neural-node');
-    nodes.forEach((node, index) => {
-      node.style.opacity = '0';
-      node.style.transform = 'translateY(20px) scale(0.9)';
-      
-      setTimeout(() => {
-        node.style.transition = 'all 0.5s ease';
-        node.style.opacity = '1';
-        node.style.transform = 'translateY(0) scale(1)';
-      }, index * 100);
-    });
+    menuOverlay.classList.toggle('active');
   }
 
   // Expose functions globally

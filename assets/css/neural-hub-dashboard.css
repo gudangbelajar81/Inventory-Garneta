@@ -28,6 +28,27 @@
   overflow: hidden;
 }
 
+/* Minimalist Dashboard - Logo Super Besar */
+.neural-dashboard-minimal {
+  justify-content: center;
+  gap: 24px;
+  padding: 40px 24px;
+}
+
+.neural-dashboard-minimal .smart-search-hub {
+  max-width: 350px;
+  margin-bottom: 0;
+}
+
+.dashboard-hint {
+  font-size: 13px;
+  color: var(--neural-text-soft);
+  opacity: 0.7;
+  margin-top: 8px;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
 /* Background Grid Pattern */
 .neural-dashboard::before {
   content: '';
@@ -107,35 +128,64 @@
   font-family: monospace;
 }
 
-/* Logo G Center - Diperbesar dan Responsive */
+/* Logo G Center - SUPER BESAR memenuhi halaman */
 .logo-g-center {
   position: relative;
-  width: clamp(100px, 25vw, 200px);
-  height: clamp(100px, 25vw, 200px);
-  margin: 0 auto 32px;
+  width: clamp(280px, 65vw, 600px);
+  height: clamp(280px, 65vw, 600px);
+  margin: 0 auto;
   cursor: pointer;
-  transition: transform 0.3s ease;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logo-g-center:hover {
-  transform: scale(1.05);
+  transform: scale(1.02);
 }
 
 .logo-g-center::before {
   content: '';
   position: absolute;
-  top: -15%;
-  left: -15%;
-  right: -15%;
-  bottom: -15%;
+  top: -10%;
+  left: -10%;
+  right: -10%;
+  bottom: -10%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(36, 240, 199, 0.1) 0%, transparent 70%);
-  animation: pulse-glow 3s ease-in-out infinite;
+  background: radial-gradient(circle, 
+    rgba(36, 240, 199, 0.15) 0%, 
+    rgba(36, 240, 199, 0.05) 40%,
+    transparent 70%);
+  animation: pulse-glow-super 4s ease-in-out infinite;
 }
 
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.1); }
+.logo-g-center::after {
+  content: '';
+  position: absolute;
+  top: -5%;
+  left: -5%;
+  right: -5%;
+  bottom: -5%;
+  border-radius: 50%;
+  border: 2px solid rgba(36, 240, 199, 0.1);
+  animation: rotate-ring 20s linear infinite;
+}
+
+@keyframes pulse-glow-super {
+  0%, 100% { 
+    opacity: 0.4; 
+    transform: scale(1); 
+  }
+  50% { 
+    opacity: 0.8; 
+    transform: scale(1.15); 
+  }
+}
+
+@keyframes rotate-ring {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .logo-g-image {
@@ -143,18 +193,17 @@
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  filter: drop-shadow(0 0 20px rgba(36, 240, 199, 0.3));
+  filter: drop-shadow(0 0 40px rgba(36, 240, 199, 0.4));
+  transition: filter 0.3s ease;
 }
 
+.logo-g-center:hover .logo-g-image {
+  filter: drop-shadow(0 0 60px rgba(36, 240, 199, 0.6));
+}
+
+/* Hint text dihapus untuk tampilan yang lebih elegan */
 .logo-g-menu-hint {
-  position: absolute;
-  bottom: -24px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px;
-  color: var(--neural-text-soft);
-  opacity: 0.7;
-  white-space: nowrap;
+  display: none;
 }
 
 /* Neural Hub Container - Diperbesar dan Full Width */

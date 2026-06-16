@@ -272,12 +272,8 @@
         </div>
         <div class="actions" style="display:flex;align-items:center;gap:12px;flex:1;justify-content:center;">
           <!-- Smart Search di Topbar - INPUT PANJANG -->
-          <div class="topbar-search" id="topbar-search-container" style="position:relative;flex:1;max-width:400px;min-width:200px;">
-            <div class="topbar-search-input-wrapper" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:rgba(255,255,255,.08);border:2px solid rgba(141,247,223,.3);border-radius:12px;transition:all .2s ease;">
-              <span style="font-size:18px;">🔍</span>
-              <input type="text" id="topbar-search-input" placeholder="Cari barang, supplier, transaksi..." style="flex:1;border:none;background:transparent;color:var(--text);font-size:14px;outline:none;min-width:150px;" onfocus="if(window.initSmartSearch){window.initSmartSearch();}" onkeydown="if(event.key==='Enter'){var q=this.value.trim();if(q&&window.initSmartSearch){window.initSmartSearch();setTimeout(function(){var si=document.getElementById('smart-search-input');if(si){si.value=q;si.focus();}},300);}}">
-              <span style="font-size:11px;color:var(--soft-text);background:rgba(36,240,199,.15);padding:3px 8px;border-radius:6px;border:1px solid rgba(36,240,199,.3);">⌘K</span>
-            </div>
+          <div id="smart-search-container" style="position:relative;flex:1;max-width:400px;min-width:200px;">
+            <!-- Smart Search akan di-render ke sini oleh smart-search.js -->
           </div>
           <span id="role-label" class="muted">Admin</span>
           <button class="btn soft" id="super-login">Super Admin</button>

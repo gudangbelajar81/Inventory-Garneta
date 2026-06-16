@@ -203,11 +203,13 @@
   font-size: 13px;
 }
 
-/* Logo G Center */
+/* Logo G Center - SUPER BESAR memenuhi halaman */
 .logo-g-center {
   position: relative;
-  width: 180px;
-  height: 180px;
+  width: min(50vw, 50vh);
+  height: min(50vw, 50vh);
+  max-width: 500px;
+  max-height: 500px;
   display: flex;
   justify-content: center;
   align-items: center;

@@ -20,9 +20,9 @@
     const isSuperAdmin = window.isSuperAdmin ? window.isSuperAdmin() : false;
 
     dashboard.innerHTML = `
-      <div class="neural-dashboard neural-dashboard-minimal">
-        <!-- Logo G Center - SUPER BESAR dengan Animasi Keren -->
-        <div class="logo-g-center" id="logo-g-trigger" title="Klik untuk membuka menu">
+      <div class="neural-dashboard neural-dashboard-minimal" style="min-height:calc(100vh - 200px);padding:0;">
+        <!-- Logo G Center - SUPER BESAR memenuhi halaman -->
+        <div class="logo-g-center" id="logo-g-trigger" title="Klik untuk membuka menu" style="width:min(60vw,60vh);height:min(60vw,60vh);max-width:600px;max-height:600px;">
           <!-- Outer Ring -->
           <div class="logo-g-ring-outer"></div>
           <!-- Ripple Effect -->
@@ -35,23 +35,8 @@
           <img src="/assets/images/garneta-logo-g.svg" alt="Garneta G" class="logo-g-image">
         </div>
 
-        <!-- Smart Search Hub - Compact dengan Dropdown -->
-        <div class="smart-search-hub" id="smart-search-container">
-          <div class="smart-search-container" id="smart-search-trigger">
-            <div class="smart-search-input-wrapper">
-              <span class="smart-search-icon">🔍</span>
-              <input type="text" class="smart-search-input" placeholder="Cari barang, supplier, transaksi..." id="neural-search-input" autocomplete="off">
-              <span class="smart-search-shortcut">⌘K</span>
-            </div>
-          </div>
-          <!-- Search Results Dropdown -->
-          <div id="neural-search-dropdown" class="neural-search-dropdown hidden">
-            <div id="neural-search-results" class="neural-search-results"></div>
-          </div>
-        </div>
-
         <!-- Hint -->
-        <p class="dashboard-hint">Klik logo untuk membuka menu</p>
+        <p class="dashboard-hint" style="margin-top:32px;font-size:16px;">Klik logo untuk membuka menu</p>
       </div>
 
       <!-- Floating Menu Overlay -->

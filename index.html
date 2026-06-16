@@ -388,7 +388,15 @@
     }
 
     function neuralHub() {
-      const modules = [
+      // Modul untuk Admin (hanya 4)
+      const adminModules = [
+        { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
+        { id: "penjualan", name: "Penjualan", icon: "💵", desc: "Input transaksi", core: true },
+        { id: "supplier", name: "Supplier", icon: "🏭", desc: "Data supplier" }
+      ];
+      
+      // Modul untuk Super Admin (semua)
+      const superAdminModules = [
         { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
         { id: "penjualan", name: "Penjualan", icon: "💵", desc: "Input transaksi", core: true },
         { id: "pembelian", name: "Pembelian", icon: "🛒", desc: "Restock barang" },
@@ -400,6 +408,8 @@
         { id: "audit", name: "Audit Log", icon: "📋", desc: "Riwayat aktivitas" },
         { id: "settings", name: "Setting", icon: "⚙️", desc: "Pengaturan" }
       ];
+      
+      const modules = isSuperAdmin() ? superAdminModules : adminModules;
       
       const d = state.data.dashboard || {};
       
@@ -427,7 +437,15 @@
     }
 
     function dashboard() {
-      const modules = [
+      // Modul untuk Admin (hanya 4)
+      const adminModules = [
+        { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
+        { id: "penjualan", name: "Penjualan", icon: "💵", desc: "Input transaksi", core: true },
+        { id: "supplier", name: "Supplier", icon: "🏭", desc: "Data supplier" }
+      ];
+      
+      // Modul untuk Super Admin (semua)
+      const superAdminModules = [
         { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
         { id: "penjualan", name: "Penjualan", icon: "💵", desc: "Input transaksi", core: true },
         { id: "pembelian", name: "Pembelian", icon: "🛒", desc: "Restock barang" },
@@ -439,6 +457,8 @@
         { id: "audit", name: "Audit", icon: "📋", desc: "Riwayat aktivitas" },
         { id: "settings", name: "Setting", icon: "⚙️", desc: "Pengaturan" }
       ];
+      
+      const modules = isSuperAdmin() ? superAdminModules : adminModules;
       
       // Initialize Smart Search after DOM is ready and data is loaded
       setTimeout(function() {

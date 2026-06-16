@@ -203,159 +203,42 @@
   font-size: 13px;
 }
 
-/* Background Grid Pattern */
-.neural-dashboard::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    linear-gradient(rgba(36, 240, 199, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(36, 240, 199, 0.03) 1px, transparent 1px);
-  background-size: 50px 50px;
-  pointer-events: none;
-}
-
-/* Smart Search Hub - Diperkecil */
-.smart-search-hub {
-  width: 100%;
-  max-width: 400px;
-  margin-bottom: 16px;
-  position: relative;
-  z-index: 10;
-}
-
-.smart-search-container {
-  background: var(--neural-glass);
-  border: 1px solid var(--neural-glass-border);
-  border-radius: 12px;
-  padding: 10px 14px;
-  backdrop-filter: blur(20px);
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(36, 240, 199, 0.1);
-  transition: all 0.3s ease;
-}
-
-.smart-search-container:focus-within {
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    0 0 0 2px rgba(36, 240, 199, 0.3),
-    0 0 20px rgba(36, 240, 199, 0.1);
-}
-
-.smart-search-input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.smart-search-icon {
-  font-size: 16px;
-  color: var(--neural-cyan);
-  opacity: 0.8;
-}
-
-.smart-search-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--neural-text);
-  font-size: 14px;
-  outline: none;
-}
-
-.smart-search-input::placeholder {
-  color: var(--neural-text-soft);
-  font-size: 13px;
-}
-
-.smart-search-shortcut {
-  background: rgba(36, 240, 199, 0.1);
-  border: 1px solid rgba(36, 240, 199, 0.2);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 10px;
-  color: var(--neural-cyan);
-  font-family: monospace;
-}
-
-/* Logo G Center - SUPER KEREN dengan semua efek terbaik */
+/* Logo G Center */
 .logo-g-center {
   position: relative;
-  width: clamp(280px, 65vw, 600px);
-  height: clamp(280px, 65vw, 600px);
-  margin: 0 auto;
-  cursor: pointer;
+  width: 180px;
+  height: 180px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  transform-style: preserve-3d;
-  perspective: 1000px;
-}
-
-/* Layer 1: Aura Breathing Background */
-.logo-g-center::before {
-  content: '';
-  position: absolute;
-  top: -20%;
-  left: -20%;
-  right: -20%;
-  bottom: -20%;
+  align-items: center;
+  cursor: pointer;
+  z-index: 10;
   border-radius: 50%;
-  background: 
-    radial-gradient(circle at 30% 30%, rgba(36, 240, 199, 0.4) 0%, transparent 50%),
-    radial-gradient(circle at 70% 70%, rgba(255, 0, 255, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(36, 240, 199, 0.2) 0%, transparent 70%);
-  animation: aura-breath 3s ease-in-out infinite;
-  filter: blur(20px);
+  margin-bottom: 24px;
 }
 
-/* Layer 2: Rotating Ring */
-.logo-g-center::after {
-  content: '';
-  position: absolute;
-  top: -8%;
-  left: -8%;
-  right: -8%;
-  bottom: -8%;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  border-top-color: rgba(36, 240, 199, 0.6);
-  border-right-color: rgba(255, 0, 255, 0.4);
-  border-bottom-color: rgba(36, 240, 199, 0.3);
-  animation: rotate-ring 8s linear infinite;
-  box-shadow: 
-    0 0 30px rgba(36, 240, 199, 0.3),
-    inset 0 0 30px rgba(36, 240, 199, 0.1);
-}
-
-/* Layer 3: Second Counter-Rotating Ring */
+/* Layer 1: Outer Ring */
 .logo-g-ring-outer {
   position: absolute;
-  top: -15%;
-  left: -15%;
-  right: -15%;
-  bottom: -15%;
+  top: -10%;
+  left: -10%;
+  right: -10%;
+  bottom: -10%;
   border-radius: 50%;
-  border: 2px dashed rgba(36, 240, 199, 0.3);
-  animation: rotate-ring-reverse 15s linear infinite;
+  border: 1px dashed rgba(36, 240, 199, 0.4);
+  animation: rotate-ring 20s linear infinite;
   pointer-events: none;
 }
 
-/* Layer 4: Scan Line Effect */
+/* Layer 4: Scan Line */
 .logo-g-scanline {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(36, 240, 199, 0.8) 50%, 
-    transparent 100%);
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--neural-cyan);
+  box-shadow: 0 0 10px var(--neural-cyan), 0 0 20px var(--neural-cyan);
   animation: scan-line 3s ease-in-out infinite;
   opacity: 0.6;
   pointer-events: none;

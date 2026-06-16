@@ -110,9 +110,10 @@
     // Search products (Barang)
     if (data.products) {
       data.products.forEach(function(p) {
-        if ((p.name && p.name.toLowerCase().includes(lowerQuery)) ||
-            (p.category && p.category.toLowerCase().includes(lowerQuery)) ||
-            (p.barcode && p.barcode.toLowerCase().includes(lowerQuery))) {
+        const n = String(p.name || '').toLowerCase();
+        const c = String(p.category || '').toLowerCase();
+        const b = String(p.barcode || '').toLowerCase();
+        if (n.includes(lowerQuery) || c.includes(lowerQuery) || b.includes(lowerQuery)) {
           results.push({ type: 'barang', data: p });
         }
       });
@@ -121,8 +122,9 @@
     // Search suppliers
     if (data.suppliers) {
       data.suppliers.forEach(function(s) {
-        if ((s.name && s.name.toLowerCase().includes(lowerQuery)) ||
-            (s.phone && s.phone.toLowerCase().includes(lowerQuery))) {
+        const n = String(s.name || '').toLowerCase();
+        const ph = String(s.phone || '').toLowerCase();
+        if (n.includes(lowerQuery) || ph.includes(lowerQuery)) {
           results.push({ type: 'supplier', data: s });
         }
       });
@@ -241,7 +243,10 @@
     if (window.render) window.render();
     setTimeout(function() {
       const select = document.querySelector('select[name="productId"]');
-      if (select) select.value = productId;
+      if (select) {
+        select.value = productId;
+        select.dispatchEvent(new Event('change'));
+      }
     }, 100);
   };
 

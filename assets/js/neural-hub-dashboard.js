@@ -36,7 +36,7 @@ r/**
         </div>
 
         <!-- Smart Search Hub - Compact dengan Dropdown -->
-        <div class="smart-search-hub">
+        <div class="smart-search-hub" id="smart-search-container">
           <div class="smart-search-container" id="smart-search-trigger">
             <div class="smart-search-input-wrapper">
               <span class="smart-search-icon">🔍</span>
@@ -133,29 +133,28 @@ r/**
       }
     });
 
-    // Search input - Connect to existing Smart Search
+    // Initialize Smart Search automatically if available
+    if (window.initSmartSearch) {
+      setTimeout(() => {
+        window.initSmartSearch();
+      }, 100);
+    }
+
+    // Search input - Connect to existing Smart Search (Fallback)
     const searchInput = document.getElementById('neural-search-input');
     const searchContainer = document.getElementById('smart-search-trigger');
     
     if (searchContainer) {
       searchContainer.addEventListener('click', () => {
-        // Focus on the actual Smart Search input if it exists
-        const smartSearchInput = document.getElementById('smart-search-input');
-        if (smartSearchInput) {
-          smartSearchInput.focus();
-          smartSearchInput.select();
-        } else {
-          // If Smart Search not initialized, initialize it
-          if (window.initSmartSearch) {
-            window.initSmartSearch();
-            setTimeout(() => {
-              const newSearchInput = document.getElementById('smart-search-input');
-              if (newSearchInput) {
-                newSearchInput.focus();
-                newSearchInput.select();
-              }
-            }, 300);
-          }
+        if (window.initSmartSearch) {
+          window.initSmartSearch();
+          setTimeout(() => {
+            const newSearchInput = document.getElementById('smart-search-input');
+            if (newSearchInput) {
+              newSearchInput.focus();
+              newSearchInput.select();
+            }
+          }, 300);
         }
       });
     }
@@ -164,27 +163,22 @@ r/**
       searchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           const query = searchInput.value.trim();
-          if (query) {
-            // Try to use existing Smart Search
-            if (window.initSmartSearch) {
-              window.initSmartSearch();
-              setTimeout(() => {
-                const smartSearchInput = document.getElementById('smart-search-input');
-                if (smartSearchInput) {
-                  smartSearchInput.value = query;
-                  smartSearchInput.focus();
-                  // Trigger search
-                  if (typeof performSearch === 'function') {
-                    performSearch(query);
-                  }
+          if (query && window.initSmartSearch) {
+            window.initSmartSearch();
+            setTimeout(() => {
+              const smartSearchInput = document.getElementById('smart-search-input');
+              if (smartSearchInput) {
+                smartSearchInput.value = query;
+                smartSearchInput.focus();
+                if (typeof performSearch === 'function') {
+                  performSearch(query);
                 }
-              }, 300);
-            }
+              }
+            }, 300);
           }
         }
       });
       
-      // Also trigger on click
       searchInput.addEventListener('click', () => {
         if (window.initSmartSearch) {
           window.initSmartSearch();

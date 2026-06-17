@@ -320,7 +320,7 @@ async function listRows(collection) {
 
   if (collection === "products") {
     const [rows] = await db.query(`
-      SELECT id, supplier_id, category, name, unit, unit_content, base_price, cost_price, sale_price, stock, barcode
+      SELECT id, supplier_id, category, name, unit, unit_content, base_price, base_price_ecer, cost_price, sale_price, stock, barcode
       FROM products
       ORDER BY id DESC
     `);
@@ -392,8 +392,8 @@ async function addRow(collection, item = {}) {
   if (collection === "products") {
     const payload = productPayload(item);
     const [result] = await db.query(`
-      INSERT INTO products (supplier_id, category, name, unit, unit_content, base_price, sale_price, stock, barcode)
-      VALUES (:supplierId, :category, :name, :unit, :unitContent, :basePrice, :salePrice, :stock, :barcode)
+      INSERT INTO products (supplier_id, category, name, unit, unit_content, base_price, base_price_ecer, sale_price, stock, barcode)
+      VALUES (:supplierId, :category, :name, :unit, :unitContent, :basePrice, :basePriceEcer, :salePrice, :stock, :barcode)
     `, payload);
     await recordPriceHistory(result.insertId, "barang");
     await recordAudit(`Tambah barang: ${payload.name}`);
@@ -451,8 +451,8 @@ async function updateRow(collection, id, item = {}) {
     await db.query(`
       UPDATE products
       SET supplier_id = :supplierId, category = :category, name = :name, unit = :unit,
-          unit_content = :unitContent, base_price = :basePrice, sale_price = :salePrice,
-          stock = :stock, barcode = :barcode
+          unit_content = :unitContent, base_price = :basePrice, base_price_ecer = :basePriceEcer,
+          sale_price = :salePrice, stock = :stock, barcode = :barcode
       WHERE id = :id
     `, payload);
     if (Number(before.basePrice) !== Number(payload.basePrice)) await recordPriceHistory(id, "barang");
@@ -620,6 +620,7 @@ function productPayload(item) {
     unit: item.unit || "pcs",
     unitContent: Math.max(number(item.unitContent), 1),
     basePrice: number(item.basePrice),
+    basePriceEcer: number(item.basePriceEcer),
     salePrice: number(item.salePrice),
     stock: number(item.stock),
     barcode: item.barcode || null
@@ -682,6 +683,7 @@ function mapProduct(row) {
     unit: row.unit,
     unitContent: Number(row.unit_content || 1),
     basePrice: Number(row.base_price || 0),
+    basePriceEcer: Number(row.base_price_ecer || 0),
     costPrice: Number(row.cost_price || 0),
     salePrice: Number(row.sale_price || 0),
     stock: Number(row.stock || 0),

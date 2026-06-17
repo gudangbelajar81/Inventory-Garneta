@@ -33,6 +33,7 @@ CREATE TABLE products (
   unit ENUM('sak', 'karton/dus', 'jligen', 'kg', 'liter', 'pcs') NOT NULL DEFAULT 'pcs',
   unit_content DECIMAL(14,2) NOT NULL DEFAULT 1,
   base_price DECIMAL(14,2) NOT NULL DEFAULT 0,
+  base_price_ecer DECIMAL(14,2) NOT NULL DEFAULT 0,
   cost_price DECIMAL(14,2) GENERATED ALWAYS AS (
     CASE
       WHEN unit_content > 0 THEN base_price / unit_content

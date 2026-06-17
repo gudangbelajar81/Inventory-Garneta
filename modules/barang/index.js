@@ -7,6 +7,7 @@ const unitOptions = ["sak", "karton/dus", "jligen", "kg", "liter", "pcs"];
 
 export async function render() {
   const products = await list("products");
+  const categories = [...new Set(products.map(p => p.category))].sort();
 
   return `
     <section class="space-y-5">
@@ -17,13 +18,13 @@ export async function render() {
         </div>
         ${can("manage_products") ? `<button id="toggle-product-form" class="btn-gradient rounded-md px-4 py-2 text-sm font-semibold">Tambah Barang</button>` : ""}
       </div>
-      ${can("manage_products") ? productForm() : ""}
+      ${can("manage_products") ? productForm(categories) : ""}
       ${table([
         { key: "category", label: "Kategori" },
         { key: "name", label: "Nama" },
-        { key: "unit", label: "Unit" },
+        { key: "basePrice", label: "Harga Dasar Grosir", render: (row) => can("view_cost_price") ? `${formatCurrency(row.basePrice)}/${row.unit}` : "-" },
+        { key: "basePriceEcer", label: "Harga Dasar Ecer", render: (row) => can("view_cost_price") ? formatCurrency(row.basePriceEcer) : "-" },
         { key: "unitContent", label: "Isi/Unit", render: (row) => row.unitContent ?? 1 },
-        { key: "basePrice", label: "Harga Dasar", render: (row) => can("view_cost_price") ? formatCurrency(row.basePrice ?? 0) : "-" },
         { key: "stock", label: "Stok" },
         { key: "costPrice", label: "HPP", render: (row) => can("view_cost_price") ? formatCurrency(row.costPrice) : "-" },
         { key: "salePrice", label: "Harga Jual", render: (row) => formatCurrency(row.salePrice) },
@@ -39,34 +40,46 @@ export async function render() {
   `;
 }
 
-function productForm() {
+function productForm(categories = []) {
+  const categoryTagsHtml = categories.map(cat => `
+    <button type="button" class="category-tag rounded-full border-2 border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-700 hover:border-slate-400" data-category="${cat}">
+      ${cat}
+    </button>
+  `).join("");
+
   return `
     <form id="product-form" class="soft-panel hidden p-4">
       <input type="hidden" name="id" />
       <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 id="product-form-title" class="font-bold">Tambah Barang</h3>
-          <p class="text-sm text-slate-500">HPP otomatis dari harga dasar dibagi isi/unit.</p>
+          <p class="text-sm text-slate-500">HPP otomatis dari harga dasar grosir dibagi isi/unit.</p>
         </div>
       </div>
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <label class="block">
+        <label class="block md:col-span-2 xl:col-span-4">
           <span class="text-sm font-semibold">Kategori Barang</span>
-          <input name="category" class="input-field mt-1" placeholder="Contoh: Beras" required />
+          <div class="mt-2 flex flex-wrap gap-2" id="category-tags">
+            ${categoryTagsHtml}
+          </div>
+          <input name="category" class="input-field mt-2" placeholder="Ketik kategori baru..." />
         </label>
-        <label class="block">
+        <label class="block md:col-span-2">
           <span class="text-sm font-semibold">Nama Barang</span>
           <input name="name" class="input-field mt-1" placeholder="Contoh: Beras Premium" required />
         </label>
         <label class="block">
-          <span class="text-sm font-semibold">Unit</span>
-          <select name="unit" class="input-field mt-1" required>
-            ${unitOptions.map((unit) => `<option value="${unit}">${unit}</option>`).join("")}
-          </select>
+          <span class="text-sm font-semibold">Harga Dasar Grosir</span>
+          <div class="flex gap-2">
+            <input name="basePrice" class="input-field mt-1 flex-1" type="number" min="0" step="1" value="0" required placeholder="350000" />
+            <select name="unit" class="input-field mt-1" required>
+              ${unitOptions.map((unit) => `<option value="${unit}">${unit}</option>`).join("")}
+            </select>
+          </div>
         </label>
         <label class="block">
-          <span class="text-sm font-semibold">Harga Dasar</span>
-          <input name="basePrice" class="input-field mt-1" type="number" min="0" step="1" value="0" required />
+          <span class="text-sm font-semibold">Harga Dasar Ecer</span>
+          <input name="basePriceEcer" class="input-field mt-1" type="number" min="0" step="1" value="0" required />
         </label>
         <label class="block">
           <span class="text-sm font-semibold">Unit Isi</span>
@@ -75,10 +88,6 @@ function productForm() {
         <label class="block">
           <span class="text-sm font-semibold">Stok</span>
           <input name="stock" class="input-field mt-1" type="number" min="0" step="0.01" value="0" required />
-        </label>
-        <label class="block">
-          <span class="text-sm font-semibold">Stok Minimum</span>
-          <input name="minStock" class="input-field mt-1" type="number" min="0" step="0.01" value="10" required />
         </label>
         <label class="block">
           <span class="text-sm font-semibold">HPP Otomatis</span>
@@ -102,6 +111,7 @@ export async function afterRender() {
   const form = document.querySelector("#product-form");
   const title = document.querySelector("#product-form-title");
   const saveButton = document.querySelector("#save-product-button");
+  const categoryInput = form?.elements.category;
 
   const resetForm = () => {
     form?.reset();
@@ -109,6 +119,7 @@ export async function afterRender() {
     if (title) title.textContent = "Tambah Barang";
     if (saveButton) saveButton.textContent = "Simpan Barang";
     updateCostPrice();
+    if (categoryInput) categoryInput.value = "";
   };
 
   document.querySelector("#toggle-product-form")?.addEventListener("click", () => {
@@ -119,6 +130,31 @@ export async function afterRender() {
   document.querySelector("#cancel-product-form")?.addEventListener("click", () => {
     resetForm();
     form?.classList.add("hidden");
+  });
+
+  // Category tag selection
+  form?.querySelectorAll(".category-tag").forEach((tag) => {
+    tag.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (categoryInput) categoryInput.value = tag.dataset.category;
+    });
+  });
+
+  // Auto-add new categories to tag list
+  categoryInput?.addEventListener("change", () => {
+    const val = categoryInput.value.trim();
+    if (val && !form.querySelector(`[data-category="${val}"]`)) {
+      const newTag = document.createElement("button");
+      newTag.type = "button";
+      newTag.className = "category-tag rounded-full border-2 border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-700 hover:border-slate-400";
+      newTag.dataset.category = val;
+      newTag.textContent = val;
+      newTag.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (categoryInput) categoryInput.value = val;
+      });
+      document.getElementById("category-tags")?.appendChild(newTag);
+    }
   });
 
   const basePriceInput = form?.elements.basePrice;
@@ -143,9 +179,9 @@ export async function afterRender() {
       form.elements.name.value = product.name ?? "";
       form.elements.unit.value = product.unit ?? "sak";
       form.elements.basePrice.value = product.basePrice ?? 0;
+      form.elements.basePriceEcer.value = product.basePriceEcer ?? 0;
       form.elements.unitContent.value = product.unitContent ?? 1;
       form.elements.stock.value = product.stock ?? 0;
-      form.elements.minStock.value = product.minStock ?? 0;
       form.elements.salePrice.value = product.salePrice ?? 0;
       updateCostPrice();
 
@@ -178,8 +214,8 @@ export async function afterRender() {
       unit: formData.get("unit"),
       unitContent,
       basePrice,
+      basePriceEcer: Number(formData.get("basePriceEcer")),
       stock: Number(formData.get("stock")),
-      minStock: Number(formData.get("minStock")),
       costPrice: Math.round(basePrice / unitContent),
       salePrice: Number(formData.get("salePrice"))
     };

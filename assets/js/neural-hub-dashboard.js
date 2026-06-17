@@ -37,6 +37,15 @@
 
         <!-- Hint -->
         <p class="dashboard-hint" style="margin-top:32px;font-size:16px;">Klik logo untuk membuka menu</p>
+
+        <!-- Animation Controls -->
+        <div class="logo-animation-controls" id="animation-controls">
+          <button class="anim-button active" data-anim="glow">✨ Glow</button>
+          <button class="anim-button" data-anim="rotate">🔄 Rotate</button>
+          <button class="anim-button" data-anim="pulse">💫 Pulse</button>
+          <button class="anim-button" data-anim="glitch">⚡ Glitch</button>
+          <button class="anim-button" data-anim="rainbow">🌈 Rainbow</button>
+        </div>
       </div>
 
       <!-- Floating Menu Overlay -->
@@ -67,7 +76,22 @@
     return window.state && window.state.role === "Super Admin";
   }
 
-  // Get menu items based on role
+  // Animation state
+  const animationState = {
+    current: localStorage.getItem('logoAnimation') || 'glow',
+    autoPlay: true,
+    autoPlayTimer: null
+  };
+
+  // Logo animation presets
+  const animationPresets = {
+    glow: { name: '✨ Glow', class: 'anim-glow' },
+    rotate: { name: '🔄 Rotate', class: 'anim-rotate' },
+    pulse: { name: '💫 Pulse', class: 'anim-pulse' },
+    glitch: { name: '⚡ Glitch', class: 'anim-glitch' },
+    rainbow: { name: '🌈 Rainbow', class: 'anim-rainbow' }
+  };
+
   function getMenuItems() {
     const adminItems = [
       { id: 'barang', icon: '📦', label: 'Barang' },
@@ -89,6 +113,25 @@
     ];
 
     return isSuperAdmin() ? superAdminItems : adminItems;
+  }
+
+  function setLogoAnimation(preset) {
+    animationState.current = preset;
+    localStorage.setItem('logoAnimation', preset);
+    const logoG = document.getElementById('logo-g-trigger');
+    if (logoG) {
+      Object.values(animationPresets).forEach(anim => {
+        logoG.classList.remove(anim.class);
+      });
+      logoG.classList.add(animationPresets[preset].class);
+    }
+  }
+
+  function rotateLogoAnimation() {
+    const presets = Object.keys(animationPresets);
+    const currentIndex = presets.indexOf(animationState.current);
+    const nextIndex = (currentIndex + 1) % presets.length;
+    setLogoAnimation(presets[nextIndex]);
   }
 
   // Render menu items based on role
@@ -113,6 +156,9 @@
     
     // Initialize search
     initSearch();
+
+    // Initialize animation controls
+    initAnimationControls();
 
     // Logo G click - toggle menu
     const logoG = document.getElementById('logo-g-trigger');
@@ -500,11 +546,46 @@
     });
   }
 
+  // Initialize animation controls
+  function initAnimationControls() {
+    const controls = document.getElementById('animation-controls');
+    if (!controls) return;
+
+    // Set initial animation
+    setLogoAnimation(animationState.current);
+    updateAnimationButtons();
+
+    // Add click handlers to all animation buttons
+    controls.querySelectorAll('.anim-button').forEach(button => {
+      button.addEventListener('click', () => {
+        const preset = button.dataset.anim;
+        setLogoAnimation(preset);
+        updateAnimationButtons();
+      });
+    });
+  }
+
+  // Update animation button UI
+  function updateAnimationButtons() {
+    const controls = document.getElementById('animation-controls');
+    if (!controls) return;
+
+    controls.querySelectorAll('.anim-button').forEach(button => {
+      if (button.dataset.anim === animationState.current) {
+        button.classList.add('active');
+      } else {
+        button.classList.remove('active');
+      }
+    });
+  }
+
   // Expose functions globally
   window.NeuralHub = {
     init: initNeuralHub,
     toggleMenu: toggleMenu,
-    refresh: createNeuralDashboard
+    refresh: createNeuralDashboard,
+    setLogoAnimation: setLogoAnimation,
+    rotateLogoAnimation: rotateLogoAnimation
   };
 
   // Auto-initialize if container exists

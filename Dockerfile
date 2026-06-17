@@ -14,5 +14,5 @@ COPY . .
 # Expose port
 EXPOSE 3000
 
-# Start command
-CMD ["npm", "start"]
+# Run migrations and start server
+CMD ["sh", "-c", "node migrate.js && node scripts/add-base-price-ecer.js && node server.js"]

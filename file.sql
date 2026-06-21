@@ -222,7 +222,7 @@ FROM sales
 GROUP BY YEAR(sold_at), MONTH(sold_at);
 
 INSERT INTO users (name, email, password_hash, role, status) VALUES
-('Admin Gudang', 'admin@example.com', '$2y$10$replace_with_real_hash', 'Super Admin', 'Aktif'),
+('GARNETA', 'admin@example.com', '434d7b43e3cedb166831327a19a909364370d9d78933788d30e81583f901d6a0', 'Super Admin', 'Aktif'),
 ('Kasir Toko', 'kasir@example.com', '$2y$10$replace_with_real_hash', 'Employee', 'Aktif');
 
 INSERT INTO suppliers (name, phone, notes) VALUES

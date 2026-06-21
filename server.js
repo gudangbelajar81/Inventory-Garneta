@@ -129,7 +129,13 @@ app.post("/api", async (req, res) => {
     const { action, payload = {} } = req.body || {};
     if (!action) throw new Error("Action wajib dikirim.");
 
-    if (action !== "login" && action !== "verifySuperAdmin") {
+    const isPublic = 
+      action === "login" || 
+      action === "verifySuperAdmin" || 
+      action === "bootstrap" || 
+      (action === "add" && payload.collection === "sales");
+
+    if (!isPublic) {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
         throw new Error("Akses ditolak: Token JWT tidak ditemukan. Silakan login kembali.");

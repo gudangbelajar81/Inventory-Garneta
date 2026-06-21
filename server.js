@@ -4,6 +4,8 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET || "rahasia-negara-rt31";
 const { databaseConfig } = require("./config/database");
 const logger = require("./config/logger");
 const errorHandler = require("./middleware/errorHandler");
@@ -126,6 +128,19 @@ app.post("/api", async (req, res) => {
   try {
     const { action, payload = {} } = req.body || {};
     if (!action) throw new Error("Action wajib dikirim.");
+
+    if (action !== "login" && action !== "verifySuperAdmin") {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        throw new Error("Akses ditolak: Token JWT tidak ditemukan. Silakan login kembali.");
+      }
+      const token = authHeader.split(" ")[1];
+      try {
+        jwt.verify(token, JWT_SECRET);
+      } catch (err) {
+        throw new Error("Akses ditolak: Token JWT tidak valid atau sudah kadaluarsa. Silakan login kembali.");
+      }
+    }
 
     const data = await handleAction(action, payload);
     res.json({ ok: true, data });
@@ -410,10 +425,25 @@ async function addRow(collection, item = {}) {
   }
 
   if (collection === "purchases") {
+    const payload = purchasePayload(item);
     const [result] = await db.query(`
       INSERT INTO purchases (supplier_id, user_id, invoice_number, purchased_at, total)
       VALUES (:supplierId, :userId, :invoice, :date, :total)
-    `, purchasePayload(item));
+    `, payload);
+    
+    if (payload.productId && payload.qty > 0) {
+      await db.query(`
+        INSERT INTO purchase_details (purchase_id, product_id, quantity, unit_price)
+        VALUES (?, ?, ?, ?)
+      `, [result.insertId, payload.productId, payload.qty, payload.amount]);
+      
+      await db.query(`
+        UPDATE products 
+        SET stock = stock + ? 
+        WHERE id = ?
+      `, [payload.qty, payload.productId]);
+    }
+    
     await recordAudit(`Tambah pembelian: ${item.invoice || item.product || "tanpa nomor nota"}`);
     return findRow("purchases", result.insertId);
   }
@@ -424,6 +454,14 @@ async function addRow(collection, item = {}) {
       INSERT INTO sales (user_id, product_id, sold_at, unit_sold, unit_content, cost_price, sale_price, notes)
       VALUES (:userId, :productId, :date, :unitSold, :unitContent, :costPrice, :salePrice, :notes)
     `, payload);
+    
+    const quantitySold = payload.unitSold * payload.unitContent;
+    await db.query(`
+      UPDATE products 
+      SET stock = stock - ? 
+      WHERE id = ?
+    `, [quantitySold, payload.productId]);
+
     await recordAudit(`Tambah penjualan produk ID ${payload.productId}`);
     return findRow("sales", result.insertId);
   }
@@ -436,6 +474,23 @@ async function addRow(collection, item = {}) {
     `, userPayload(item, true));
     await recordAudit(`Tambah akun Super Admin: ${item.name || "-"}`);
     return findRow("users", result.insertId);
+  }
+
+  if (collection === "repacking") {
+    const payload = await repackingPayload(item);
+    const [result] = await db.query(`
+      INSERT INTO repacking (source_product_id, target_product_id, gross_weight, shrinkage, base_price)
+      VALUES (:sourceProductId, :targetProductId, :grossWeight, :shrinkage, :basePrice)
+    `, payload);
+    
+    // Deduct from source product
+    await db.query(`UPDATE products SET stock = stock - ? WHERE id = ?`, [payload.grossWeight, payload.sourceProductId]);
+    // Add to target product
+    await db.query(`UPDATE products SET stock = stock + ? WHERE id = ?`, [payload.netWeight, payload.targetProductId]);
+
+    await recordAudit(`Repacking dari produk ID ${payload.sourceProductId} ke ID ${payload.targetProductId}`);
+    // return simple object since repacking isn't in listRows by default
+    return { id: result.insertId, ...payload };
   }
 
   throw new Error("Collection belum dibuat handler tambah.");
@@ -535,7 +590,8 @@ async function verifySuperAdmin(adminId, password) {
   if (!user || user.status !== "Aktif" || user.password_hash !== hashPassword(password)) {
     throw new Error("Password Super Admin salah.");
   }
-  return { id: user.id, name: user.name, role: user.role };
+  const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+  return { id: user.id, name: user.name, role: user.role, token: token };
 }
 
 async function loginUser(name, password) {
@@ -553,12 +609,15 @@ async function loginUser(name, password) {
     throw new Error("Nama atau password Super Admin salah.");
   }
 
+  const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     role: displayRole(user.role),
-    status: user.status
+    status: user.status,
+    token: token
   };
 }
 
@@ -644,7 +703,10 @@ function purchasePayload(item) {
     userId: nullableNumber(item.userId) || 1,
     invoice: item.invoice || null,
     date: item.date || new Date(),
-    total: number(item.total) || qty * amount
+    total: number(item.total) || qty * amount,
+    productId: item.productId ? nullableNumber(item.productId) : null,
+    qty: qty,
+    amount: amount
   };
 }
 
@@ -671,6 +733,25 @@ function userPayload(item, requirePassword) {
     passwordHash: password ? hashPassword(password) : null,
     role: "Super Admin",
     status: item.status || "Aktif"
+  };
+}
+
+async function repackingPayload(item) {
+  const sourceProduct = await findRow("products", item.sourceProductId);
+  const grossWeight = number(item.grossWeight);
+  const shrinkage = number(item.shrinkage);
+  const netWeight = grossWeight - shrinkage;
+  if (grossWeight <= 0) throw new Error("Berat kotor harus lebih dari 0.");
+  if (netWeight <= 0) throw new Error("Penyusutan tidak boleh melebihi berat kotor.");
+  if (Number(sourceProduct.stock) < grossWeight) throw new Error("Stok produk sumber tidak mencukupi untuk repacking.");
+
+  return {
+    sourceProductId: required(item.sourceProductId, "Produk Sumber"),
+    targetProductId: required(item.targetProductId, "Produk Target"),
+    grossWeight: grossWeight,
+    shrinkage: shrinkage,
+    netWeight: netWeight,
+    basePrice: Number(sourceProduct.costPrice) * grossWeight
   };
 }
 

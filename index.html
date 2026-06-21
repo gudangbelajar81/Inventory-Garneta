@@ -340,10 +340,14 @@
 
     async function gas(action, payload = {}) {
       let response;
+      let headers = { "Content-Type": "application/json" };
+      const token = localStorage.getItem("jwt_token");
+      if (token) headers["Authorization"] = "Bearer " + token;
+
       try {
         response = await fetch(API_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: headers,
           body: JSON.stringify({ action, payload })
         });
       } catch (error) {
@@ -354,7 +358,18 @@
       const result = text ? JSON.parse(text) : null;
 
       if (!response.ok) {
+        if (response.status === 400 && result?.message && result.message.includes("Akses ditolak")) {
+           localStorage.removeItem("jwt_token");
+           alert(result.message);
+           window.location.reload();
+        }
         throw new Error(result?.message || result?.error || `API ${response.status}`);
+      }
+
+      if (action === "login" || action === "verifySuperAdmin") {
+          if (result?.data?.token) {
+              localStorage.setItem("jwt_token", result.data.token);
+          }
       }
 
       return result?.data !== undefined ? result.data : result;
@@ -395,12 +410,13 @@
     }
 
     function neuralHub() {
-      // Modul untuk Admin (hanya 4)
-      const adminModules = [
-        { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
-        { id: "penjualan", name: "Penjualan", icon: "💵", desc: "Input transaksi", core: true },
-        { id: "supplier", name: "Supplier", icon: "🏭", desc: "Data supplier" }
-      ];
+    // Modul untuk Admin (hanya 4 + pembelian)
+    const adminModules = [
+      { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
+      { id: "penjualan", name: "Penjualan", icon: "💵", desc: "Input transaksi", core: true },
+      { id: "supplier", name: "Supplier", icon: "🏭", desc: "Data supplier" },
+      { id: "pembelian", name: "Pembelian", icon: "🛒", desc: "Restock barang" }
+    ];
       
       // Modul untuk Super Admin (semua)
       const superAdminModules = [
@@ -675,6 +691,7 @@
       const workspaces = [
         { id: 'search', icon: '🔍', label: 'Cari' },
         { id: 'form', icon: '➕', label: 'Form' },
+        { id: 'wa', icon: '📱', label: 'Paste WA' },
         { id: 'list', icon: '📋', label: 'Daftar' }
       ];
       
@@ -709,6 +726,25 @@
             <div class="card">
               <h3>📝 Form Pembelian</h3>
               ${purchaseForm()}
+            </div>
+          </div>`;
+          break;
+        case 'wa':
+          workspaceContent = `<div class="workspace-content">
+            <div class="card">
+              <h3>📱 Paste dari WhatsApp</h3>
+              <label>Daftar Pembelian dari WA
+                <textarea id="pembelian-wa-text" class="input-area expandable" placeholder="Format: NamaBarang Qty Harga
+Contoh:
+Beras Premium 5 250000
+Gula Pasir 2 24000
+Minyak Goreng 3 45000"></textarea>
+              </label>
+              <div class="actions">
+                <button class="btn soft" id="parse-pembelian-wa">Proses Paste WA</button>
+                <button class="btn danger" id="clear-pembelian-wa">Kosongkan</button>
+              </div>
+              <div id="pembelian-wa-preview" style="margin-top:16px;"></div>
             </div>
           </div>`;
           break;
@@ -1261,7 +1297,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
     function purchaseForm() {
       return `<form data-form="purchases" class="grid forms">
-        ${hiddenId()}${input("date", "Tanggal", true, "date", today())}${input("supplier", "Supplier")}${input("product", "Barang")}${input("qty", "Banyak Belanja", true, "number")}${input("amount", "Harga Dasar", true, "number")}${input("notes", "Catatan")}${formButtons()}
+        ${hiddenId()}${input("date", "Tanggal", true, "date", today())}${input("supplier", "Supplier")}${input("product", "Barang")}${input("qty", "Banyak Belanja", true, "number")}${input("amount", "Harga Dasar", true, "number")}${input("basePriceEcer", "Harga Dasar Ecer", false, "number")}${input("notes", "Catatan")}${formButtons()}
       </form>`;
     }
 
@@ -1601,11 +1637,12 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return state.role === "Super Admin";
     }
 
-    // Menu untuk Admin (hanya 4 menu)
+    // Menu untuk Admin (5 menu termasuk Pembelian)
     const adminMenus = [
       ["dashboard", "🏠 Dashboard"],
       ["barang", "📦 Barang"],
       ["supplier", "🏭 Supplier"],
+      ["pembelian", "🛒 Pembelian"],
       ["penjualan", "💵 Penjualan"]
     ];
     
@@ -1665,6 +1702,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       });
 
       bindProductTools();
+      bindPembelianTools();
       bindShoppingTools();
       bindInvoiceAiTools();
       bindSettingsTools();
@@ -2467,6 +2505,42 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       el("close-invoice-camera")?.classList.add("hidden");
     }
 
+    function bindPembelianTools() {
+      // Parse WA text for Pembelian
+      el("parse-pembelian-wa")?.addEventListener("click", () => {
+        const text = el("pembelian-wa-text")?.value || "";
+        const rows = parsePembelianWAText(text);
+        if (!rows.length) {
+          alert("Tidak ada data yang bisa diproses. Pastikan format: NamaBarang Qty Harga");
+          return;
+        }
+        el("pembelian-wa-preview").innerHTML = renderPembelianWAPreview(rows);
+        
+        // Bind delete buttons
+        document.querySelectorAll(".delete-wa-item").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.dataset.id;
+            const currentRows = collectPembelianWAData().filter(r => String(r.id) !== String(id));
+            el("pembelian-wa-preview").innerHTML = renderPembelianWAPreview(currentRows);
+          });
+        });
+        
+        // Bind save button
+        el("save-pembelian-wa")?.addEventListener("click", savePembelianWA);
+        
+        // Bind clear preview button
+        el("clear-pembelian-wa-preview")?.addEventListener("click", () => {
+          el("pembelian-wa-preview").innerHTML = '<p class="muted">Preview dikosongkan.</p>';
+        });
+      });
+      
+      // Clear WA text
+      el("clear-pembelian-wa")?.addEventListener("click", () => {
+        el("pembelian-wa-text").value = "";
+        el("pembelian-wa-preview").innerHTML = '<p class="muted">Preview dikosongkan.</p>';
+      });
+    }
+
     function bindProductTools() {
       el("parse-products-wa")?.addEventListener("click", async () => {
         try {
@@ -2512,6 +2586,152 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
       el("start-product-scanner")?.addEventListener("click", startScanner);
       el("stop-product-scanner")?.addEventListener("click", stopScanner);
+    }
+
+    // Parse text from WA for Pembelian (format: NamaBarang Qty Harga)
+    function parsePembelianWAText(text) {
+      return String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
+        // Format: NamaBarang Qty Harga (e.g., "Beras Premium 5 250000")
+        const parts = line.split(/\s+/);
+        if (parts.length < 3) return null;
+        
+        // Last part is price, second last is qty, rest is name
+        const harga = plainNumber(parts.pop());
+        const qty = plainNumber(parts.pop());
+        const nama = parts.join(" ");
+        
+        if (!nama || !qty || !harga) return null;
+        
+        // Find existing product
+        const product = findProduct(nama);
+        
+        return {
+          id: Date.now() + Math.random(),
+          name: nama,
+          qty: qty,
+          amount: harga,
+          basePriceEcer: product ? Math.round(harga / qty) : 0, // Calculate ecer price
+          productId: product?.id || null,
+          existingProduct: !!product
+        };
+      }).filter(Boolean);
+    }
+
+    // Render preview table for WA paste
+    function renderPembelianWAPreview(rows) {
+      if (!rows.length) return '<p class="muted">Belum ada data. Paste dari WA dan klik Proses.</p>';
+      
+      return `<div class="table-wrap"><table>
+        <thead><tr><th>Nama Barang</th><th>Qty</th><th>Harga Total</th><th>Harga Ecer</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody>${rows.map((row) => `
+          <tr data-wa-id="${row.id}">
+            <td><input data-wa-field="name" value="${escapeAttr(row.name)}" style="width:100%"></td>
+            <td><input data-wa-field="qty" type="number" value="${row.qty}" style="width:60px"></td>
+            <td><input data-wa-field="amount" type="number" value="${row.amount}" style="width:100px"></td>
+            <td><input data-wa-field="basePriceEcer" type="number" value="${row.basePriceEcer}" style="width:100px"></td>
+            <td>${row.existingProduct ? '<span class="api-badge ok">Update</span>' : '<span class="api-badge warn">Baru</span>'}</td>
+            <td><button class="btn danger delete-wa-item" data-id="${row.id}" type="button">Hapus</button></td>
+          </tr>
+        `).join("")}</tbody>
+      </table></div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary" id="save-pembelian-wa">Simpan & Update Harga</button>
+        <button class="btn soft" id="clear-pembelian-wa-preview">Kosongkan</button>
+      </div>
+      <p class="muted">Barang yang sudah ada akan update harga dasar dan harga ecer. Barang baru akan ditambahkan ke database.</p>`;
+    }
+
+    // Collect data from WA preview table
+    function collectPembelianWAData() {
+      const rows = [];
+      document.querySelectorAll("tr[data-wa-id]").forEach((tr) => {
+        const row = { id: tr.dataset.waId };
+        tr.querySelectorAll("[data-wa-field]").forEach((input) => {
+          row[input.dataset.waField] = input.type === "number" ? plainNumber(input.value) : input.value;
+        });
+        rows.push(row);
+      });
+      return rows;
+    }
+
+    // Save WA data to products and purchases
+    async function savePembelianWA() {
+      try {
+        const rows = collectPembelianWAData();
+        if (!rows.length) throw new Error("Tidak ada data untuk disimpan.");
+        
+        let total = 0;
+        let updated = 0;
+        let added = 0;
+        
+        for (const row of rows) {
+          total += Number(row.amount || 0);
+          const existing = findProduct(row.name);
+          
+          if (existing) {
+            // Update existing product
+            await gas("update", { 
+              collection: "products", 
+              id: existing.id, 
+              item: { 
+                ...existing, 
+                basePrice: Number(row.amount || 0),
+                basePriceEcer: Number(row.basePriceEcer || 0)
+              } 
+            });
+            updated++;
+          } else {
+            // Add new product
+            await gas("add", { 
+              collection: "products", 
+              item: {
+                name: row.name,
+                category: "Umum",
+                unit: "pcs",
+                unitContent: 1,
+                basePrice: Number(row.amount || 0),
+                basePriceEcer: Number(row.basePriceEcer || 0),
+                salePrice: 0,
+                stock: Number(row.qty || 0),
+                barcode: ""
+              }
+            });
+            added++;
+          }
+          
+          // Add to price history for statistics
+          await gas("add", {
+            collection: "priceHistory",
+            item: {
+              productName: row.name,
+              basePrice: Number(row.amount || 0),
+              unitContent: Number(row.qty || 1),
+              source: "WA Paste",
+              recordedAt: new Date().toISOString()
+            }
+          });
+        }
+        
+        // Add purchase record
+        await gas("add", {
+          collection: "purchases",
+          item: {
+            date: today(),
+            supplier: "WA Import",
+            product: rows.map(r => r.name).join(", "),
+            qty: rows.reduce((sum, r) => sum + Number(r.qty || 0), 0),
+            amount: total,
+            notes: `Import dari WA: ${rows.length} barang`
+          }
+        });
+        
+        await load();
+        alert(`Berhasil! ${updated} barang diupdate, ${added} barang baru ditambahkan.`);
+        el("pembelian-wa-preview").innerHTML = '<p class="muted">Data berhasil disimpan. Paste data baru untuk mengimpor lagi.</p>';
+        el("pembelian-wa-text").value = "";
+      } catch (error) {
+        alert(error.message);
+      }
     }
 
     function bindShoppingTools() {

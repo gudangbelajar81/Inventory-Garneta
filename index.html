@@ -820,40 +820,190 @@ Minyak Goreng 3 45000"></textarea>
       exprDiv.innerText = state.expr.replace(/\*/g, '×').replace(/\//g, '÷');
     };
 
+    window.ngitungRows = [{ id: Date.now(), name: '', price: '', qty: '' }];
+    window.ngitungHistory = [];
+    try { window.ngitungHistory = JSON.parse(localStorage.getItem('ngitungHistory') || '[]'); } catch(e){}
+
+    window.ngitungRenderTable = function() {
+      const tbody = document.getElementById('ngitung-tbody');
+      if (!tbody) return;
+      
+      let html = '';
+      let total = 0;
+      
+      window.ngitungRows.forEach((row, index) => {
+        const qty = Number(row.qty) || 1;
+        const price = Number(row.price) || 0;
+        const amount = row.price ? price * qty : 0;
+        total += amount;
+        
+        html += `
+          <tr>
+            <td><input type="text" value="${escapeAttr(row.name)}" onchange="ngitungUpdateRow(this, ${row.id}, 'name')" list="ngitung-history-list" placeholder="Ketik nama..." style="width: 100%;"></td>
+            <td><input type="number" value="${row.price}" onchange="ngitungUpdateRow(this, ${row.id}, 'price')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="Harga" style="width: 100px;"></td>
+            <td><input type="number" value="${row.qty}" onchange="ngitungUpdateRow(this, ${row.id}, 'qty')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="1" style="width: 60px;"></td>
+            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 120px;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount)}</td>
+            <td style="width: 50px;"><button class="btn danger" onclick="ngitungRemoveRow(${row.id})" ${window.ngitungRows.length === 1 ? 'disabled' : ''}>X</button></td>
+          </tr>
+        `;
+      });
+      
+      tbody.innerHTML = html;
+      document.getElementById('ngitung-total').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(total);
+      
+      const datalist = document.getElementById('ngitung-history-list');
+      if (datalist) {
+        datalist.innerHTML = window.ngitungHistory.map(name => `<option value="${escapeAttr(name)}">`).join('');
+      }
+    };
+
+    window.ngitungCalcRow = function(inputEl, id) {
+      const row = window.ngitungRows.find(r => r.id === id);
+      if (!row) return;
+      const tr = inputEl.closest('tr');
+      const priceInput = tr.querySelector('td:nth-child(2) input');
+      const qtyInput = tr.querySelector('td:nth-child(3) input');
+      
+      const p = Number(priceInput.value) || 0;
+      const q = Number(qtyInput.value) || 1;
+      const amt = priceInput.value ? p * q : 0;
+      
+      tr.querySelector('.row-amount').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amt);
+      
+      let sum = 0;
+      document.querySelectorAll('#ngitung-tbody tr').forEach(tr => {
+         const p2 = Number(tr.querySelector('td:nth-child(2) input').value) || 0;
+         const q2 = Number(tr.querySelector('td:nth-child(3) input').value) || 1;
+         sum += (tr.querySelector('td:nth-child(2) input').value ? p2 * q2 : 0);
+      });
+      document.getElementById('ngitung-total').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(sum);
+    };
+
+    window.ngitungUpdateRow = function(inputEl, id, field) {
+      const row = window.ngitungRows.find(r => r.id === id);
+      if (!row) return;
+      
+      row[field] = inputEl.value;
+      
+      if (field === 'name' && inputEl.value.trim().length > 1) {
+         const cleanVal = inputEl.value.trim();
+         if (!window.ngitungHistory.includes(cleanVal)) {
+           window.ngitungHistory.push(cleanVal);
+           if (window.ngitungHistory.length > 100) window.ngitungHistory.shift();
+           localStorage.setItem('ngitungHistory', JSON.stringify(window.ngitungHistory));
+           
+           const datalist = document.getElementById('ngitung-history-list');
+           if (datalist) {
+             datalist.innerHTML = window.ngitungHistory.map(name => `<option value="${escapeAttr(name)}">`).join('');
+           }
+         }
+      }
+      
+      const isLastRow = window.ngitungRows[window.ngitungRows.length - 1].id === id;
+      if (isLastRow && row.name && row.price) {
+        window.ngitungAddRow();
+      } else {
+        window.ngitungRenderTable();
+      }
+    };
+
+    window.ngitungAddRow = function() {
+      window.ngitungRows.push({ id: Date.now(), name: '', price: '', qty: '' });
+      window.ngitungRenderTable();
+    };
+
+    window.ngitungRemoveRow = function(id) {
+      if (window.ngitungRows.length <= 1) return;
+      window.ngitungRows = window.ngitungRows.filter(r => r.id !== id);
+      window.ngitungRenderTable();
+    };
+
+    window.ngitungPrintBluetooth = async function() {
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
+          optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+        }).catch(e => {
+          return navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+          });
+        });
+
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+        const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+
+        let encoder = new TextEncoder();
+        let data = [
+          0x1b, 0x40, // init
+          ...encoder.encode('=== AVELZA GROUP ===\\n'),
+          ...encoder.encode('Tgl: ' + new Date().toLocaleString('id-ID') + '\\n'),
+          ...encoder.encode('--------------------------------\\n')
+        ];
+        
+        let total = 0;
+        window.ngitungRows.forEach(row => {
+          if (!row.name && !row.price) return;
+          const qty = Number(row.qty) || 1;
+          const price = Number(row.price) || 0;
+          const amount = row.price ? price * qty : 0;
+          total += amount;
+          
+          data.push(...encoder.encode(row.name + '\\n'));
+          data.push(...encoder.encode(qty + ' x ' + price + ' = ' + amount + '\\n'));
+        });
+        
+        data.push(...encoder.encode('--------------------------------\\n'));
+        data.push(...encoder.encode('TOTAL: ' + total + '\\n\\n\\n\\n'));
+        
+        let buffer = new Uint8Array(data);
+        for (let i = 0; i < buffer.length; i += 512) {
+          await characteristic.writeValue(buffer.slice(i, i + 512));
+        }
+        
+        alert("Berhasil mencetak!");
+      } catch (error) {
+        console.error(error);
+        alert("Gagal koneksi ke printer Bluetooth: " + error.message);
+      }
+    };
+
     function ngitung() {
-      return `
-        <div class="card" style="max-width: 360px; margin: 2rem auto; background: var(--card-bg); border: 1px solid var(--line); border-radius: 20px; padding: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);">
-          <h2 style="text-align: center; color: var(--text); margin-bottom: 25px; font-weight: 800; letter-spacing: 2px;">🧮 NGITUNG</h2>
-          <div style="background: rgba(0,0,0,0.4); border-radius: 12px; padding: 15px 20px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.08); text-align: right; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);">
-            <div id="calc-expr" style="min-height: 20px; font-size: 1rem; color: #888; font-family: 'Courier New', Courier, monospace;"></div>
-            <div id="calc-display" style="font-size: 2.8rem; color: #fff; font-family: 'Courier New', Courier, monospace; overflow: hidden; white-space: nowrap; margin-top: 5px;">0</div>
+      setTimeout(() => window.ngitungRenderTable(), 50);
+      return \`
+        <div class="card" style="max-width: 800px; margin: 2rem auto;">
+          <h2>🧮 NGITUNG (Kasir Cepat)</h2>
+          <p class="muted">Ketik nama barang (otomatis tersimpan). Isi harga, baris baru otomatis bertambah.</p>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nama Barang</th>
+                  <th>Harga</th>
+                  <th>Banyak</th>
+                  <th>Jumlah</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="ngitung-tbody">
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3" style="text-align: right; font-weight: bold; padding: 15px;">TOTAL:</td>
+                  <td id="ngitung-total" style="font-weight: bold; font-size: 1.2rem; color: var(--primary);">Rp 0</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-            <button class="btn soft" onclick="calcPress('C')" style="grid-column: span 2; background: rgba(255,50,50,0.1); color: #ff5555; font-size: 1.1rem; padding: 15px; border-radius: 10px;">C</button>
-            <button class="btn soft" onclick="calcPress('DEL')" style="background: rgba(255,150,50,0.1); color: #ffaa55; font-size: 1.1rem; padding: 15px; border-radius: 10px;">DEL</button>
-            <button class="btn soft" onclick="calcPress('/')" style="background: rgba(36,240,199,0.1); color: var(--primary); font-size: 1.4rem; padding: 15px; border-radius: 10px;">÷</button>
-            
-            <button class="btn soft" onclick="calcPress('7')" style="font-size: 1.4rem; padding: 15px; border-radius: 10px;">7</button>
-            <button class="btn soft" onclick="calcPress('8')" style="font-size: 1.4rem; padding: 15px; border-radius: 10px;">8</button>
-            <button class="btn soft" onclick="calcPress('9')" style="font-size: 1.4rem; padding: 15px; border-radius: 10px;">9</button>
-            <button class="btn soft" onclick="calcPress('*')" style="background: rgba(36,240,199,0.1); color: var(--primary); font-size: 1.4rem; padding: 15px; border-radius: 10px;">×</button>
-            
-            <button class="btn soft" onclick="calcPress('4')" style="font-size: 1.4rem; padding: 15px; border-radius: 10px;">4</button>
-            <button class="btn soft" onclick="calcPress('5')" style="font-size: 1.4rem; padding: 15px; border-radius: 10px;">5</button>
-            <button class="btn soft" onclick="calcPress('6')" style="font-size: 1.4rem; padding: 15px; border-radius: 10px;">6</button>
-            <button class="btn soft" onclick="calcPress('-')" style="background: rgba(36,240,199,0.1); color: var(--primary); font-size: 1.8rem; padding: 15px; border-radius: 10px;">-</button>
-            
-            <button class="btn soft" onclick="calcPress('1')" style="font-size: 1.4rem; padding: 15px; border-radius: 10px;">1</button>
-            <button class="btn soft" onclick="calcPress('2')" style="font-size: 1.4rem; padding: 15px; border-radius: 10px;">2</button>
-            <button class="btn soft" onclick="calcPress('3')" style="font-size: 1.4rem; padding: 15px; border-radius: 10px;">3</button>
-            <button class="btn soft" onclick="calcPress('+')" style="background: rgba(36,240,199,0.1); color: var(--primary); font-size: 1.4rem; padding: 15px; border-radius: 10px;">+</button>
-            
-            <button class="btn soft" onclick="calcPress('0')" style="grid-column: span 2; font-size: 1.4rem; padding: 15px; border-radius: 10px;">0</button>
-            <button class="btn soft" onclick="calcPress('.')" style="font-size: 1.8rem; padding: 15px; border-radius: 10px;">.</button>
-            <button class="btn primary" onclick="calcPress('=')" style="font-size: 1.8rem; background: var(--primary); color: #000; box-shadow: 0 0 15px rgba(36,240,199,0.4); padding: 15px; border-radius: 10px;">=</button>
+          <div class="actions" style="margin-top: 20px; display: flex; justify-content: space-between;">
+            <button class="btn soft" onclick="ngitungAddRow()">➕ Tambah Baris</button>
+            <button class="btn primary" onclick="ngitungPrintBluetooth()">🖨️ Cetak Bluetooth</button>
           </div>
+          <datalist id="ngitung-history-list"></datalist>
         </div>
-      `;
+      \`;
     }
 
     function kalkulator() {

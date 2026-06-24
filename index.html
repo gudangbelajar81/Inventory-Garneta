@@ -1545,9 +1545,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function saleForm() {
+      const prodOptions = state.data.products.map((p) => `<option value="${escapeAttr(p.name)}">`).join("");
       return `<form data-form="sales" class="grid forms">
         ${hiddenId()}${input("date", "Tanggal", true, "date", today())}
-        <label>Nama Barang<select name="productId" required>${state.data.products.map((p) => `<option value="${p.id}">${p.name}</option>`).join("")}</select></label>
+        <label>Nama Barang
+          <input list="sale-products-list" name="product" placeholder="Ketik atau pilih nama barang..." required autocomplete="off">
+          <datalist id="sale-products-list">${prodOptions}</datalist>
+        </label>
         ${input("unitSold", "Unit Terjual", true, "number")}${formButtons()}
       </form>`;
     }
@@ -1945,6 +1949,14 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             const item = Object.fromEntries(new FormData(form).entries());
             const id = item.id;
             delete item.id;
+
+            if (collection === "sales" && item.product) {
+              const prod = state.data.products.find(p => p.name === item.product);
+              if (!prod) throw new Error("Barang tidak ditemukan di sistem. Pastikan nama barang sesuai dengan yang terdaftar.");
+              item.productId = prod.id;
+              delete item.product;
+            }
+
             await gas(id ? "update" : "add", { collection, id, item });
             await load();
           } catch (error) {

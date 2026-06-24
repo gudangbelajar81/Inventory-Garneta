@@ -1060,11 +1060,11 @@ Beras Premium 1"></textarea>
     
     function penjualan() {
       const workspaces = [
-        { id: 'form', icon: '➕', label: 'Form' },
-        { id: 'list', icon: '📋', label: 'Daftar' }
+        { id: 'pos', icon: '🛒', label: 'Mesin Kasir (POS)' },
+        { id: 'list', icon: '📅', label: 'Riwayat Transaksi' }
       ];
       
-      const activeWorkspace = window.penjualanWorkspace || 'list';
+      const activeWorkspace = window.penjualanWorkspace || 'pos';
       
       const toolbar = `<div class="workspace-toolbar">
         ${workspaces.map(ws => `
@@ -1077,23 +1077,29 @@ Beras Premium 1"></textarea>
       </div>`;
       
       let workspaceContent = '';
-      switch(activeWorkspace) {
-        case 'form':
-          workspaceContent = `<div class="workspace-content">
-            <div class="card">
-              <h3>📝 Form Penjualan</h3>
-              ${saleForm()}
+      if (activeWorkspace === 'pos') {
+        const rows = posRows();
+        const totalCuan = rows.reduce((acc, row) => acc + Number(row.cuan || 0), 0);
+        workspaceContent = `<div class="workspace-content">
+          <div class="card">
+            <h3>🛒 Mesin Kasir (POS)</h3>
+            ${saleForm()}
+          </div>
+          <div class="card">
+            <h3>Keranjang Penjualan - Total Cuan: <span style="color:#10b981;">${rupiah(totalCuan)}</span></h3>
+            ${posTable(rows)}
+            <div class="actions" style="margin-top: 1rem;">
+              <button class="btn success" id="save-pos" style="width:100%; padding: 1rem; font-size: 1.1rem; font-weight: bold;">Simpan Semua Transaksi</button>
             </div>
-          </div>`;
-          break;
-        case 'list':
-        default:
-          workspaceContent = `<div class="workspace-content">
-            <div class="card">
-              <h3>📋 Daftar Penjualan (${state.data.sales?.length || 0})</h3>
-              ${saleRows()}
-            </div>
-          </div>`;
+          </div>
+        </div>`;
+      } else {
+        workspaceContent = `<div class="workspace-content">
+          <div class="card">
+            <h3>Riwayat Penjualan</h3>
+            ${saleRows()}
+          </div>
+        </div>`;
       }
       
       return `<section class="barang-workspace">
@@ -1546,13 +1552,17 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
     function saleForm() {
       const prodOptions = state.data.products.map((p) => `<option value="${escapeAttr(p.name)}">`).join("");
-      return `<form data-form="sales" class="grid forms">
+      return `<form id="pos-form" class="grid forms">
         ${hiddenId()}${input("date", "Tanggal", true, "date", today())}
         <label>Nama Barang
           <input list="sale-products-list" name="product" placeholder="Ketik atau pilih nama barang..." required autocomplete="off">
           <datalist id="sale-products-list">${prodOptions}</datalist>
         </label>
-        ${input("unitSold", "Unit Terjual", true, "number")}${formButtons()}
+        ${input("unitSold", "Unit Terjual", true, "number")}
+        <label>Potensi Cuan (Rp)<input name="cuan" type="text" readonly style="background-color:#1c2536;color:#10b981;font-weight:bold;" placeholder="0"></label>
+        <div class="form-actions" style="grid-column: 1 / -1">
+          <button type="submit" class="btn primary" style="width:100%;font-weight:bold;">Tambah ke Keranjang</button>
+        </div>
       </form>`;
     }
 
@@ -1610,6 +1620,18 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
     function shoppingTable(rows) {
       return actionTable("shopping", rows, ["name", "unit", "qty", "amount", "subtotal"], ["Nama Barang", "Unit", "Banyak Beli", "Harga Dasar", "Total Jumlah"], (key, value) => key === "amount" || key === "subtotal" ? rupiah(value) : value);
+    }
+
+    function posRows() {
+      return JSON.parse(localStorage.getItem("posRows") || "[]");
+    }
+
+    function savePosRows(rows) {
+      localStorage.setItem("posRows", JSON.stringify(rows));
+    }
+
+    function posTable(rows) {
+      return actionTable("pos", rows, ["date", "product", "unitSold", "cuan"], ["Tanggal", "Nama Barang", "Unit Terjual", "Cuan"], (key, value) => key === "cuan" ? rupiah(value) : value);
     }
 
     function invoiceDraftTable() {
@@ -1996,6 +2018,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       bindProductTools();
       bindPembelianTools();
       bindShoppingTools();
+      bindPenjualanTools();
       bindInvoiceAiTools();
       bindSettingsTools();
       bindThemeTools();
@@ -2004,6 +2027,107 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       bindBackupTools();
       bindPwaTools();
       bindBrandTools();
+    }
+
+    function bindPenjualanTools() {
+      const form = document.getElementById("pos-form");
+      if (form) {
+        const updateCuan = () => {
+          const productName = form.elements.product.value.trim().toLowerCase();
+          const unitSold = Number(form.elements.unitSold.value || 0);
+          
+          let prod = state.data.products.find(p => p.name.trim().toLowerCase() === productName);
+          if (!prod) {
+            const matches = state.data.products.filter(p => p.name.toLowerCase().includes(productName));
+            if (matches.length === 1) prod = matches[0];
+          }
+          
+          if (prod) {
+            const profitPerPcs = Number(prod.salePriceEcer) - Number(prod.costPrice);
+            const totalKg = unitSold * Number(prod.unitContent || 1);
+            form.elements.cuan.value = profitPerPcs * totalKg;
+          } else {
+            form.elements.cuan.value = "";
+          }
+        };
+
+        form.elements.product.addEventListener("input", updateCuan);
+        form.elements.unitSold.addEventListener("input", updateCuan);
+
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const formData = new FormData(form);
+          const date = formData.get("date");
+          const productName = formData.get("product").trim().toLowerCase();
+          const unitSold = Number(formData.get("unitSold"));
+          
+          let prod = state.data.products.find(p => p.name.trim().toLowerCase() === productName);
+          if (!prod) {
+            const matches = state.data.products.filter(p => p.name.toLowerCase().includes(productName));
+            if (matches.length === 1) prod = matches[0];
+          }
+          
+          if (!prod) {
+            alert("Barang tidak ditemukan di sistem. Pastikan nama barang sesuai.");
+            return;
+          }
+
+          const profitPerPcs = Number(prod.salePriceEcer) - Number(prod.costPrice);
+          const totalKg = unitSold * Number(prod.unitContent || 1);
+          const cuan = profitPerPcs * totalKg;
+
+          const rows = posRows();
+          rows.unshift({
+            id: Date.now() + Math.random(),
+            date,
+            productId: prod.id,
+            product: prod.name,
+            unitSold,
+            cuan
+          });
+          savePosRows(rows);
+          
+          form.reset();
+          form.elements.date.value = date;
+          render();
+        });
+      }
+
+      document.getElementById("save-pos")?.addEventListener("click", async () => {
+        const rows = posRows();
+        if (!rows.length) {
+          alert("Keranjang penjualan masih kosong.");
+          return;
+        }
+
+        if (!confirm(`Simpan ${rows.length} transaksi penjualan?`)) return;
+
+        try {
+          const btn = document.getElementById("save-pos");
+          btn.disabled = true;
+          btn.textContent = "Menyimpan...";
+
+          for (const row of rows) {
+            const item = { date: row.date, productId: row.productId, unitSold: row.unitSold };
+            await gas("add", { collection: "sales", id: null, item });
+          }
+
+          savePosRows([]);
+          alert("Transaksi berhasil disimpan!");
+          await load();
+        } catch (err) {
+          alert("Gagal menyimpan transaksi: " + err.message);
+          await load();
+        }
+      });
+      
+      document.querySelectorAll("[data-delete=\"pos\"]").forEach(btn => {
+        btn.onclick = () => {
+           const id = btn.dataset.id;
+           savePosRows(posRows().filter(r => String(r.id) !== String(id)));
+           render();
+        };
+      });
     }
 
     function bindStatsTools() {

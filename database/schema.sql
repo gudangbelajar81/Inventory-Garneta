@@ -193,7 +193,7 @@ CREATE TABLE app_settings (
 ) ENGINE=InnoDB;
 
 
-CREATE TABLE IF NOT EXISTS pi_keys_manager (
+CREATE TABLE pi_keys_manager (
   id INT AUTO_INCREMENT PRIMARY KEY,
   provider VARCHAR(50) NOT NULL,
   name VARCHAR(100) NOT NULL,

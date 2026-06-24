@@ -2043,7 +2043,8 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           }
           
           if (prod) {
-            const profitPerPcs = Number(prod.salePriceEcer) - Number(prod.costPrice);
+            const salePrice = Number(prod.salePriceEcer) || (Number(prod.salePrice) / Number(prod.unitContent || 1)) || 0;
+            const profitPerPcs = salePrice - Number(prod.costPrice);
             const totalKg = unitSold * Number(prod.unitContent || 1);
             form.elements.cuan.value = profitPerPcs * totalKg;
           } else {
@@ -2072,7 +2073,8 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             return;
           }
 
-          const profitPerPcs = Number(prod.salePriceEcer) - Number(prod.costPrice);
+          const salePrice = Number(prod.salePriceEcer) || (Number(prod.salePrice) / Number(prod.unitContent || 1)) || 0;
+          const profitPerPcs = salePrice - Number(prod.costPrice);
           const totalKg = unitSold * Number(prod.unitContent || 1);
           const cuan = profitPerPcs * totalKg;
 

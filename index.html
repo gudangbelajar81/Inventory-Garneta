@@ -3202,6 +3202,21 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
       navigator.serviceWorker.register("/service-worker.js").catch((error) => console.warn(error));
     }
+    // Global Auto-Capitalize for all text inputs
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') {
+        const nameStr = (e.target.name || '').toLowerCase();
+        const idStr = (e.target.id || '').toLowerCase();
+        if (!nameStr.includes('password') && !idStr.includes('password') &&
+            !nameStr.includes('key') && !idStr.includes('key') &&
+            !nameStr.includes('url') && !idStr.includes('url') &&
+            !nameStr.includes('api') && !idStr.includes('api')) {
+          e.target.value = e.target.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+          e.target.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+    });
+
     setInterval(() => el("clock").textContent = new Date().toLocaleString("id-ID"), 1000);
     load().catch((error) => el("content").innerHTML = `<div class="card"><h2>Error</h2><p>${error.message}</p></div>`);
   </script>

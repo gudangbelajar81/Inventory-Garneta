@@ -2157,10 +2157,12 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           }
           
           if (prod) {
-            const salePrice = Number(prod.salePriceEcer) || (Number(prod.salePrice) / Number(prod.unitContent || 1)) || 0;
-            const profitPerPcs = salePrice - Number(prod.costPrice);
-            const totalKg = unitSold * Number(prod.unitContent || 1);
-            form.elements.cuan.value = profitPerPcs * totalKg;
+            const salePriceEcer = Number(prod.salePriceEcer) || 0;
+            const basePriceEcer = Number(prod.basePriceEcer) || 0;
+            const unitContent = Number(prod.unitContent) || 1;
+            const profitPerPcs = salePriceEcer - basePriceEcer;
+            const totalPcs = unitSold * unitContent;
+            form.elements.cuan.value = profitPerPcs * totalPcs;
           } else {
             form.elements.cuan.value = "";
           }
@@ -2187,10 +2189,12 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             return;
           }
 
-          const salePrice = Number(prod.salePriceEcer) || (Number(prod.salePrice) / Number(prod.unitContent || 1)) || 0;
-          const profitPerPcs = salePrice - Number(prod.costPrice);
-          const totalKg = unitSold * Number(prod.unitContent || 1);
-          const cuan = profitPerPcs * totalKg;
+          const salePriceEcer = Number(prod.salePriceEcer) || 0;
+          const basePriceEcer = Number(prod.basePriceEcer) || 0;
+          const unitContent = Number(prod.unitContent) || 1;
+          const profitPerPcs = salePriceEcer - basePriceEcer;
+          const totalPcs = unitSold * unitContent;
+          const cuan = profitPerPcs * totalPcs;
 
           const rows = posRows();
           rows.unshift({

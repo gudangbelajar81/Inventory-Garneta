@@ -167,43 +167,28 @@
   }
 
   function renderBarangQuickCard(product) {
-    const stockClass = (product.stock || 0) < 10 ? 'stock-low' : (product.stock || 0) < 50 ? 'stock-medium' : 'stock-high';
-    const supplier = findSupplierForProduct(product);
-    
-    return '<div class="quick-action-card">' +
-      '<div class="quick-action-header">' +
-        '<div class="quick-action-title">📦 ' + escapeHtml(product.name) + '</div>' +
-        '<div class="quick-action-category">' + escapeHtml(product.category || 'Umum') + '</div>' +
+    return '<div class="quick-action-card compact" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">' +
+      '<div style="flex: 1; min-width: 0;">' +
+        '<div style="font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem;">📦 ' + escapeHtml(product.name) + '</div>' +
+        '<div style="font-size: 0.8rem; color: #888; margin-top: 2px;">' + formatRupiah(product.salePrice || 0) + ' &bull; ' + escapeHtml(product.category || 'Umum') + '</div>' +
       '</div>' +
-      '<div class="quick-action-info">' +
-        '<div class="quick-action-row"><span class="info-label">Kategori:</span><span class="info-value">' + escapeHtml(product.category || 'Umum') + '</span></div>' +
-        '<div class="quick-action-row"><span class="info-label">Stok:</span><span class="info-value ' + stockClass + '">' + (product.stock || 0) + ' ' + (product.unit || 'pcs') + '</span></div>' +
-        '<div class="quick-action-row"><span class="info-label">Harga Jual:</span><span class="info-value">' + formatRupiah(product.salePrice || 0) + '</span></div>' +
-        (supplier ? '<div class="quick-action-row"><span class="info-label">Supplier:</span><span class="info-value">' + escapeHtml(supplier.name) + '</span></div>' : '') +
-      '</div>' +
-      '<div class="quick-action-buttons">' +
-        '<button class="btn primary" onclick="quickActionJual(\'' + product.id + '\')">🛒 Jual</button>' +
-        '<button class="btn soft" onclick="quickActionEditBarang(\'' + product.id + '\')">✏️ Edit</button>' +
-        '<button class="btn soft" onclick="quickActionLihatSupplier(\'' + product.id + '\')">🏢 Supplier</button>' +
-        '<button class="btn soft" onclick="quickActionHistoriBarang(\'' + product.id + '\')">📜 Histori</button>' +
-        '<button class="btn soft" onclick="quickActionTambahStok(\'' + product.id + '\')">➕ Stok</button>' +
+      '<div style="display: flex; gap: 6px; flex-shrink: 0;">' +
+        '<button class="btn primary" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px;" onclick="quickActionJual(\'' + product.id + '\')">🛒 Jual</button>' +
+        '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionEditBarang(\'' + product.id + '\')">✏️ Edit</button>' +
+        '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionLihatSupplier(\'' + product.id + '\')">🏢 Suplier</button>' +
       '</div>' +
     '</div>';
   }
 
   function renderSupplierQuickCard(supplier) {
-    return '<div class="quick-action-card supplier-card">' +
-      '<div class="quick-action-header">' +
-        '<div class="quick-action-title">🏭 ' + escapeHtml(supplier.name) + '</div>' +
-        '<div class="quick-action-category">Supplier</div>' +
+    return '<div class="quick-action-card compact" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">' +
+      '<div style="flex: 1; min-width: 0;">' +
+        '<div style="font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem;">🏭 ' + escapeHtml(supplier.name) + '</div>' +
+        '<div style="font-size: 0.8rem; color: #888; margin-top: 2px;">' + escapeHtml(supplier.phone || '-') + '</div>' +
       '</div>' +
-      '<div class="quick-action-info">' +
-        '<div class="quick-action-row"><span class="info-label">Telepon:</span><span class="info-value">' + escapeHtml(supplier.phone || '-') + '</span></div>' +
-        '<div class="quick-action-row"><span class="info-label">Alamat:</span><span class="info-value">' + escapeHtml(supplier.address || '-') + '</span></div>' +
-      '</div>' +
-      '<div class="quick-action-buttons">' +
-        '<button class="btn soft" onclick="quickActionEditSupplier(\'' + supplier.id + '\')">✏️ Edit</button>' +
-        '<button class="btn soft" onclick="quickActionLihatBarangSupplier(\'' + supplier.id + '\')">📦 Lihat Barang</button>' +
+      '<div style="display: flex; gap: 6px; flex-shrink: 0;">' +
+        '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionEditSupplier(\'' + supplier.id + '\')">✏️ Edit</button>' +
+        '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionLihatBarangSupplier(\'' + supplier.id + '\')">📦 Barang</button>' +
       '</div>' +
     '</div>';
   }

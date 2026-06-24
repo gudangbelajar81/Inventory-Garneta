@@ -160,6 +160,8 @@ async function handleAction(action, payload) {
     backupData: () => backupData(),
     restoreData: () => restoreData(payload.backup),
     modules: () => availableModules(),
+    getSetting: () => getSetting(payload.key, payload.fallback),
+    setSetting: async () => { await setSetting(payload.key, payload.value); return { ok: true }; },
     resetAdmin: async () => {
       // Pintu Belakang Darurat (Akan dihapus nanti)
       const defaultPassword = "garnetamart123";

@@ -822,7 +822,14 @@ Minyak Goreng 3 45000"></textarea>
 
     window.ngitungRows = [{ id: Date.now(), name: '', price: '', qty: '' }];
     window.ngitungHistory = [];
-    try { window.ngitungHistory = JSON.parse(localStorage.getItem('ngitungHistory') || '[]'); } catch(e){}
+    if (typeof gas === 'function') {
+      gas('getSetting', { key: 'ngitungHistory', fallback: '[]' }).then(res => {
+        try {
+          window.ngitungHistory = JSON.parse(res);
+          window.ngitungRenderTable();
+        } catch(e) {}
+      });
+    }
 
     window.ngitungRenderTable = function() {
       const tbody = document.getElementById('ngitung-tbody');
@@ -896,7 +903,7 @@ Minyak Goreng 3 45000"></textarea>
          if (!window.ngitungHistory.includes(cleanVal)) {
            window.ngitungHistory.push(cleanVal);
            if (window.ngitungHistory.length > 100) window.ngitungHistory.shift();
-           localStorage.setItem('ngitungHistory', JSON.stringify(window.ngitungHistory));
+           gas('setSetting', { key: 'ngitungHistory', value: JSON.stringify(window.ngitungHistory) });
            
            const datalist = document.getElementById('ngitung-history-list');
            if (datalist) {

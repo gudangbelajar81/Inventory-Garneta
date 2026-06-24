@@ -124,7 +124,8 @@
       data.suppliers.forEach(function(s) {
         const n = String(s.name || '').toLowerCase();
         const ph = String(s.phone || '').toLowerCase();
-        if (n.includes(lowerQuery) || ph.includes(lowerQuery)) {
+        const notes = String(s.notes || '').toLowerCase();
+        if (n.includes(lowerQuery) || ph.includes(lowerQuery) || notes.includes(lowerQuery)) {
           results.push({ type: 'supplier', data: s });
         }
       });

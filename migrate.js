@@ -67,6 +67,28 @@ async function migrate() {
       }
     } catch (e) {}
 
+    try {
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'products' AND COLUMN_NAME = 'sale_price_ecer'
+      `, [database]);
+      if (columns.length === 0) {
+        await connection.query(`ALTER TABLE products ADD COLUMN sale_price_ecer DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER sale_price`);
+        logger.info(`Migrasi: products.sale_price_ecer ditambahkan`);
+      }
+    } catch (e) {}
+
+    try {
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'price_history' AND COLUMN_NAME = 'sale_price_ecer'
+      `, [database]);
+      if (columns.length === 0) {
+        await connection.query(`ALTER TABLE price_history ADD COLUMN sale_price_ecer DECIMAL(14,2) NULL AFTER sale_price`);
+        logger.info(`Migrasi: price_history.sale_price_ecer ditambahkan`);
+      }
+    } catch (e) {}
+
     logger.info(`Migrasi database sepenuhnya selesai: ${database}`);
   } finally {
     await connection.end();

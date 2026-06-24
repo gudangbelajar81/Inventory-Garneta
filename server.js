@@ -405,8 +405,8 @@ async function addRow(collection, item = {}) {
   if (collection === "products") {
     const payload = productPayload(item);
     const [result] = await db.query(`
-      INSERT INTO products (supplier_id, category, name, unit, unit_content, base_price, base_price_ecer, sale_price, stock, barcode)
-      VALUES (:supplierId, :category, :name, :unit, :unitContent, :basePrice, :basePriceEcer, :salePrice, :stock, :barcode)
+      INSERT INTO products (supplier_id, category, name, unit, unit_content, base_price, base_price_ecer, sale_price, sale_price_ecer, stock, barcode)
+      VALUES (:supplierId, :category, :name, :unit, :unitContent, :basePrice, :basePriceEcer, :salePrice, :salePriceEcer, :stock, :barcode)
     `, payload);
     await recordPriceHistory(result.insertId, "barang");
     await recordAudit(`Tambah barang: ${payload.name}`);
@@ -434,7 +434,7 @@ async function addRow(collection, item = {}) {
       // UPDATE produk lama (harga & stok)
       await db.query(`
         UPDATE products 
-        SET category = ?, unit = ?, unit_content = ?, base_price = ?, base_price_ecer = ?, sale_price = ?, barcode = ?, stock = stock + ?
+        SET category = ?, unit = ?, unit_content = ?, base_price = ?, base_price_ecer = ?, sale_price = ?, sale_price_ecer = ?, barcode = ?, stock = stock + ?
         WHERE id = ?
       `, [
         item.category || 'Umum',
@@ -443,6 +443,7 @@ async function addRow(collection, item = {}) {
         number(item.basePrice),
         number(item.basePriceEcer),
         number(item.salePrice),
+        number(item.salePriceEcer),
         item.barcode || null,
         number(item.qty),
         productId
@@ -451,8 +452,8 @@ async function addRow(collection, item = {}) {
       isNewProduct = true;
       // INSERT produk baru
       const [prodResult] = await db.query(`
-        INSERT INTO products (category, name, unit, unit_content, base_price, base_price_ecer, sale_price, stock, barcode)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO products (category, name, unit, unit_content, base_price, base_price_ecer, sale_price, sale_price_ecer, stock, barcode)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         item.category || 'Umum',
         item.name,
@@ -461,6 +462,7 @@ async function addRow(collection, item = {}) {
         number(item.basePrice),
         number(item.basePriceEcer),
         number(item.salePrice),
+        number(item.salePriceEcer),
         number(item.qty),
         item.barcode || null
       ]);
@@ -483,9 +485,9 @@ async function addRow(collection, item = {}) {
 
     // 4. Catat riwayat harga
     await db.query(`
-      INSERT INTO price_history (product_id, purchase_id, base_price, unit_content, sale_price, recorded_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [productId, purchaseId, number(item.basePrice), number(item.unitContent) || 1, number(item.salePrice), item.date || new Date()]);
+      INSERT INTO price_history (product_id, purchase_id, base_price, unit_content, sale_price, sale_price_ecer, recorded_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [productId, purchaseId, number(item.basePrice), number(item.unitContent) || 1, number(item.salePrice), number(item.salePriceEcer), item.date || new Date()]);
     
     await recordAudit(`Omni-Pembelian: ${item.name} (${isNewProduct ? 'Baru' : 'Update'})`);
     return findRow("purchases", purchaseId);
@@ -545,14 +547,15 @@ async function updateRow(collection, id, item = {}) {
 
   if (collection === "products") {
     const before = await findRow("products", id);
-    const payload = { ...productPayload({ ...before, ...item }), id };
+    const payload = productPayload({ ...before, ...item });
     await db.query(`
-      UPDATE products
-      SET supplier_id = :supplierId, category = :category, name = :name, unit = :unit,
-          unit_content = :unitContent, base_price = :basePrice, base_price_ecer = :basePriceEcer,
-          sale_price = :salePrice, stock = :stock, barcode = :barcode
+      UPDATE products 
+      SET supplier_id = :supplierId, category = :category, name = :name, 
+          unit = :unit, unit_content = :unitContent, base_price = :basePrice, 
+          base_price_ecer = :basePriceEcer, sale_price = :salePrice, sale_price_ecer = :salePriceEcer,
+          stock = :stock, barcode = :barcode
       WHERE id = :id
-    `, payload);
+    `, { ...payload, id });
     if (Number(before.basePrice) !== Number(payload.basePrice)) await recordPriceHistory(id, "barang");
     await recordAudit(`Edit barang: ${payload.name}`);
     return findRow("products", id);
@@ -716,14 +719,15 @@ async function validateSuperAdminCreate(item) {
 
 function productPayload(item) {
   return {
-    supplierId: nullableNumber(item.supplierId),
+    supplierId: number(item.supplierId),
     category: item.category || "Umum",
     name: required(item.name, "Nama barang"),
     unit: item.unit || "pcs",
-    unitContent: Math.max(number(item.unitContent), 1),
+    unitContent: number(item.unitContent) || 1,
     basePrice: number(item.basePrice),
     basePriceEcer: number(item.basePriceEcer),
     salePrice: number(item.salePrice),
+    salePriceEcer: number(item.salePriceEcer),
     stock: number(item.stock),
     barcode: item.barcode || null
   };
@@ -810,6 +814,7 @@ function mapProduct(row) {
     basePriceEcer: Number(row.base_price_ecer || 0),
     costPrice: Number(row.cost_price || 0),
     salePrice: Number(row.sale_price || 0),
+    salePriceEcer: Number(row.sale_price_ecer || 0),
     stock: Number(row.stock || 0),
     barcode: row.barcode || ""
   };

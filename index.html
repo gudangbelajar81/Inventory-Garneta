@@ -1508,13 +1508,17 @@ Beras Premium 1"></textarea>
     }
 
     function productForm() {
+      const cats = [...new Set((state?.data?.products || []).map(p => p.category).filter(Boolean))];
       return `<form data-form="products" class="grid forms">
         ${hiddenId()}
-        ${input("category", "Kategori Barang")}
+        <label>Kategori Barang<input name="category" type="text" list="category-list">
+          <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
+        </label>
         ${input("name", "Nama Barang", true)}
         ${select("unit", "Unit", ["sak", "karton/dus", "jligen", "kg", "ball", "pcs"])}
         ${input("unitContent", "Isi/Unit", false, "number")}
         ${input("basePrice", "Harga Dasar", false, "number")}
+        ${input("basePriceEcer", "Harga Dasar/Pcs", false, "number")}
         ${input("salePrice", "Harga Jual/Unit", false, "number")}
         ${input("stock", "Stok", false, "number")}
         ${input("barcode", "Barcode / Kode Scanner")}
@@ -1596,7 +1600,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function productRows() {
-      return actionTable("products", state.data.products, ["category", "name", "unit", "unitContent", "basePrice", "costPrice", "salePrice", "stock", "barcode"], ["Kategori", "Nama", "Unit", "Isi", "Harga Dasar", "HPP", "Harga Jual", "Stok", "Barcode"], priceFormat);
+      return actionTable("products", state.data.products, ["category", "name", "unit", "unitContent", "basePrice", "basePriceEcer", "costPrice", "salePrice", "stock", "barcode"], ["Kategori", "Nama", "Unit", "Isi", "Harga Dasar", "H. Dasar/Pcs", "HPP", "Harga Jual", "Stok", "Barcode"], priceFormat);
     }
 
     function supplierRows() {

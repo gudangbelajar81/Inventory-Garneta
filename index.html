@@ -3498,25 +3498,41 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
     // Form Barang auto-calculations
     document.addEventListener('input', (e) => {
-      const form = e.target.closest('form[data-form="products"]');
-      if (form && (e.target.name === 'basePriceEcer' || e.target.name === 'basePrice' || e.target.name === 'unitContent')) {
-        const rawUnit = form.unitContent.value.trim();
-        if (rawUnit === '') return; // Biarkan apa adanya jika Isi/Unit kosong
+        const form = e.target.closest('form[data-form="products"], form[data-form="purchases"]');
+        if (!form) return;
         
-        const unitContent = parseFloat(rawUnit);
-        if (isNaN(unitContent) || unitContent <= 0) return;
-
-        if (e.target.name === 'basePriceEcer') {
-          const ecer = parseFloat(e.target.value) || 0;
-          form.basePrice.value = Math.round(ecer * unitContent);
-        } else if (e.target.name === 'basePrice' || e.target.name === 'unitContent') {
-          const base = parseFloat(form.basePrice.value) || 0;
-          form.basePriceEcer.value = Math.round(base / unitContent);
+        // Auto Hitung Harga Dasar Ecer
+        if (e.target.name === 'basePriceEcer' || e.target.name === 'basePrice' || e.target.name === 'unitContent') {
+          const rawUnit = form.unitContent?.value.trim();
+          if (rawUnit !== '' && rawUnit !== undefined) {
+            const unitContent = parseFloat(rawUnit);
+            if (!isNaN(unitContent) && unitContent > 0) {
+              if (e.target.name === 'basePriceEcer') {
+                const ecer = parseFloat(e.target.value) || 0;
+                form.basePrice.value = Math.round(ecer * unitContent);
+              } else if (e.target.name === 'basePrice' || e.target.name === 'unitContent') {
+                const base = parseFloat(form.basePrice.value) || 0;
+                form.basePriceEcer.value = Math.round(base / unitContent);
+              }
+            }
+          }
         }
-      }
-    });
 
-    setInterval(() => el("clock").textContent = new Date().toLocaleString("id-ID"), 1000);
+        // Auto Hitung Potensi Cuan
+        if (['basePrice', 'basePriceEcer', 'salePrice', 'salePriceEcer', 'unitContent'].includes(e.target.name)) {
+           const bPriceEcer = parseFloat(form.basePriceEcer?.value) || 0;
+           const sPriceEcer = parseFloat(form.salePriceEcer?.value) || 0;
+           
+           const cuanEcer = sPriceEcer - bPriceEcer;
+           
+           if(form.cuan) {
+              form.cuan.value = sPriceEcer > 0 ? rupiah(cuanEcer) : '';
+              form.cuan.style.color = cuanEcer >= 0 ? '#10b981' : '#f43f5e';
+           }
+        }
+      });
+  
+      setInterval(() => el("clock").textContent = new Date().toLocaleString("id-ID"), 1000);
     load().catch((error) => el("content").innerHTML = `<div class="card"><h2>Error</h2><p>${error.message}</p></div>`);
   </script>
   <!-- Theme Initialization -->

@@ -298,7 +298,7 @@ function actionNotFoundMessage(action) {
 }
 
 async function bootstrap() {
-  const [products, suppliers, purchases, sales, users, priceHistory, auditLogs, stats] = await Promise.all([
+  const [products, suppliers, purchases, sales, users, priceHistory, auditLogs, employees, cashAdvances, payrolls, stats] = await Promise.all([
     listRows("products"),
     listRows("suppliers"),
     listRows("purchases"),
@@ -306,10 +306,13 @@ async function bootstrap() {
     listRows("users"),
     listRows("priceHistory"),
     listRows("auditLogs"),
+    listRows("employees"),
+    listRows("cashAdvances"),
+    listRows("payrolls"),
     dashboard()
   ]);
 
-  return { products, suppliers, purchases, sales, users, priceHistory, auditLogs, dashboard: stats };
+  return { products, suppliers, purchases, sales, users, priceHistory, auditLogs, employees, cashAdvances, payrolls, dashboard: stats };
 }
 
 async function dashboard() {

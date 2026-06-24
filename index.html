@@ -1516,7 +1516,8 @@ Beras Premium 1"></textarea>
           <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
         </label>
         ${input("name", "Nama Barang", true)}
-        ${select("unit", "Unit", ["sak", "karton/dus", "jligen", "kg", "ball", "pcs"])}
+        ${select("unit", "Unit Grosir (Karton/Dus)", ["sak", "karton/dus", "jligen", "kg", "ball", "pcs", "pack"])}
+        ${select("unitEcer", "Unit Eceran", ["pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol"])}
         ${input("unitContent", "Isi/Unit", false, "number")}
         ${input("basePrice", "Harga Dasar", false, "number")}
         ${input("basePriceEcer", "Harga Dasar/Pcs", false, "number")}
@@ -1601,7 +1602,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function productRows() {
-      return actionTable("products", state.data.products, ["category", "name", "unit", "unitContent", "basePrice", "basePriceEcer", "costPrice", "salePrice", "stock", "barcode"], ["Kategori", "Nama", "Unit", "Isi", "Harga Dasar", "H. Dasar/Pcs", "HPP", "Harga Jual", "Stok", "Barcode"], priceFormat);
+      return actionTable("products", state.data.products, ["category", "name", "unit", "unitContent", "unitEcer", "basePrice", "basePriceEcer", "costPrice", "salePrice", "stock", "barcode"], ["Kategori", "Nama", "Unit Grosir", "Isi", "Unit Ecer", "Harga Dasar", "H. Dasar/Ecer", "HPP", "Harga Jual", "Stok", "Barcode"], priceFormat);
     }
 
     function supplierRows() {

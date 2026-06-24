@@ -168,10 +168,14 @@
   }
 
   function renderBarangQuickCard(product) {
+    const baseStr = (product.basePrice ? formatRupiah(product.basePrice) + ' / ' + escapeHtml(product.unit || '-') : '');
+    const ecerStr = (product.basePriceEcer ? formatRupiah(product.basePriceEcer) + ' / ' + escapeHtml(product.unitEcer || 'Pcs') : '');
+    const priceDisplay = [baseStr, ecerStr].filter(Boolean).join(' | ') || formatRupiah(product.salePrice || 0);
+
     return '<div class="quick-action-card compact hover-ninja-container" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">' +
       '<div class="hover-ninja-content">' +
         '<div style="font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem;">📦 ' + escapeHtml(product.name) + '</div>' +
-        '<div style="font-size: 0.8rem; color: #888; margin-top: 2px;">' + formatRupiah(product.salePrice || 0) + ' &bull; ' + escapeHtml(product.category || 'Umum') + '</div>' +
+        '<div style="font-size: 0.8rem; color: #888; margin-top: 2px;">' + priceDisplay + ' &bull; ' + escapeHtml(product.category || 'Umum') + '</div>' +
       '</div>' +
       '<div class="hover-ninja-actions">' +
         '<button class="btn primary" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px;" onclick="quickActionJual(\'' + product.id + '\')">🛒 Jual</button>' +

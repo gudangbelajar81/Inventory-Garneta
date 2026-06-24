@@ -1951,8 +1951,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             delete item.id;
 
             if (collection === "sales" && item.product) {
-              const prod = state.data.products.find(p => p.name === item.product);
-              if (!prod) throw new Error("Barang tidak ditemukan di sistem. Pastikan nama barang sesuai dengan yang terdaftar.");
+              const searchName = item.product.trim().toLowerCase();
+              let prod = state.data.products.find(p => p.name.trim().toLowerCase() === searchName);
+              if (!prod) {
+                const matches = state.data.products.filter(p => p.name.toLowerCase().includes(searchName));
+                if (matches.length === 1) prod = matches[0];
+              }
+              if (!prod) throw new Error("Barang tidak ditemukan di sistem. Pastikan nama barang sesuai atau pilih dari daftar.");
               item.productId = prod.id;
               delete item.product;
             }

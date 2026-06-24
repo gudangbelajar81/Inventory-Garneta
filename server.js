@@ -367,7 +367,31 @@ async function listRows(collection) {
     return rows.map(mapSale);
   }
 
-  if (collection === "users") {
+  
+    if (collection === "employees") {
+      const [rows] = await db.query("SELECT id, name, phone, join_date, salary_type, base_salary, status, created_at FROM employees ORDER BY id DESC");
+      return rows.map(mapEmployee);
+    }
+    if (collection === "cashAdvances") {
+      const [rows] = await db.query(`
+        SELECT c.id, c.employee_id, e.name AS employee_name, c.date, c.amount, c.notes, c.status, c.created_at
+        FROM cash_advances c
+        LEFT JOIN employees e ON c.employee_id = e.id
+        ORDER BY c.date DESC, c.id DESC
+      `);
+      return rows.map(mapCashAdvance);
+    }
+    if (collection === "payrolls") {
+      const [rows] = await db.query(`
+        SELECT p.id, p.employee_id, e.name AS employee_name, p.period_start, p.period_end, p.attendance_days, p.basic_salary_calculated, p.total_deduction_bon, p.net_salary, p.paid_at, p.notes
+        FROM payrolls p
+        LEFT JOIN employees e ON p.employee_id = e.id
+        ORDER BY p.paid_at DESC
+      `);
+      return rows.map(mapPayroll);
+    }
+
+    if (collection === "users") {
     const [rows] = await db.query("SELECT id, name, email, role, status FROM users ORDER BY id DESC");
     return rows.map(mapUser);
   }
@@ -512,8 +536,41 @@ async function addRow(collection, item = {}) {
     return findRow("sales", result.insertId);
   }
 
-  if (collection === "users") {
-    await validateSuperAdminCreate(item);
+  
+    if (collection === "employees") {
+      const [result] = await db.query(`
+        INSERT INTO employees (name, phone, join_date, salary_type, base_salary, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [item.name, item.phone || null, item.joinDate, item.salaryType, item.baseSalary, item.status || 'Aktif']);
+      await recordAudit(`Tambah karyawan ${item.name}`);
+      return findRow("employees", result.insertId);
+    }
+    
+    if (collection === "cashAdvances") {
+      const [result] = await db.query(`
+        INSERT INTO cash_advances (employee_id, date, amount, notes, status)
+        VALUES (?, ?, ?, ?, ?)
+      `, [item.employeeId, item.date || new Date(), item.amount, item.notes || null, item.status || 'Belum Lunas']);
+      await recordAudit(`Tambah bon untuk karyawan ID ${item.employeeId}`);
+      return findRow("cashAdvances", result.insertId);
+    }
+    
+    if (collection === "payrolls") {
+      const [result] = await db.query(`
+        INSERT INTO payrolls (employee_id, period_start, period_end, attendance_days, basic_salary_calculated, total_deduction_bon, net_salary, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [item.employeeId, item.periodStart, item.periodEnd, item.attendanceDays, item.basicSalaryCalculated, item.totalDeductionBon, item.netSalary, item.notes || null]);
+      
+      // Lunas bon
+      if (item.bonIds && item.bonIds.length > 0) {
+         await db.query(`UPDATE cash_advances SET status = 'Lunas' WHERE id IN (?)`, [item.bonIds]);
+      }
+      await recordAudit(`Bayar gaji untuk karyawan ID ${item.employeeId}`);
+      return findRow("payrolls", result.insertId);
+    }
+
+    if (collection === "users") {
+      await validateSuperAdminCreate(item);
     const [result] = await db.query(`
       INSERT INTO users (name, email, password_hash, role, status)
       VALUES (:name, :email, :passwordHash, :role, :status)
@@ -597,8 +654,25 @@ async function updateRow(collection, id, item = {}) {
     return findRow("sales", id);
   }
 
-  if (collection === "users") {
-    const before = await findRow("users", id);
+  
+    if (collection === "employees") {
+      await db.query(`
+        UPDATE employees SET name=?, phone=?, join_date=?, salary_type=?, base_salary=?, status=? WHERE id=?
+      `, [item.name, item.phone || null, item.joinDate, item.salaryType, item.baseSalary, item.status || 'Aktif', id]);
+      await recordAudit(`Update karyawan ${item.name}`);
+      return findRow("employees", id);
+    }
+    
+    if (collection === "cashAdvances") {
+      await db.query(`
+        UPDATE cash_advances SET date=?, amount=?, notes=?, status=? WHERE id=?
+      `, [item.date, item.amount, item.notes || null, item.status, id]);
+      await recordAudit(`Update bon ID ${id}`);
+      return findRow("cashAdvances", id);
+    }
+
+    if (collection === "users") {
+      const before = await findRow("users", id);
     const payload = { ...userPayload({ ...before, ...item }, false), id };
     const passwordSql = payload.passwordHash ? ", password_hash = :passwordHash" : "";
     await db.query(`
@@ -858,6 +932,49 @@ function mapSale(row) {
   };
 }
 
+
+function mapEmployee(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    phone: row.phone,
+    joinDate: row.join_date,
+    salaryType: row.salary_type,
+    baseSalary: Number(row.base_salary || 0),
+    status: row.status,
+    createdAt: row.created_at
+  };
+}
+
+function mapCashAdvance(row) {
+  return {
+    id: row.id,
+    employeeId: row.employee_id,
+    employee: row.employee_name,
+    date: row.date,
+    amount: Number(row.amount || 0),
+    notes: row.notes,
+    status: row.status,
+    createdAt: row.created_at
+  };
+}
+
+function mapPayroll(row) {
+  return {
+    id: row.id,
+    employeeId: row.employee_id,
+    employee: row.employee_name,
+    periodStart: row.period_start,
+    periodEnd: row.period_end,
+    attendanceDays: Number(row.attendance_days || 0),
+    basicSalaryCalculated: Number(row.basic_salary_calculated || 0),
+    totalDeductionBon: Number(row.total_deduction_bon || 0),
+    netSalary: Number(row.net_salary || 0),
+    paidAt: row.paid_at,
+    notes: row.notes
+  };
+}
+
 function mapUser(row) {
   return {
     id: row.id,
@@ -908,7 +1025,7 @@ async function getTableColumns(table, connection = db, refresh = false) {
 }
 
 async function backupData() {
-  const tables = ["suppliers", "products", "purchases", "sales", "users", "price_history", "activity_logs", "app_settings"];
+  const tables = ["employees", "cash_advances", "payrolls", "suppliers", "products", "purchases", "sales", "users", "price_history", "activity_logs", "app_settings"];
   const backup = {
     version: 1,
     exportedAt: new Date().toISOString(),
@@ -929,8 +1046,8 @@ async function restoreData(backup) {
     throw new Error("File backup tidak valid.");
   }
 
-  const tableOrder = ["sales", "purchases", "price_history", "products", "suppliers", "users", "activity_logs", "app_settings"];
-  const restoreOrder = ["suppliers", "users", "products", "purchases", "sales", "price_history", "activity_logs", "app_settings"];
+  const tableOrder = ["payrolls", "cash_advances", "employees", "sales", "purchases", "price_history", "products", "suppliers", "users", "activity_logs", "app_settings"];
+  const restoreOrder = ["employees", "suppliers", "users", "products", "purchases", "sales", "price_history", "activity_logs", "app_settings", "cash_advances", "payrolls"];// "users", "products", "purchases", "sales", "price_history", "activity_logs", "app_settings"];
   const connection = await db.getConnection();
 
   try {
@@ -1375,7 +1492,7 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 }
 
 function assertCollection(collection) {
-  if (!["products", "suppliers", "purchases", "sales", "users", "priceHistory", "auditLogs"].includes(collection)) {
+  if (!["products", "suppliers", "purchases", "sales", "users", "priceHistory", "auditLogs"].includes(collection) && !["employees", "cashAdvances", "payrolls"].includes(collection)) {
     throw new Error("Collection tidak dikenal.");
   }
 }
@@ -1387,6 +1504,9 @@ function tableName(collection) {
     purchases: "purchases",
     sales: "sales",
     users: "users",
+      employees: "employees",
+      cashAdvances: "cash_advances",
+      payrolls: "payrolls",
     priceHistory: "price_history",
     auditLogs: "activity_logs"
   };

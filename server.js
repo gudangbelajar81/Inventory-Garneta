@@ -767,7 +767,7 @@ async function salePayload(item) {
     unitSold: number(item.unitSold),
     unitContent: Math.max(number(product.unitContent), 1),
     costPrice: number(product.costPrice),
-    salePrice: number(product.salePrice),
+    salePrice: number(product.salePriceEcer),
     notes: item.notes || null
   };
 }

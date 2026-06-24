@@ -346,9 +346,10 @@ async function listRows(collection) {
 
   if (collection === "purchases") {
     const [rows] = await db.query(`
-      SELECT p.id, p.supplier_id, s.name AS supplier, p.invoice_number, p.purchased_at, p.total
+      SELECT p.id, p.purchased_at, p.total, pd.quantity, pd.unit_price, pr.name AS product
       FROM purchases p
-      LEFT JOIN suppliers s ON s.id = p.supplier_id
+      LEFT JOIN purchase_details pd ON pd.purchase_id = p.id
+      LEFT JOIN products pr ON pr.id = pd.product_id
       ORDER BY p.id DESC
     `);
     return rows.map(mapPurchase);
@@ -422,27 +423,72 @@ async function addRow(collection, item = {}) {
   }
 
   if (collection === "purchases") {
-    const payload = purchasePayload(item);
-    const [result] = await db.query(`
-      INSERT INTO purchases (supplier_id, user_id, invoice_number, purchased_at, total)
-      VALUES (:supplierId, :userId, :invoice, :date, :total)
-    `, payload);
+    let productId = null;
+    let isNewProduct = false;
     
-    if (payload.productId && payload.qty > 0) {
-      await db.query(`
-        INSERT INTO purchase_details (purchase_id, product_id, quantity, unit_price)
-        VALUES (?, ?, ?, ?)
-      `, [result.insertId, payload.productId, payload.qty, payload.amount]);
-      
+    // 1. Cari produk berdasarkan nama
+    const [existingProducts] = await db.query(`SELECT id FROM products WHERE name = ? LIMIT 1`, [item.name]);
+    
+    if (existingProducts.length > 0) {
+      productId = existingProducts[0].id;
+      // UPDATE produk lama (harga & stok)
       await db.query(`
         UPDATE products 
-        SET stock = stock + ? 
+        SET category = ?, unit = ?, unit_content = ?, base_price = ?, base_price_ecer = ?, sale_price = ?, barcode = ?, stock = stock + ?
         WHERE id = ?
-      `, [payload.qty, payload.productId]);
+      `, [
+        item.category || 'Umum',
+        item.unit || 'pcs',
+        number(item.unitContent) || 1,
+        number(item.basePrice),
+        number(item.basePriceEcer),
+        number(item.salePrice),
+        item.barcode || null,
+        number(item.qty),
+        productId
+      ]);
+    } else {
+      isNewProduct = true;
+      // INSERT produk baru
+      const [prodResult] = await db.query(`
+        INSERT INTO products (category, name, unit, unit_content, base_price, base_price_ecer, sale_price, stock, barcode)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        item.category || 'Umum',
+        item.name,
+        item.unit || 'pcs',
+        number(item.unitContent) || 1,
+        number(item.basePrice),
+        number(item.basePriceEcer),
+        number(item.salePrice),
+        number(item.qty),
+        item.barcode || null
+      ]);
+      productId = prodResult.insertId;
     }
+
+    // 2. Insert ke tabel purchases
+    const [purchResult] = await db.query(`
+      INSERT INTO purchases (supplier_id, user_id, invoice_number, purchased_at, total)
+      VALUES (NULL, 1, ?, ?, ?)
+    `, [item.invoice || null, item.date || new Date(), number(item.total)]);
     
-    await recordAudit(`Tambah pembelian: ${item.invoice || item.product || "tanpa nomor nota"}`);
-    return findRow("purchases", result.insertId);
+    const purchaseId = purchResult.insertId;
+
+    // 3. Insert ke purchase_details
+    await db.query(`
+      INSERT INTO purchase_details (purchase_id, product_id, quantity, unit_price)
+      VALUES (?, ?, ?, ?)
+    `, [purchaseId, productId, number(item.qty), number(item.basePrice)]);
+
+    // 4. Catat riwayat harga
+    await db.query(`
+      INSERT INTO price_history (product_id, purchase_id, base_price, unit_content, sale_price, recorded_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [productId, purchaseId, number(item.basePrice), number(item.unitContent) || 1, number(item.salePrice), item.date || new Date()]);
+    
+    await recordAudit(`Omni-Pembelian: ${item.name} (${isNewProduct ? 'Baru' : 'Update'})`);
+    return findRow("purchases", purchaseId);
   }
 
   if (collection === "sales") {
@@ -782,13 +828,10 @@ function mapSupplier(row) {
 function mapPurchase(row) {
   return {
     id: row.id,
-    supplierId: row.supplier_id,
-    supplier: row.supplier || "-",
-    invoice: row.invoice_number || "-",
-    date: formatDate(row.purchased_at),
-    product: row.product || "",
-    qty: Number(row.qty || 0),
-    amount: Number(row.amount || 0),
+    date: row.purchased_at,
+    product: row.product || "Tidak diketahui",
+    qty: Number(row.quantity || 0),
+    amount: Number(row.unit_price || 0),
     total: Number(row.total || 0),
     notes: row.notes || ""
   };

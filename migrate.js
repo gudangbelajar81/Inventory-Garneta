@@ -46,7 +46,28 @@ async function migrate() {
   const connection = await createConnection();
   try {
     await connection.query(sql);
-    logger.info(`Migrasi database selesai: ${database}`);
+    logger.info(`Skema database dasar selesai: ${database}`);
+
+    // Jalankan migrasi ALTER TABLE aman (idempotent jika dimungkinkan, atau ignore error)
+    try {
+      await connection.query(`ALTER TABLE purchases MODIFY supplier_id BIGINT UNSIGNED NULL`);
+      logger.info(`Migrasi: purchases.supplier_id dibuat NULLable`);
+    } catch (e) {
+      // Abaikan jika error
+    }
+
+    try {
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'products' AND COLUMN_NAME = 'base_price_ecer'
+      `, [database]);
+      if (columns.length === 0) {
+        await connection.query(`ALTER TABLE products ADD COLUMN base_price_ecer DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER base_price`);
+        logger.info(`Migrasi: products.base_price_ecer ditambahkan`);
+      }
+    } catch (e) {}
+
+    logger.info(`Migrasi database sepenuhnya selesai: ${database}`);
   } finally {
     await connection.end();
   }

@@ -136,6 +136,8 @@ app.post("/api", async (req, res) => {
       (action === "add" && payload.collection === "sales");
 
     if (!isPublic) {
+      // Fitur JWT dinonaktifkan sementara sesuai instruksi Bos
+      /*
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
         throw new Error("Akses ditolak: Token JWT tidak ditemukan. Silakan login kembali.");
@@ -146,6 +148,7 @@ app.post("/api", async (req, res) => {
       } catch (err) {
         throw new Error("Akses ditolak: Token JWT tidak valid atau sudah kadaluarsa. Silakan login kembali.");
       }
+      */
     }
 
     const data = await handleAction(action, payload);

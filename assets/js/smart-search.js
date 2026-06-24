@@ -168,12 +168,12 @@
   }
 
   function renderBarangQuickCard(product) {
-    return '<div class="quick-action-card compact" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">' +
-      '<div style="flex: 1; min-width: 0;">' +
+    return '<div class="quick-action-card compact hover-ninja-container" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">' +
+      '<div class="hover-ninja-content">' +
         '<div style="font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem;">📦 ' + escapeHtml(product.name) + '</div>' +
         '<div style="font-size: 0.8rem; color: #888; margin-top: 2px;">' + formatRupiah(product.salePrice || 0) + ' &bull; ' + escapeHtml(product.category || 'Umum') + '</div>' +
       '</div>' +
-      '<div style="display: flex; gap: 6px; flex-shrink: 0;">' +
+      '<div class="hover-ninja-actions">' +
         '<button class="btn primary" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px;" onclick="quickActionJual(\'' + product.id + '\')">🛒 Jual</button>' +
         '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionEditBarang(\'' + product.id + '\')">✏️ Edit</button>' +
         '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionLihatSupplier(\'' + product.id + '\')">🏢 Suplier</button>' +
@@ -182,12 +182,12 @@
   }
 
   function renderSupplierQuickCard(supplier) {
-    return '<div class="quick-action-card compact" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">' +
-      '<div style="flex: 1; min-width: 0;">' +
+    return '<div class="quick-action-card compact hover-ninja-container" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">' +
+      '<div class="hover-ninja-content">' +
         '<div style="font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem;">🏭 ' + escapeHtml(supplier.name) + '</div>' +
         '<div style="font-size: 0.8rem; color: #888; margin-top: 2px;">' + escapeHtml(supplier.phone || '-') + '</div>' +
       '</div>' +
-      '<div style="display: flex; gap: 6px; flex-shrink: 0;">' +
+      '<div class="hover-ninja-actions">' +
         '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionEditSupplier(\'' + supplier.id + '\')">✏️ Edit</button>' +
         '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionLihatBarangSupplier(\'' + supplier.id + '\')">📦 Barang</button>' +
       '</div>' +

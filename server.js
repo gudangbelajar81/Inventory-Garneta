@@ -153,6 +153,7 @@ async function handleAction(action, payload) {
     aiSettings: () => getAiSettings(payload.provider),
     aiSettingsAll: () => getAllAiSettings(),
     saveAiSettings: () => saveAiSettings(payload),
+    addAiKey: () => addAiKey(payload),
     editAiKey: () => editAiKey(payload),
     deleteAiKey: () => deleteAiKey(payload),
     testAiSettings: () => testAiSettings(payload.provider),
@@ -1149,6 +1150,16 @@ async function saveAiSettings(payload = {}) {
     }
   }
   
+  return getAiSettings(provider);
+}
+
+async function addAiKey(payload = {}) {
+  const { provider, name, apiKey, baseUrl } = payload;
+  if (!provider || !apiKey || !name) throw new Error("Provider, Nama, dan API Key wajib diisi.");
+  await db.query(`
+    INSERT INTO pi_keys_manager (provider, name, api_key, base_url, status)
+    VALUES (?, ?, ?, ?, 'Alive')
+  `, [normalizeProvider(provider), name, apiKey, baseUrl || null]);
   return getAiSettings(provider);
 }
 

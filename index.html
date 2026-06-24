@@ -2608,6 +2608,33 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       }
     }
 
+    window.saveOmniApiKey = async function() {
+      const target = el("api-settings-test-result") || document.createElement("div"); // fallback
+      try {
+        const provider = el("api-key-provider").value;
+        const name = el("api-key-name").value;
+        const apiKey = el("api-key-value").value;
+        const baseUrl = el("api-key-url").value;
+
+        if (!provider || !name || !apiKey) {
+          alert("Pilih provider, isi nama akun, dan API key.");
+          return;
+        }
+
+        await gas("addAiKey", { provider, name, apiKey, baseUrl });
+        alert("Kunci API berhasil ditambahkan!");
+        
+        // Reset form dan hide
+        el("api-key-form").reset();
+        document.getElementById('api-key-form-container').classList.add('hidden');
+        
+        // Reload settings
+        await loadAiSettings(el("ai-provider")?.value || "gemini");
+      } catch (error) {
+        alert("Gagal menyimpan kunci: " + error.message);
+      }
+    };
+
     async function testAiSettings() {
       const target = el("ai-settings-test-result");
       try {

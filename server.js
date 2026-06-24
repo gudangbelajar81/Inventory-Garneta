@@ -796,8 +796,8 @@ async function validateSuperAdminCreate(item) {
 }
 
 function productPayload(item) {
-  return {
-    supplierId: number(item.supplierId),
+    return {
+      supplierId: nullableNumber(item.supplierId),
     category: item.category || "Umum",
     name: required(item.name, "Nama barang"),
     unit: item.unit || "pcs",

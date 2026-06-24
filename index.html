@@ -1571,6 +1571,8 @@ Beras Premium 1"></textarea>
         ${input("basePriceEcer", "Harga Dasar/Pcs", false, "number")}
         ${input("salePrice", "Harga Jual (Grosir)", false, "number")}
         ${input("salePriceEcer", "Harga Jual Ecer", false, "number")}
+          <label>Potensi Cuan (Grosir)<input name="cuanGrosir" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>
+          <label>Potensi Cuan (Ecer/Pcs)<input name="cuanEcer" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>
         ${input("stock", "Stok", false, "number")}
         ${input("barcode", "Barcode / Kode Scanner")}
         ${formButtons()}
@@ -3325,6 +3327,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         if (form.elements[key]) form.elements[key].value = row[key];
       });
       if (form.elements.password) form.elements.password.value = "";
+      
+      // Trigger auto calculations
+      if (form.elements.salePrice) form.elements.salePrice.dispatchEvent(new Event('input', { bubbles: true }));
+      
       scrollTo({ top: 0, behavior: "smooth" });
     }
 

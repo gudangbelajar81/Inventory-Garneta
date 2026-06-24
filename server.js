@@ -973,8 +973,8 @@ async function restoreData(backup) {
   return bootstrap();
 }
 
-const AI_PROVIDERS = ["gemini", "openai", "groq", "deepseek"];
-const VISION_PROVIDERS = ["gemini", "openai"];
+const AI_PROVIDERS = ["gemini", "openai", "groq", "deepseek", "kie"];
+const VISION_PROVIDERS = ["gemini", "openai", "kie"];
 const AI_KEY_LIMIT = 10;
 
 function providerLabel(provider) {
@@ -982,7 +982,8 @@ function providerLabel(provider) {
     gemini: "Gemini",
     openai: "OpenAI",
     groq: "Groq",
-    deepseek: "DeepSeek"
+    deepseek: "DeepSeek",
+    kie: "Kie AI"
   };
   return labels[provider] || provider;
 }
@@ -997,7 +998,8 @@ function defaultAiModel(provider) {
     gemini: "gemini-2.5-flash",
     openai: "gpt-4.1-mini",
     groq: "meta-llama/llama-4-scout-17b-16e-instruct",
-    deepseek: "deepseek-chat"
+    deepseek: "deepseek-chat",
+    kie: "gpt-5-4"
   };
   return models[normalizeProvider(provider)];
 }
@@ -1036,7 +1038,8 @@ function defaultBaseUrl(provider) {
     gemini: "https://generativelanguage.googleapis.com",
     openai: "https://api.openai.com",
     groq: "https://api.groq.com/openai",
-    deepseek: "https://api.deepseek.com"
+    deepseek: "https://api.deepseek.com",
+    kie: "https://api.kie.ai/codex/v1/responses"
   };
   return urls[normalizeProvider(provider)];
 }
@@ -1199,7 +1202,7 @@ async function checkApiKey(provider, keyRecord) {
     const url = healthCheckUrl(provider, keyRecord.baseUrl, keyRecord.key);
     const options = healthCheckOptions(provider, keyRecord.key);
     const response = await fetchWithTimeout(url, options, 12000);
-    if (response.ok) {
+    if (response.ok || (provider === "kie" && [404, 405].includes(response.status))) {
       return { ...keyRecord, status: "live", message: "OK" };
     }
     if ([401, 403].includes(response.status)) {
@@ -1274,7 +1277,7 @@ async function getVisionProviders() {
 
 async function executeVisionRequest(provider, keyRec, imageDataUrl, instruction) {
   if (provider === "gemini") return executeGeminiVision(keyRec, imageDataUrl, instruction);
-  if (provider === "openai") return executeOpenAiVision(keyRec, imageDataUrl, instruction);
+  if (provider === "openai" || provider === "kie") return executeOpenAiVision(keyRec, imageDataUrl, instruction, provider);
   throw new Error(`${providerLabel(provider)} belum mendukung analisa gambar di aplikasi ini.`);
 }
 
@@ -1308,11 +1311,16 @@ async function executeGeminiVision(keyRec, imageDataUrl, instruction) {
   return json.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
 }
 
-async function executeOpenAiVision(keyRec, imageDataUrl, instruction) {
-  const base = keyRec.baseUrl || defaultBaseUrl("openai");
-  const model = await getSetting(providerModelSettingKey("openai"), defaultAiModel("openai"));
+async function executeOpenAiVision(keyRec, imageDataUrl, instruction, provider = "openai") {
+  const base = keyRec.baseUrl || defaultBaseUrl(provider);
+  const model = await getSetting(providerModelSettingKey(provider), defaultAiModel(provider));
   
-  const response = await fetchWithTimeout(`${base}/v1/chat/completions`, {
+  let endpoint = `${base}/v1/chat/completions`;
+  if (base.endsWith("/responses") || base.endsWith("/messages") || base.endsWith("/completions")) {
+    endpoint = base;
+  }
+  
+  const response = await fetchWithTimeout(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${keyRec.key}` },
     body: JSON.stringify({

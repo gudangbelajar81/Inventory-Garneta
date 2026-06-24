@@ -1655,7 +1655,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           <datalist id="sale-products-list">${prodOptions}</datalist>
         </label>
         ${input("unitSold", "Unit Terjual", true, "number")}
-        <label>Potensi Cuan (Rp)<input name="cuan" type="text" readonly style="background-color:#1c2536;color:#10b981;font-weight:bold;" placeholder="0"></label>
+        <label>Potensi Cuan (Rp)<input name="cuan" type="text" readonly style="background-color:#1c2536;color:#10b981;font-weight:bold;" placeholder="Rp 0"></label>
         <div class="form-actions" style="grid-column: 1 / -1">
           <button type="submit" class="btn primary" style="width:100%;font-weight:bold;">Tambah ke Keranjang</button>
         </div>
@@ -2169,6 +2169,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         };
 
         form.elements.product.addEventListener("input", updateCuan);
+          form.elements.product.addEventListener("change", updateCuan);
         form.elements.unitSold.addEventListener("input", updateCuan);
 
         form.addEventListener("submit", (e) => {

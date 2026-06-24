@@ -9,6 +9,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP VIEW IF EXISTS monthly_sales_profit;
 DROP VIEW IF EXISTS daily_sales_profit;
 
+DROP TABLE IF EXISTS pi_keys_manager;
 DROP TABLE IF EXISTS activity_logs;
 DROP TABLE IF EXISTS sales;
 DROP TABLE IF EXISTS repacking;
@@ -200,6 +201,19 @@ CREATE TABLE activity_logs (
     ON DELETE SET NULL
     ON UPDATE CASCADE,
   INDEX idx_activity_logs_created_at (created_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE pi_keys_manager (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  provider VARCHAR(100) NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  api_key TEXT NOT NULL,
+  base_url VARCHAR(255) NULL,
+  status ENUM('Alive', 'Limit', 'Dead') NOT NULL DEFAULT 'Alive',
+  used_count INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_pi_keys_provider_status (provider, status)
 ) ENGINE=InnoDB;
 
 CREATE VIEW daily_sales_profit AS

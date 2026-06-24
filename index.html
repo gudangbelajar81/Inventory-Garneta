@@ -15,54 +15,59 @@
   <link rel="stylesheet" href="/assets/css/neural-hub-dashboard.css?v=3">
   <style>
     :root {
-      --green: #24f0c7;
-      --mint: #8df7df;
-      --orange: #ff7043;
-      --dark: #e8fbff;
-      --line: rgba(141, 247, 223, .16);
-      --page: #0b1f24;
-      --surface: #102a31;
-      --surface-2: #142f38;
-      --soft-text: #8fb4bd;
-      --text: #e8fbff;
-      --card-bg: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.035));
-      --field-bg: rgba(6,19,24,.68);
-      --topbar-bg: rgba(9,28,34,.86);
-      --sidebar-bg: linear-gradient(180deg, rgba(13,38,45,.96), rgba(8,24,29,.98));
-      --nav-text: #dffcff;
+      --green: #00ffcc;
+      --mint: #b3ffeb;
+      --orange: #ff007f;
+      --dark: #e0f2f1;
+      --line: rgba(0, 255, 204, 0.2);
+      --page: #050b14;
+      --surface: #0a1526;
+      --surface-2: #0f203a;
+      --soft-text: #6b8a9e;
+      --text: #e0f8f5;
+      --card-bg: linear-gradient(145deg, rgba(10, 21, 38, 0.8), rgba(5, 11, 20, 0.9));
+      --field-bg: rgba(5, 11, 20, 0.7);
+      --topbar-bg: rgba(5, 11, 20, 0.85);
+      --sidebar-bg: linear-gradient(180deg, rgba(10, 21, 38, 0.95), rgba(5, 11, 20, 0.98));
+      --nav-text: #b3ffeb;
     }
     * { box-sizing: border-box; }
     html, body { max-width: 100%; overflow-x: hidden; }
-    body { margin: 0; font-family: Arial, sans-serif; background: radial-gradient(circle at 15% 0%, rgba(36,240,199,.16), transparent 26%), radial-gradient(circle at 95% 8%, rgba(255,112,67,.12), transparent 28%), var(--page); color: var(--text); }
+    body { margin: 0; font-family: Arial, sans-serif; background: radial-gradient(circle at 15% 0%, rgba(0,255,204,.15), transparent 26%), radial-gradient(circle at 95% 8%, rgba(255,0,127,.15), transparent 28%), var(--page); color: var(--text); }
     button, input, select, textarea { font: inherit; }
     .app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
-    .sidebar { background: var(--sidebar-bg); color: var(--nav-text); padding: 18px; border-right: 1px solid var(--line); box-shadow: 18px 0 48px rgba(0,0,0,.22); }
+    .sidebar { background: var(--sidebar-bg); color: var(--nav-text); padding: 18px; border-right: 1px solid var(--line); box-shadow: 18px 0 48px rgba(0,0,0,.3); }
     .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; min-width: 0; }
-    .brand-logo { width: 44px; height: 44px; flex: 0 0 44px; filter: drop-shadow(0 10px 22px rgba(36,240,199,.22)); }
-    .brand-title { display: block; font-size: 19px; font-weight: 950; line-height: 1.02; letter-spacing: 1.4px; color: #f8ffff; text-transform: uppercase; text-shadow: 0 2px 14px rgba(36,240,199,.18); }
+    .brand-logo { width: 44px; height: 44px; flex: 0 0 44px; filter: drop-shadow(0 10px 22px rgba(0,255,204,.3)); }
+    .brand-title { display: block; font-size: 19px; font-weight: 950; line-height: 1.02; letter-spacing: 1.4px; color: #ffffff; text-transform: uppercase; text-shadow: 0 2px 14px rgba(0,255,204,.3); }
     .brand-subtitle { display: block; margin-top: 5px; font-size: 9px; font-weight: 900; letter-spacing: 2.2px; color: var(--mint); text-transform: uppercase; }
     .nav { display: grid; gap: 8px; }
-    .nav button { border: 1px solid rgba(141,247,223,.1); border-radius: 10px; padding: 11px 12px; cursor: pointer; text-align: left; color: var(--nav-text); background: rgba(255,255,255,.045); }
-    .nav button.active, .nav button:hover { background: linear-gradient(135deg, rgba(36,240,199,.22), rgba(255,112,67,.14)); border-color: rgba(36,240,199,.34); box-shadow: 0 0 22px rgba(36,240,199,.12); }
+    .nav button { border: 1px solid rgba(0,255,204,.1); border-radius: 10px; padding: 11px 12px; cursor: pointer; text-align: left; color: var(--nav-text); background: rgba(255,255,255,.045); transition: all 0.3s ease; }
+    .nav button.active, .nav button:hover { background: linear-gradient(135deg, rgba(0,255,204,.25), rgba(255,0,127,.15)); border-color: rgba(0,255,204,.4); box-shadow: 0 0 22px rgba(0,255,204,.2); transform: translateX(4px); }
     .main, .content, .card, .table-wrap { min-width: 0; }
     .main { position: relative; isolation: isolate; }
-    .page-watermark { position: fixed; right: clamp(12px, 5vw, 82px); bottom: clamp(18px, 6vh, 74px); width: min(var(--watermark-size, 44vw), 680px); aspect-ratio: 1; background: url("/assets/images/basket-watermark.svg") center / contain no-repeat; opacity: .14; pointer-events: none; z-index: 0; filter: drop-shadow(0 24px 60px rgba(36,240,199,.08)); display: grid; place-items: center; }
-    .page-watermark-text { max-width: 82%; text-align: center; color: var(--watermark-text-color, var(--mint)); font-size: clamp(14px, var(--watermark-text-size, 4vw), 96px); font-weight: 950; letter-spacing: 5px; text-transform: uppercase; text-shadow: 0 12px 34px rgba(0,0,0,.28); transform: translateY(8%); }
+    .page-watermark { position: fixed; right: clamp(12px, 5vw, 82px); bottom: clamp(18px, 6vh, 74px); width: min(var(--watermark-size, 44vw), 680px); aspect-ratio: 1; background: url("/assets/images/basket-watermark.svg") center / contain no-repeat; opacity: .05; pointer-events: none; z-index: 0; filter: drop-shadow(0 24px 60px rgba(0,255,204,.1)); display: grid; place-items: center; }
+    .page-watermark-text { max-width: 82%; text-align: center; color: var(--watermark-text-color, var(--mint)); font-size: clamp(14px, var(--watermark-text-size, 4vw), 96px); font-weight: 950; letter-spacing: 5px; text-transform: uppercase; text-shadow: 0 12px 34px rgba(0,0,0,.4); transform: translateY(8%); }
     .topbar, .content { position: relative; z-index: 1; }
-    .topbar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 18px; background: var(--topbar-bg); border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); box-shadow: 0 16px 40px rgba(0,0,0,.18); }
+    .topbar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 18px; background: var(--topbar-bg); border-bottom: 1px solid var(--line); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 16px 40px rgba(0,0,0,.25); }
     .content { padding: 18px; }
-    .card { background: var(--card-bg); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 22px 54px rgba(0,0,0,.28); }
+    .card { background: var(--card-bg); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 22px 54px rgba(0,0,0,.4), inset 0 0 20px rgba(0,255,204,.05); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 26px 60px rgba(0,0,0,.5), inset 0 0 25px rgba(0,255,204,.08); }
     .grid { display: grid; gap: 14px; }
     .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .forms { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .btn { border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; background: rgba(255,255,255,.05); color: #e8fbff; cursor: pointer; font-weight: 800; }
-    .btn.primary { border: 0; color: #062024; background: linear-gradient(135deg, var(--green), var(--orange)); box-shadow: 0 10px 24px rgba(36,240,199,.18); }
-    .btn.danger { color: #ffd2c5; background: rgba(255,112,67,.12); border-color: rgba(255,112,67,.34); }
-    .btn.soft { color: var(--mint); background: rgba(36,240,199,.1); border-color: rgba(36,240,199,.28); }
-    label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; }
-    input, select, textarea { width: 100%; border: 1px solid rgba(141,247,223,.18); border-radius: 10px; padding: 9px 10px; background: var(--field-bg); color: var(--text); outline: none; }
-    input:focus, select:focus, textarea:focus { border-color: rgba(36,240,199,.62); box-shadow: 0 0 0 3px rgba(36,240,199,.09); }
+    .btn { border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; background: rgba(255,255,255,.05); color: #e8fbff; cursor: pointer; font-weight: 800; transition: all 0.3s ease; backdrop-filter: blur(4px); }
+    .btn:hover { background: rgba(255,255,255,.1); transform: translateY(-1px); }
+    .btn.primary { border: 0; color: #000000; background: linear-gradient(135deg, var(--green), var(--mint)); box-shadow: 0 10px 24px rgba(0,255,204,.3), inset 0 0 10px rgba(255,255,255,.5); }
+    .btn.primary:hover { box-shadow: 0 12px 28px rgba(0,255,204,.4), inset 0 0 12px rgba(255,255,255,.6); }
+    .btn.danger { color: #ff99cc; background: rgba(255,0,127,.12); border-color: rgba(255,0,127,.4); }
+    .btn.danger:hover { background: rgba(255,0,127,.2); box-shadow: 0 0 15px rgba(255,0,127,.3); }
+    .btn.soft { color: var(--green); background: rgba(0,255,204,.1); border-color: rgba(0,255,204,.3); }
+    .btn.soft:hover { background: rgba(0,255,204,.2); box-shadow: 0 0 15px rgba(0,255,204,.2); }
+    label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; color: var(--mint); }
+    input, select, textarea { width: 100%; border: 1px solid rgba(0,255,204,.2); border-radius: 10px; padding: 9px 10px; background: var(--field-bg); color: var(--text); outline: none; transition: all 0.3s ease; backdrop-filter: blur(8px); }
+    input:focus, select:focus, textarea:focus { border-color: var(--green); box-shadow: 0 0 12px rgba(0,255,204,.2); background: rgba(10,21,38,0.9); }
     table { width: 100%; border-collapse: collapse; background: var(--field-bg); border-radius: 12px; overflow: hidden; }
     th, td { border-bottom: 1px solid rgba(141,247,223,.1); padding: 10px; text-align: left; font-size: 14px; vertical-align: top; }
     th { background: rgba(127,127,127,.08); color: var(--text); font-size: 12px; text-transform: uppercase; }
@@ -1001,21 +1006,53 @@ Beras Premium 1"></textarea>
         ` : ""}
 
         ${tab === "api" ? `
-        <div class="api-center-card">
-          <div class="api-section-title">API Keys</div>
-          <div id="ai-settings-panel" class="grid">
-            <p class="muted">Memuat pengaturan API...</p>
+        <div class="api-center-card" style="max-width: 100%;">
+          <div class="api-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>🗝️ Omni-API Gateway & Key Rotator</span>
+            <button class="btn primary" id="add-new-api-key" style="padding: 6px 12px; font-size:12px;" onclick="document.getElementById('api-key-form-container').classList.toggle('hidden')">+ Tambah Key</button>
           </div>
-          <button class="api-primary" id="test-ai-settings">HEALTH CHECK NOW</button>
+          <p class="muted">Kelola kunci API AI Anda dengan sistem rotasi otomatis (Failover) dan cegah limit 429.</p>
+
+          <!-- Form Tambah Kunci -->
+          <div id="api-key-form-container" class="card hidden" style="margin-bottom: 16px; border-color: var(--green);">
+            <h3 id="api-form-title" style="margin-top:0; color:var(--mint);">Tambah Kunci API</h3>
+            <form id="api-key-form" class="grid forms" onsubmit="event.preventDefault(); window.saveOmniApiKey && window.saveOmniApiKey()">
+              <input type="hidden" id="api-key-id">
+              <label>Provider AI
+                <select id="api-key-provider" required onchange="document.getElementById('api-key-url').value = this.value === 'OpenAI' ? 'https://api.openai.com/v1' : (this.value === 'Gemini' ? 'https://generativelanguage.googleapis.com' : (this.value === 'Groq' ? 'https://api.groq.com/openai/v1' : ''))">
+                  <option value="">-- Pilih Provider --</option>
+                  <option value="OpenAI">OpenAI</option>
+                  <option value="Gemini">Gemini</option>
+                  <option value="Groq">Groq</option>
+                  <option value="GoAPI">GoAPI</option>
+                  <option value="Custom">Custom / Lainnya</option>
+                </select>
+              </label>
+              <label>Nama Akun / Visual<input id="api-key-name" placeholder="Misal: Akun Utama Bos" required></label>
+              <label>API Key<input id="api-key-value" type="password" placeholder="sk-..." required></label>
+              <label>Base URL Endpoint<input id="api-key-url" placeholder="https://..." required></label>
+              <div class="actions" style="grid-column: 1/-1; justify-content: flex-end;">
+                <button type="button" class="btn soft" onclick="document.getElementById('api-key-form-container').classList.add('hidden')">Batal</button>
+                <button type="submit" class="btn primary">Simpan Kunci</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="ai-settings-panel" class="grid" style="gap: 10px;">
+            <p class="muted">Memuat pengaturan Omni-API Gateway...</p>
+          </div>
+          
+          <div class="actions" style="margin-top: 16px;">
+            <button class="api-primary" id="test-ai-settings">HEALTH CHECK SEMUA KUNCI</button>
+          </div>
           <p id="ai-settings-test-result" class="api-status-text"></p>
 
           <div class="api-help-card">
-            <strong>CARA SET API KEY</strong>
+            <strong>SISTEM FAILOVER AKTIF 🛡️</strong>
             <ol>
-              <li>Pilih provider AI: Gemini, OpenAI, atau Groq.</li>
-              <li>Masukkan sampai 10 API key, satu baris satu key.</li>
-              <li>Klik Save API Settings, lalu Health Check Now.</li>
-              <li>Sistem memprioritaskan key LIVE dan memindahkan key 429 ke DEAD.</li>
+              <li>Sistem akan menggunakan kunci berstatus <span style="color:var(--green); font-weight:bold;">ALIVE</span>.</li>
+              <li>Jika terkena limit (429) atau error, kunci otomatis ditandai <span style="color:var(--orange); font-weight:bold;">DEAD</span> dan berpindah ke kunci berikutnya tanpa henti.</li>
+              <li>Pastikan selalu ada cadangan kunci untuk menjamin operasional AI berjalan lancar bak raksasa teknologi.</li>
             </ol>
           </div>
         </div>

@@ -883,7 +883,13 @@ Minyak Goreng 3 45000"></textarea>
       const row = window.ngitungRows.find(r => r.id === id);
       if (!row) return;
       
-      row[field] = inputEl.value;
+      if (field === 'name') {
+        const titleCased = inputEl.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+        inputEl.value = titleCased;
+        row[field] = titleCased;
+      } else {
+        row[field] = inputEl.value;
+      }
       
       if (field === 'name' && inputEl.value.trim().length > 1) {
          const cleanVal = inputEl.value.trim();

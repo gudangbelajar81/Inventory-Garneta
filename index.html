@@ -3059,8 +3059,16 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function fillForm(collection, id) {
-      const form = document.querySelector(`form[data-form="${collection}"]`);
-      const row = state.data[collection].find((item) => String(item.id) === String(id));
+      let form = document.querySelector(`form[data-form="${collection}"]`);
+      if (!form) {
+        if (collection === 'products') window.barangWorkspace = 'form';
+        else if (collection === 'suppliers') window.supplierWorkspace = 'form';
+        else if (collection === 'purchases') window.pembelianWorkspace = 'form';
+        else if (collection === 'sales') window.penjualanWorkspace = 'form';
+        render();
+        form = document.querySelector(`form[data-form="${collection}"]`);
+      }
+      const row = state.data[collection]?.find((item) => String(item.id) === String(id));
       if (!form || !row) return;
       Object.keys(row).forEach((key) => {
         if (form.elements[key]) form.elements[key].value = row[key];

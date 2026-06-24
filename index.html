@@ -1208,11 +1208,13 @@ Beras Premium 1"></textarea>
             <form id="api-key-form" class="grid forms" onsubmit="event.preventDefault(); window.saveOmniApiKey && window.saveOmniApiKey()">
               <input type="hidden" id="api-key-id">
               <label>Provider AI
-                <select id="api-key-provider" required onchange="document.getElementById('api-key-url').value = this.value === 'OpenAI' ? 'https://api.openai.com/v1' : (this.value === 'Gemini' ? 'https://generativelanguage.googleapis.com' : (this.value === 'Groq' ? 'https://api.groq.com/openai/v1' : ''))">
+                <select id="api-key-provider" required onchange="document.getElementById('api-key-url').value = this.value === 'OpenAI' ? 'https://api.openai.com/v1' : (this.value === 'Gemini' ? 'https://generativelanguage.googleapis.com' : (this.value === 'Groq' ? 'https://api.groq.com/openai/v1' : (this.value === 'DeepSeek' ? 'https://api.deepseek.com' : (this.value === 'Kie' ? 'https://api.kie.ai/codex/v1/responses' : ''))))">
                   <option value="">-- Pilih Provider --</option>
                   <option value="OpenAI">OpenAI</option>
                   <option value="Gemini">Gemini</option>
                   <option value="Groq">Groq</option>
+                  <option value="DeepSeek">DeepSeek</option>
+                  <option value="Kie">Kie AI (OpenAI Compatible)</option>
                   <option value="GoAPI">GoAPI</option>
                   <option value="Custom">Custom / Lainnya</option>
                 </select>
@@ -2397,6 +2399,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
               <option value="openai" ${settings.provider === "openai" ? "selected" : ""}>OpenAI</option>
               <option value="groq" ${settings.provider === "groq" ? "selected" : ""}>Groq</option>
               <option value="deepseek" ${settings.provider === "deepseek" ? "selected" : ""}>DeepSeek</option>
+              <option value="kie" ${settings.provider === "kie" ? "selected" : ""}>Kie AI (OpenAI Compatible)</option>
             </select>
             <label>Model</label>
             <input id="ai-model" value="auto" placeholder="auto / gemini-2.5-flash" title="Kosongkan atau isi auto agar backend memilih model terbaik bawaan provider.">

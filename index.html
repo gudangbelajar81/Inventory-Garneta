@@ -3229,6 +3229,21 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       }
     });
 
+    // Form Barang auto-calculations
+    document.addEventListener('input', (e) => {
+      const form = e.target.closest('form[data-form="products"]');
+      if (form && (e.target.name === 'basePriceEcer' || e.target.name === 'basePrice' || e.target.name === 'unitContent')) {
+        const unitContent = parseFloat(form.unitContent.value) || 1;
+        if (e.target.name === 'basePriceEcer') {
+          const ecer = parseFloat(e.target.value) || 0;
+          form.basePrice.value = Math.round(ecer * unitContent);
+        } else if (e.target.name === 'basePrice' || e.target.name === 'unitContent') {
+          const base = parseFloat(form.basePrice.value) || 0;
+          form.basePriceEcer.value = unitContent > 0 ? Math.round(base / unitContent) : 0;
+        }
+      }
+    });
+
     setInterval(() => el("clock").textContent = new Date().toLocaleString("id-ID"), 1000);
     load().catch((error) => el("content").innerHTML = `<div class="card"><h2>Error</h2><p>${error.message}</p></div>`);
   </script>

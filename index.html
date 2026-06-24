@@ -2389,8 +2389,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           </div>
           <div class="api-key-list">${providerRows}</div>
           <div class="api-key-box">
-            <label>API KEY LAYERS SEMUA PROVIDER</label>
-            <div class="api-key-list">${keyRows}</div>
+            <details>
+              <summary style="cursor:pointer; font-weight:bold; color:var(--mint); margin-bottom:8px;">▾ LIHAT DAFTAR API KEY LENGKAP</summary>
+              <div class="api-key-list">${keyRows}</div>
+            </details>
           </div>
           <form id="ai-settings-form" class="api-form-grid">
             <label>Provider AI</label>
@@ -2403,16 +2405,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             </select>
             <label>Model</label>
             <input id="ai-model" value="auto" placeholder="auto / gemini-2.5-flash" title="Kosongkan atau isi auto agar backend memilih model terbaik bawaan provider.">
-            <label>API Keys Baru / Pengganti</label>
-            <div id="ai-key-input-list" class="api-key-input-list"></div>
-            <div class="actions">
-              <button class="btn soft" id="add-ai-key" type="button">+ Tambah Key</button>
-              <button class="btn soft" id="toggle-ai-key" type="button">SHOW</button>
-            </div>
-            <button class="api-primary" type="submit">SAVE API SETTINGS</button>
+            <button class="api-primary" type="submit">SIMPAN PROVIDER AKTIF</button>
           </form>
           <div class="api-warning">
-            SAVE API SETTINGS akan menambahkan key baru ke layer provider terpilih sampai maksimal 10 key. Key lama tetap tersimpan, duplikat otomatis diabaikan.
+            Pilih Provider AI utama yang akan digunakan untuk asisten. Pastikan Anda sudah menambahkan API Key-nya di atas.
           </div>
           <div class="api-warning">
             Analisa foto hanya memakai provider vision: Gemini, OpenAI, dan Groq. DeepSeek disimpan untuk fallback teks dan tidak dikirim gambar.
@@ -2527,28 +2523,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     function bindAiSettingsForm() {
       const providerInput = el("ai-provider");
       const modelInput = el("ai-model");
-      const toggle = el("toggle-ai-key");
       const form = el("ai-settings-form");
-      const addButton = el("add-ai-key");
-
-      renderAiKeyInputs([""]);
 
       providerInput?.addEventListener("change", () => {
         modelInput.value = "auto";
         loadAiSettings(providerInput.value);
       });
 
-      toggle?.addEventListener("click", () => {
-        const inputs = [...document.querySelectorAll(".ai-key-input")];
-        const visible = inputs.some((input) => input.dataset.hidden !== "true");
-        inputs.forEach((input) => {
-          input.dataset.hidden = visible ? "true" : "false";
-          input.type = visible ? "password" : "text";
-        });
-        toggle.textContent = visible ? "SHOW" : "HIDE";
-      });
-
-      addButton?.addEventListener("click", () => addAiKeyInput());
       form?.addEventListener("submit", saveAiSettings);
     }
 
@@ -2598,8 +2579,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         target.textContent = "Menyimpan API settings...";
         await gas("saveAiSettings", {
           provider: el("ai-provider").value,
-          model: el("ai-model").value,
-          apiKeys: collectAiKeyValues()
+          model: el("ai-model").value
         });
         target.textContent = "API settings berhasil disimpan.";
         await loadAiSettings(el("ai-provider").value);

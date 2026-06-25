@@ -1322,22 +1322,36 @@ Minyak Goreng 3 45000"></textarea>
     };
 
     window.ngitungPrintBluetooth = async function() {
-      try {
-        const device = await navigator.bluetooth.requestDevice({
-          filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
-          optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
-        }).catch(e => {
-          return navigator.bluetooth.requestDevice({
+        try {
+          const device = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
-            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+            optionalServices: [
+              '000018f0-0000-1000-8000-00805f9b34fb',
+              'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+              '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+              '000018f0-0000-1000-8000-00805f9b34fb'.replace('18f0', '18f0') // standard
+            ]
           });
-        });
+  
+          const server = await device.gatt.connect();
+          
+          let service, characteristic;
+          const serviceUUIDs = [
+              { svc: '000018f0-0000-1000-8000-00805f9b34fb', char: '00002af1-0000-1000-8000-00805f9b34fb' }, // Standard
+              { svc: '49535343-fe7d-4ae5-8fa9-9fafd205e455', char: '49535343-8841-43f4-a8d4-ecbe34729bb3' }, // Printer China generic
+              { svc: 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', char: 'bef8d6c9-9c21-4c9e-b632-bd58c1009f9f' }  // Epson/Star
+          ];
 
-        const server = await device.gatt.connect();
-        const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-        const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
-
-        let encoder = new TextEncoder();
+          for (const s of serviceUUIDs) {
+              try {
+                  service = await server.getPrimaryService(s.svc);
+                  characteristic = await service.getCharacteristic(s.char);
+                  if (characteristic) break;
+              } catch(e) { }
+          }
+          
+          if (!characteristic) throw new Error("Sistem mengenali perangkat Bluetooth, tapi tidak menemukan service Print. Pastikan ini adalah Printer Thermal.");
+          let encoder = new TextEncoder();
         let data = [
           0x1b, 0x40, // init
           ...encoder.encode('=== AVELZA GROUP ===\\n'),

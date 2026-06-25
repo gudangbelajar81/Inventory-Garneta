@@ -1386,7 +1386,84 @@ Minyak Goreng 3 45000"></textarea>
       }
     };
 
-    function ngitung() {
+    
+      window.ngitungPrintUSB = function() {
+        if (window.ngitungRows.length <= 1) {
+            alert("Belum ada data belanjaan!");
+            return;
+        }
+
+        let total = 0;
+        let itemsHtml = window.ngitungRows.map(row => {
+          if (!row.name && !row.price) return '';
+          const qty = Number(row.qty) || 1;
+          const price = Number(row.price) || 0;
+          const amount = row.price ? price * qty : 0;
+          total += amount;
+          return `
+            <div style="margin-bottom: 4px;">
+              <div style="font-weight: bold;">${row.name}</div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>${qty} x ${rupiah(price)}</span>
+                <span>${rupiah(amount)}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        const receiptHtml = `
+          <html>
+            <head>
+              <title>Cetak Struk</title>
+              <style>
+                @page { margin: 0; }
+                body {
+                  font-family: 'Courier New', Courier, monospace;
+                  width: 58mm; /* Ukuran standar Blueprint ECO 58D */
+                  margin: 0 auto;
+                  padding: 10px 5px;
+                  font-size: 12px;
+                  color: #000;
+                  background: #fff;
+                }
+                .header { text-align: center; margin-bottom: 15px; }
+                .header h2 { margin: 0 0 5px 0; font-size: 16px; font-family: sans-serif; }
+                .divider { border-top: 1px dashed #000; margin: 10px 0; }
+                .total-section { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 10px; }
+                .footer { text-align: center; margin-top: 20px; font-size: 10px; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h2>AVELZA GROUP</h2>
+                <div>${new Date().toLocaleString('id-ID')}</div>
+              </div>
+              <div class="divider"></div>
+              ${itemsHtml}
+              <div class="divider"></div>
+              <div class="total-section">
+                <span>TOTAL</span>
+                <span>${rupiah(total)}</span>
+              </div>
+              <div class="footer">
+                Terima kasih atas<br>kunjungan Anda!
+              </div>
+              <script>
+                window.onload = function() {
+                  window.print();
+                  setTimeout(() => window.close(), 500);
+                };
+              </script>
+            </body>
+          </html>
+        `;
+
+        const printWindow = window.open("", "_blank", "width=300,height=500");
+        printWindow.document.write(receiptHtml);
+        printWindow.document.close();
+      };
+
+      function ngitung() {
       setTimeout(() => window.ngitungRenderTable(), 50);
       return `
         <div class="card" style="max-width: 800px; margin: 2rem auto;">
@@ -1414,10 +1491,14 @@ Minyak Goreng 3 45000"></textarea>
               </tfoot>
             </table>
           </div>
-          <div class="actions" style="margin-top: 20px; display: flex; justify-content: space-between;">
-            <button class="btn soft" onclick="ngitungAddRow()">➕ Tambah Baris</button>
-            <button class="btn primary" onclick="ngitungPrintBluetooth()">🖨️ Cetak Bluetooth</button>
-          </div>
+          
+            <div class="actions" style="margin-top: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <button class="btn soft" onclick="ngitungAddRow()">➕ Tambah Baris</button>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn primary" onclick="ngitungPrintUSB()" style="background: var(--primary);">🖨️ Cetak USB / PC</button>
+                <button class="btn soft" onclick="ngitungPrintBluetooth()">📡 Cetak Bluetooth</button>
+              </div>
+            </div>
           <datalist id="ngitung-history-list"></datalist>
         </div>
       `;

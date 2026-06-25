@@ -1352,27 +1352,35 @@ Minyak Goreng 3 45000"></textarea>
           
           if (!characteristic) throw new Error("Sistem mengenali perangkat Bluetooth, tapi tidak menemukan service Print. Pastikan ini adalah Printer Thermal.");
           let encoder = new TextEncoder();
-        let data = [
-          0x1b, 0x40, // init
-          ...encoder.encode('=== Toko GARNETA ===\n'),
-          ...encoder.encode('Tgl: ' + new Date().toLocaleString('id-ID') + '\n'),
-          ...encoder.encode('--------------------------------\n')
-        ];
-        
-        let total = 0;
-        window.ngitungRows.forEach(row => {
-          if (!row.name && !row.price) return;
-          const qty = Number(row.qty) || 1;
-          const price = Number(row.price) || 0;
-          const amount = row.price ? price * qty : 0;
-          total += amount;
+        const formatLine = (left, right) => {
+            const leftStr = String(left);
+            const rightStr = String(right);
+            let spaceCount = 32 - leftStr.length - rightStr.length;
+            if (spaceCount < 1) spaceCount = 1;
+            return leftStr + ' '.repeat(spaceCount) + rightStr + '\n';
+          };
+
+          let data = [
+            0x1b, 0x40, // init
+            ...encoder.encode('      === Toko GARNETA ===      \n'),
+            ...encoder.encode('Tgl: ' + new Date().toLocaleString('id-ID') + '\n'),
+            ...encoder.encode('--------------------------------\n')
+          ];
           
-          data.push(...encoder.encode(row.name + '\n'));
-          data.push(...encoder.encode(qty + ' x ' + price + ' = ' + amount + '\n'));
-        });
-        
-        data.push(...encoder.encode('--------------------------------\n'));
-        data.push(...encoder.encode('TOTAL: ' + total + '\n\n\n\n'));
+          let total = 0;
+          window.ngitungRows.forEach(row => {
+            if (!row.name && !row.price) return;
+            const qty = Number(row.qty) || 1;
+            const price = Number(row.price) || 0;
+            const amount = row.price ? price * qty : 0;
+            total += amount;
+            
+            data.push(...encoder.encode(row.name + '\n'));
+            data.push(...encoder.encode(formatLine(qty + ' x ' + price, amount)));
+          });
+          
+          data.push(...encoder.encode('--------------------------------\n'));
+          data.push(...encoder.encode(formatLine('TOTAL:', total) + '\n\n\n'));
         
         let buffer = new Uint8Array(data);
         for (let i = 0; i < buffer.length; i += 512) {

@@ -454,8 +454,7 @@
                   ${input("phone", "Nomor HP")}
                   ${input("joinDate", "Tanggal Masuk", true, "date")}
                   ${select("salaryType", "Tipe Gaji", ["Bulanan", "Harian"])}
-                  ${input("baseSalary", "Gaji Pokok / Harian (Rp)", true, "number")}
-                  ${select("status", "Status", ["Aktif", "Nonaktif"])}
+                  ${input("baseSalary", "Gaji Pokok (Rp)", true, "number")}
                   <div class="form-actions" style="grid-column: 1 / -1">
                     <button type="submit" class="btn primary">Simpan Karyawan</button>
                     <button type="reset" class="btn soft">Reset</button>
@@ -466,12 +465,11 @@
                 <h3>Daftar Karyawan</h3>
                 <div class="table-responsive">
                   <table class="table">
-                    <thead><tr><th>Nama</th><th>HP</th><th>Masuk</th><th>Tipe</th><th>Gaji Pokok</th><th>Status</th><th>Aksi</th></tr></thead>
+                    <thead><tr><th>Nama</th><th>HP</th><th>Masuk</th><th>Tipe</th><th>Gaji Pokok</th><th>Aksi</th></tr></thead>
                     <tbody>
                       ${employees().map(e => `<tr>
                         <td>${e.name}</td><td>${e.phone || '-'}</td><td>${new Date(e.joinDate).toLocaleDateString()}</td>
                         <td>${e.salaryType}</td><td>${rupiah(e.baseSalary)}</td>
-                        <td><span class="badge ${e.status === 'Aktif' ? 'success' : 'danger'}">${e.status}</span></td>
                         <td><button class="btn soft" onclick="editEmployee('${e.id}')">Edit</button></td>
                       </tr>`).join('')}
                     </tbody>
@@ -481,7 +479,7 @@
             </div>`;
             break;
           case 'kasbon':
-            const empOptions = employees().filter(e => e.status === 'Aktif').map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+            const empOptions = employees().map(e => `<option value="${e.id}">${e.name}</option>`).join('');
             workspaceContent = `<div class="workspace-content">
               <div class="card">
                 <h3>📝 Catat Kasbon (Bon)</h3>
@@ -519,7 +517,7 @@
             </div>`;
             break;
           case 'penggajian':
-            const empOptions2 = employees().filter(e => e.status === 'Aktif').map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+            const empOptions2 = employees().map(e => `<option value="${e.id}">${e.name}</option>`).join('');
             workspaceContent = `<div class="workspace-content">
               <div class="card">
                 <h3>💰 Hitung & Bayar Gaji</h3>
@@ -537,7 +535,7 @@
                   
                   <div style="grid-column: 1 / -1; background: var(--bg); padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                      <span>Gaji Pokok / Hitungan:</span>
+                      <span>Gaji Pokok / Hitungan: <span id="payroll-basic-breakdown" style="font-size:0.8rem;opacity:0.7;margin-left:4px;"></span></span>
                       <strong id="payroll-basic-salary">Rp 0</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: #f43f5e;">
@@ -583,8 +581,7 @@
             form.elements.phone.value = emp.phone;
             form.elements.joinDate.value = emp.joinDate ? emp.joinDate.slice(0,10) : '';
             form.elements.salaryType.value = emp.salaryType;
-            form.elements.baseSalary.value = emp.baseSalary;
-            form.elements.status.value = emp.status;
+            form.elements.baseSalary.value = formatInitialNumber(emp.baseSalary);
             form.scrollIntoView();
           }
         }
@@ -617,8 +614,8 @@
               phone: form.elements.phone.value,
               joinDate: form.elements.joinDate.value,
               salaryType: form.elements.salaryType.value,
-              baseSalary: form.elements.baseSalary.value,
-              status: form.elements.status.value
+              baseSalary: plainNumber(form.elements.baseSalary.value),
+              status: 'Aktif'
             };
             const id = form.elements.id.value;
             try {
@@ -691,16 +688,22 @@
           }
           
           let basicCalc = 0;
+          let breakdownText = "";
           if (emp.salaryType === 'Harian') {
-            basicCalc = emp.baseSalary * actualDays;
+            const dailyRate = Math.round(emp.baseSalary / 30);
+            basicCalc = dailyRate * actualDays;
+            breakdownText = `(${rupiah(dailyRate)}/hr x ${actualDays}hr)`;
           } else {
             basicCalc = emp.baseSalary; // Bulanan
+            breakdownText = "(1 Bulan)";
           }
           
           const unpaidBons = cashAdvances().filter(c => c.employeeId == empId && c.status === 'Belum Lunas');
           const totalBon = unpaidBons.reduce((sum, c) => sum + Number(c.amount), 0);
           const net = basicCalc - totalBon;
           
+          const brkElement = document.getElementById("payroll-basic-breakdown");
+          if (brkElement) brkElement.innerText = breakdownText;
           document.getElementById("payroll-basic-salary").innerText = rupiah(basicCalc);
           document.getElementById("payroll-deduction").innerText = "- " + rupiah(totalBon);
           document.getElementById("payroll-net").innerText = rupiah(net);
@@ -726,7 +729,13 @@
             const empId = form.elements.employeeId.value;
             const emp = employees().find(x => x.id == empId);
             let actualDays = Number(form.elements.attendanceDays.value || 0);
-            let basicCalc = emp.salaryType === 'Harian' ? (emp.baseSalary * actualDays) : emp.baseSalary;
+            let basicCalc = 0;
+            if (emp.salaryType === 'Harian') {
+              const dailyRate = Math.round(emp.baseSalary / 30);
+              basicCalc = dailyRate * actualDays;
+            } else {
+              basicCalc = emp.baseSalary;
+            }
             
             const unpaidBons = cashAdvances().filter(c => c.employeeId == empId && c.status === 'Belum Lunas');
             const totalBon = unpaidBons.reduce((sum, c) => sum + Number(c.amount), 0);

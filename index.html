@@ -1419,9 +1419,10 @@ Minyak Goreng 3 45000"></textarea>
                 @page { margin: 0; }
                 body {
                   font-family: Arial, Helvetica, sans-serif; /* Font sans-serif jauh lebih jelas untuk printer thermal */
-                  width: 48mm; /* Lebar area cetak asli */
-                  margin: 0 auto;
-                  padding: 0; /* Hapus padding agar tidak melebar */
+                  width: 44mm; /* Dipersempit agar tidak terpotong di margin kanan kertas 57mm */
+                  margin: 0; /* Rata kiri */
+                  padding: 0 4mm 0 0; /* Tarik teks dari kanan sedikit */
+                  box-sizing: border-box;
                   font-size: 13px;
                   font-weight: 600; /* Ditebalkan agar tidak putus-putus */
                   color: #000000 !important; /* Wajib hitam pekat */

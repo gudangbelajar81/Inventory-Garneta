@@ -1354,7 +1354,7 @@ Minyak Goreng 3 45000"></textarea>
           let encoder = new TextEncoder();
         let data = [
           0x1b, 0x40, // init
-          ...encoder.encode('=== AVELZA GROUP ===\\n'),
+          ...encoder.encode('=== Toko GARNETA ===\\n'),
           ...encoder.encode('Tgl: ' + new Date().toLocaleString('id-ID') + '\\n'),
           ...encoder.encode('--------------------------------\\n')
         ];
@@ -1419,9 +1419,9 @@ Minyak Goreng 3 45000"></textarea>
                 @page { margin: 0; }
                 body {
                   font-family: Arial, Helvetica, sans-serif; /* Font sans-serif jauh lebih jelas untuk printer thermal */
-                  width: 58mm;
+                  width: 48mm; /* Lebar area cetak asli */
                   margin: 0 auto;
-                  padding: 10px 5px;
+                  padding: 0; /* Hapus padding agar tidak melebar */
                   font-size: 13px;
                   font-weight: 600; /* Ditebalkan agar tidak putus-putus */
                   color: #000000 !important; /* Wajib hitam pekat */
@@ -1442,7 +1442,7 @@ Minyak Goreng 3 45000"></textarea>
             </head>
             <body>
               <div class="header">
-                <h2>AVELZA GROUP</h2>
+                <h2>Toko GARNETA</h2>
                 <div>${new Date().toLocaleString('id-ID')}</div>
               </div>
               <div class="divider"></div>

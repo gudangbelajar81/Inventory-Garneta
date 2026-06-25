@@ -2670,13 +2670,17 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           }
           
           if (prod) {
-            const salePriceEcer = Number(prod.salePriceEcer) || 0;
-            const basePriceEcer = Number(prod.basePriceEcer) || 0;
-            const unitContent = Number(prod.unitContent) || 1;
-            const profitPerPcs = salePriceEcer - basePriceEcer;
-            const totalPcs = unitSold * unitContent;
-            form.elements.cuan.value = profitPerPcs * totalPcs;
-          } else {
+              const unitContent = Number(prod.unitContent) || 1;
+              let cuan = 0;
+              if (Number(prod.salePriceEcer) > 0) {
+                 const profitPerPcs = Number(prod.salePriceEcer) - (Number(prod.basePriceEcer) || 0);
+                 cuan = profitPerPcs * (unitSold * unitContent);
+              } else {
+                 const profitPerBulk = (Number(prod.salePrice) || 0) - (Number(prod.basePrice) || 0);
+                 cuan = profitPerBulk * unitSold;
+              }
+              form.elements.cuan.value = cuan;
+            } else {
             form.elements.cuan.value = "";
           }
         };
@@ -2703,12 +2707,15 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             return;
           }
 
-          const salePriceEcer = Number(prod.salePriceEcer) || 0;
-          const basePriceEcer = Number(prod.basePriceEcer) || 0;
           const unitContent = Number(prod.unitContent) || 1;
-          const profitPerPcs = salePriceEcer - basePriceEcer;
-          const totalPcs = unitSold * unitContent;
-          const cuan = profitPerPcs * totalPcs;
+            let cuan = 0;
+            if (Number(prod.salePriceEcer) > 0) {
+               const profitPerPcs = Number(prod.salePriceEcer) - (Number(prod.basePriceEcer) || 0);
+               cuan = profitPerPcs * (unitSold * unitContent);
+            } else {
+               const profitPerBulk = (Number(prod.salePrice) || 0) - (Number(prod.basePrice) || 0);
+               cuan = profitPerBulk * unitSold;
+            }
 
           const rows = posRows();
           rows.unshift({

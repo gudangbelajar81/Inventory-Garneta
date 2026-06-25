@@ -168,9 +168,9 @@
   }
 
   function renderBarangQuickCard(product) {
-    const baseStr = (product.basePrice ? formatRupiah(product.basePrice) + ' / ' + escapeHtml(product.unit || '-') : '');
-    const ecerStr = (product.basePriceEcer ? formatRupiah(product.basePriceEcer) + ' / ' + escapeHtml(product.unitEcer || 'Pcs') : '');
-    const priceDisplay = [baseStr, ecerStr].filter(Boolean).join(' | ') || formatRupiah(product.salePrice || 0);
+    const grosirStr = (product.salePrice ? formatRupiah(product.salePrice) + ' / ' + escapeHtml(product.unit || '-') : '');
+    const ecerStr = (product.salePriceEcer ? formatRupiah(product.salePriceEcer) + ' / ' + escapeHtml(product.unitEcer || 'Pcs') : '');
+    const priceDisplay = [grosirStr, ecerStr].filter(Boolean).join(' | ') || 'Harga belum diatur';
 
     return '<div class="quick-action-card compact hover-ninja-container" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">' +
       '<div class="hover-ninja-content">' +

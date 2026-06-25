@@ -2751,33 +2751,28 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
               const namaBarang = (item.name || item.product || "").trim();
               if (!namaBarang) throw new Error("Nama Barang wajib diisi!");
               
-              const searchName = namaBarang.toLowerCase();
-              let prod = state.data.products.find(p => (p.name || "").trim().toLowerCase() === searchName);
-              
               const purchaseQty = Number(String(item.qty || 0).replace(/[^0-9-]/g, '')) || 0;
               
+              // Kirim ke addRow products — server otomatis UPSERT berdasarkan nama
+              // Jika barang sudah ada: UPDATE harga + tambah stok
+              // Jika barang baru: INSERT baru
               const productData = {
-                category: (item.category || (prod ? prod.category : "") || "Umum").trim(),
                 name: namaBarang,
-                unit: item.unit || (prod ? prod.unit : "-") || "-",
-                unitEcer: item.unitEcer || (prod ? prod.unitEcer : "-") || "-",
-                unitContent: Number(String(item.unitContent || (prod ? prod.unitContent : 1)).replace(/[^0-9-]/g, '')) || 1,
+                category: (item.category || "Umum").trim(),
+                unit: item.unit || "-",
+                unitEcer: item.unitEcer || "-",
+                unitContent: Number(String(item.unitContent || 1).replace(/[^0-9-]/g, '')) || 1,
                 basePrice: Number(String(item.basePrice || 0).replace(/[^0-9-]/g, '')),
                 basePriceEcer: Number(String(item.basePriceEcer || 0).replace(/[^0-9-]/g, '')),
                 salePrice: Number(String(item.salePrice || 0).replace(/[^0-9-]/g, '')),
                 salePriceEcer: Number(String(item.salePriceEcer || 0).replace(/[^0-9-]/g, '')),
-                stock: (prod ? Number(prod.stock || 0) : 0) + purchaseQty,
-                barcode: prod ? (prod.barcode || "") : ""
+                qty: purchaseQty
               };
               
-              // Simpan/update ke tabel products
-              await gas(prod ? "update" : "add", { 
-                collection: "products", 
-                id: prod ? prod.id : undefined, 
-                item: productData 
-              });
+              // Selalu pakai "add" — server handle upsert by name otomatis
+              await gas("add", { collection: "products", item: productData });
               
-              // Siapkan data untuk tabel purchases
+              // Siapkan data bersih untuk tabel purchases
               const purchaseItem = {
                 date: item.date,
                 product: namaBarang,
@@ -2786,7 +2781,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
                 total: purchaseQty * Number(String(item.basePrice || 0).replace(/[^0-9-]/g, ''))
               };
               
-              // Ganti item dengan purchaseItem (bersih)
+              // Ganti seluruh item dengan purchaseItem yang bersih
               Object.keys(item).forEach(k => delete item[k]);
               Object.assign(item, purchaseItem);
             }

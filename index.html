@@ -3919,8 +3919,8 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         const id = formData.get("id") || Date.now() + Math.random();
         const name = formData.get("name").trim();
         const product = findProduct(name);
-        const qty = Number(String(formData.get("qty").replace(/[^0-9-]/g, '')));
-        const amount = Number(String(formData.get("amount").replace(/[^0-9-]/g, ''))) || Number(product?.basePrice || 0);
+        const qty = Number(String(formData.get("qty")).replace(/[^0-9-]/g, ""));
+        const amount = Number(String(formData.get("amount")).replace(/[^0-9-]/g, "")) || Number(product?.basePrice || 0);
         const next = { id, name, unit: product?.unit || "", qty, amount, subtotal: qty * amount };
         const rows = shoppingRows();
         const exists = rows.some((row) => String(row.id) === String(id));

@@ -522,13 +522,17 @@
             
             <div class="table-responsive" style="margin-top:1rem;">
               <table class="table" style="font-size:0.9rem;">
-                <thead><tr><th>Tgl</th><th>Nominal</th><th>Ket</th></tr></thead>
+                <thead><tr><th>Tgl</th><th>Nominal</th><th>Ket</th><th style="text-align:right;">Aksi</th></tr></thead>
                 <tbody>
-                  ${unpaidBons.length === 0 ? '<tr><td colspan="3" class="text-center muted">Tidak ada utang kasbon</td></tr>' : ''}
+                  ${unpaidBons.length === 0 ? '<tr><td colspan="4" class="text-center muted">Tidak ada utang kasbon</td></tr>' : ''}
                   ${unpaidBons.map(c => `<tr>
                     <td>${new Date(c.date).toLocaleDateString()}</td>
                     <td style="color:#f43f5e;">${rupiah(c.amount)}</td>
                     <td>${c.notes || '-'}</td>
+                    <td style="text-align:right;">
+                      <button class="btn soft" style="padding:4px 8px;font-size:0.8rem;margin-right:4px;" onclick="editBon('${c.id}')">✏️</button>
+                      <button class="btn soft" style="padding:4px 8px;font-size:0.8rem;" onclick="hapusBon('${c.id}')">❌</button>
+                    </td>
                   </tr>`).join('')}
                 </tbody>
               </table>
@@ -625,6 +629,30 @@ window.editEmployee = function(id) {
         .catch(e => alert(e.message));
      }
   }
+};
+
+window.editBon = function(id) {
+  const bon = cashAdvances().find(c => c.id == id);
+  if (bon) {
+    const f = document.getElementById('form-bon');
+    if (f) {
+      f.style.display = 'grid';
+      f.elements.id.value = bon.id;
+      f.elements.employeeId.value = bon.employeeId;
+      f.elements.date.value = bon.date ? bon.date.slice(0,10) : '';
+      f.elements.amount.value = formatInitialNumber(bon.amount);
+      f.elements.notes.value = bon.notes;
+      f.scrollIntoView();
+    }
+  }
+};
+
+window.hapusBon = async function(id) {
+  if (!confirm("Yakin ingin menghapus riwayat bon ini secara permanen?")) return;
+  try {
+    await gas("delete", { collection: "cashAdvances", id });
+    await load();
+  } catch(err) { alert(err.message); }
 };
 
 function bindGajiEvents() {

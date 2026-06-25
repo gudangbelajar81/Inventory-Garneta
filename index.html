@@ -648,10 +648,16 @@ window.editBon = function(id) {
 };
 
 window.hapusBon = async function(id) {
+  const removed = (state.data.cashAdvances || []).find(r => String(r.id) === String(id));
+  state.data.cashAdvances = (state.data.cashAdvances || []).filter(r => String(r.id) !== String(id));
+  render();
   try {
     await gas("remove", { collection: "cashAdvances", id });
-    await load();
-  } catch(err) { alert(err.message); }
+  } catch(err) {
+    if (removed) state.data.cashAdvances.push(removed);
+    render();
+    alert(err.message);
+  }
 };
 
 function bindGajiEvents() {
@@ -1746,12 +1752,16 @@ Beras Premium 1"></textarea>
     
     // Attach global delete function for sale
     window.deleteSale = async function(id) {
-       try {
-         await gas("remove", { collection: "sales", id });
-         await load();
-       } catch (err) {
-         alert("Gagal menghapus: " + err.message);
-       }
+      const removed = (state.data.sales || []).find(r => String(r.id) === String(id));
+      state.data.sales = (state.data.sales || []).filter(r => String(r.id) !== String(id));
+      render();
+      try {
+        await gas("remove", { collection: "sales", id });
+      } catch (err) {
+        if (removed) state.data.sales.push(removed);
+        render();
+        alert("Gagal menghapus: " + err.message);
+      }
     };
     
 
@@ -2811,8 +2821,42 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             render();
             return;
           }
-          await gas("remove", { collection: button.dataset.delete, id: button.dataset.id });
-          await load();
+
+          const collection = button.dataset.delete;
+          const id = button.dataset.id;
+
+          // ── Optimistic Delete: hapus dari state lokal DULU ──
+          // UI langsung responsif tanpa tunggu server
+          const collectionMap = {
+            products: "products",
+            purchases: "purchases",
+            sales: "sales",
+            employees: "employees",
+            cashAdvances: "cashAdvances",
+            payrolls: "payrolls",
+            users: "users",
+            suppliers: "suppliers"
+          };
+          const stateKey = collectionMap[collection];
+          let removed = null;
+          if (stateKey && state.data[stateKey]) {
+            removed = state.data[stateKey].find(r => String(r.id) === String(id));
+            state.data[stateKey] = state.data[stateKey].filter(r => String(r.id) !== String(id));
+            render(); // langsung re-render, user tidak perlu tunggu!
+          }
+
+          // ── Sync ke server di background ──
+          try {
+            await gas("remove", { collection, id });
+          } catch (err) {
+            // Kalau server gagal, kembalikan data yang terhapus
+            if (removed && stateKey && state.data[stateKey]) {
+              state.data[stateKey].push(removed);
+              state.data[stateKey].sort((a, b) => Number(b.id) - Number(a.id));
+            }
+            render();
+            alert("Gagal menghapus: " + err.message);
+          }
         };
       });
 

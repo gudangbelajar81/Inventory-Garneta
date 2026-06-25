@@ -1368,7 +1368,12 @@ Minyak Goreng 3 45000"></textarea>
 
           let data = [
             0x1b, 0x40, // init
-            ...encoder.encode('      === Toko GARNETA ===      \n'),
+            0x1b, 0x61, 0x01, // Center align
+            0x1d, 0x21, 0x11, // Double size
+            ...encoder.encode('Toko GARNETA\n'),
+            0x1d, 0x21, 0x00, // Normal size
+            ...encoder.encode('085123871118\n\n'),
+            0x1b, 0x61, 0x00, // Left align
             ...encoder.encode('Tgl: ' + new Date().toLocaleString('id-ID') + '\n'),
             ...encoder.encode('--------------------------------\n')
           ];
@@ -1386,7 +1391,13 @@ Minyak Goreng 3 45000"></textarea>
           });
           
           data.push(...encoder.encode('--------------------------------\n'));
-          data.push(...encoder.encode(formatLine('TOTAL:', total) + '\n\n\n'));
+          data.push(...encoder.encode(formatLine('TOTAL:', total) + '\n'));
+          data.push(0x1b, 0x61, 0x01); // Center align
+          data.push(...encoder.encode('\nTerima kasih atas\n'));
+          data.push(...encoder.encode('kunjungan Anda!\n\n'));
+          data.push(...encoder.encode('Toko GARNETA\n'));
+          data.push(...encoder.encode('085123871118\n\n\n'));
+          data.push(0x1b, 0x61, 0x00); // Left align
         
         let buffer = new Uint8Array(data);
         for (let i = 0; i < buffer.length; i += 512) {
@@ -1457,7 +1468,8 @@ Minyak Goreng 3 45000"></textarea>
             </head>
             <body>
               <div class="header">
-                <h2>Toko GARNETA</h2>
+                <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 2px;">Toko GARNETA</h2>
+                <div style="font-size: 14px; margin-bottom: 5px;">085123871118</div>
                 <div>${new Date().toLocaleString('id-ID')}</div>
               </div>
               <div class="divider"></div>
@@ -1468,7 +1480,9 @@ Minyak Goreng 3 45000"></textarea>
                 <span>${rupiah(total)}</span>
               </div>
               <div class="footer">
-                Terima kasih atas<br>kunjungan Anda!
+                Terima kasih atas<br>kunjungan Anda!<br><br>
+                <b style="font-size: 14px;">Toko GARNETA</b><br>
+                085123871118
               </div>
               <script>
                 window.onload = function() {

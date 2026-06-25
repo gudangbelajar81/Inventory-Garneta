@@ -345,7 +345,7 @@
     let invoiceStream = null;
     let deferredInstallPrompt = null;
 
-    const rupiah = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value || 0));
+    const rupiah = (value) => Number(value || 0).toString();
     const today = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
     const API_URL = window.location.protocol === "file:" ? "http://127.0.0.1:3000/api" : "/api";
@@ -1239,14 +1239,14 @@ Minyak Goreng 3 45000"></textarea>
             <td><input type="text" value="${escapeAttr(row.name)}" onchange="ngitungUpdateRow(this, ${row.id}, 'name')" list="ngitung-history-list" placeholder="Ketik nama..." style="width: 100%;"></td>
             <td><input type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${row.price}" onchange="ngitungUpdateRow(this, ${row.id}, 'price')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="Harga" style="width: 100px;"></td>
             <td><input type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${row.qty}" onchange="ngitungUpdateRow(this, ${row.id}, 'qty')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="1" style="width: 60px;"></td>
-            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 120px;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount)}</td>
+            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 120px;">${Number(amount || 0).toString()}</td>
             <td style="width: 50px;"><button class="btn danger" onclick="ngitungRemoveRow(${row.id})" ${window.ngitungRows.length === 1 ? 'disabled' : ''}>X</button></td>
           </tr>
         `;
       });
       
       tbody.innerHTML = html;
-      document.getElementById('ngitung-total').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(total);
+      document.getElementById('ngitung-total').innerText = Number(total || 0).toString();
       
       const datalist = document.getElementById('ngitung-history-list');
       if (datalist) {
@@ -1265,7 +1265,7 @@ Minyak Goreng 3 45000"></textarea>
       const q = plainNumber(qtyInput.value) || 1;
       const amt = priceInput.value ? p * q : 0;
       
-      tr.querySelector('.row-amount').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amt);
+      tr.querySelector('.row-amount').innerText = Number(amt || 0).toString();
       
       let sum = 0;
       document.querySelectorAll('#ngitung-tbody tr').forEach(tr => {
@@ -1273,7 +1273,7 @@ Minyak Goreng 3 45000"></textarea>
          const q2 = Number(tr.querySelector('td:nth-child(3) input').value) || 1;
          sum += (tr.querySelector('td:nth-child(2) input').value ? p2 * q2 : 0);
       });
-      document.getElementById('ngitung-total').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(sum);
+      document.getElementById('ngitung-total').innerText = Number(sum || 0).toString();
     };
 
     window.ngitungUpdateRow = function(inputEl, id, field) {

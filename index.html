@@ -2747,41 +2747,48 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             }
             
             if (collection === "purchases") {
-              const searchName = item.name.trim().toLowerCase();
-              let prod = state.data.products.find(p => p.name.trim().toLowerCase() === searchName);
+              // Ambil nama barang dari form dengan aman
+              const namaBarang = (item.name || item.product || "").trim();
+              if (!namaBarang) throw new Error("Nama Barang wajib diisi!");
+              
+              const searchName = namaBarang.toLowerCase();
+              let prod = state.data.products.find(p => (p.name || "").trim().toLowerCase() === searchName);
+              
+              const purchaseQty = Number(String(item.qty || 0).replace(/[^0-9-]/g, '')) || 0;
               
               const productData = {
-                category: item.category || (prod ? prod.category : ""),
-                name: item.name.trim(),
-                unit: item.unit || "-",
-                unitEcer: item.unitEcer || "-",
-                unitContent: Number(String(item.unitContent || 1).replace(/[^0-9-]/g, '')) || 1,
+                category: (item.category || (prod ? prod.category : "") || "Umum").trim(),
+                name: namaBarang,
+                unit: item.unit || (prod ? prod.unit : "-") || "-",
+                unitEcer: item.unitEcer || (prod ? prod.unitEcer : "-") || "-",
+                unitContent: Number(String(item.unitContent || (prod ? prod.unitContent : 1)).replace(/[^0-9-]/g, '')) || 1,
                 basePrice: Number(String(item.basePrice || 0).replace(/[^0-9-]/g, '')),
                 basePriceEcer: Number(String(item.basePriceEcer || 0).replace(/[^0-9-]/g, '')),
                 salePrice: Number(String(item.salePrice || 0).replace(/[^0-9-]/g, '')),
                 salePriceEcer: Number(String(item.salePriceEcer || 0).replace(/[^0-9-]/g, '')),
-                barcode: prod ? prod.barcode : ""
+                stock: (prod ? Number(prod.stock || 0) : 0) + purchaseQty,
+                barcode: prod ? (prod.barcode || "") : ""
               };
               
-              const purchaseQty = Number(String(item.qty || 0).replace(/[^0-9-]/g, ''));
-              productData.stock = (prod ? Number(prod.stock || 0) : 0) + purchaseQty;
+              // Simpan/update ke tabel products
+              await gas(prod ? "update" : "add", { 
+                collection: "products", 
+                id: prod ? prod.id : undefined, 
+                item: productData 
+              });
               
-              await gas(prod ? "update" : "add", { collection: "products", id: prod ? prod.id : undefined, item: productData });
+              // Siapkan data untuk tabel purchases
+              const purchaseItem = {
+                date: item.date,
+                product: namaBarang,
+                qty: purchaseQty,
+                amount: Number(String(item.basePrice || 0).replace(/[^0-9-]/g, '')),
+                total: purchaseQty * Number(String(item.basePrice || 0).replace(/[^0-9-]/g, ''))
+              };
               
-              item.product = item.name.trim();
-              item.qty = purchaseQty;
-              item.amount = 0;
-              
-              delete item.name;
-              delete item.category;
-              delete item.unit;
-              delete item.unitEcer;
-              delete item.unitContent;
-              delete item.basePrice;
-              delete item.basePriceEcer;
-              delete item.salePrice;
-              delete item.salePriceEcer;
-              delete item.cuan;
+              // Ganti item dengan purchaseItem (bersih)
+              Object.keys(item).forEach(k => delete item[k]);
+              Object.assign(item, purchaseItem);
             }
 
             await gas(id ? "update" : "add", { collection, id, item });

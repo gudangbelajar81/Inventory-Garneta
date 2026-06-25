@@ -795,11 +795,17 @@ async function validateSuperAdminCreate(item) {
   }
 }
 
+
+function toTitleCase(str) {
+  if (!str) return str;
+  return String(str).toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+}
+
 function productPayload(item) {
     return {
       supplierId: nullableNumber(item.supplierId),
-    category: item.category || "Umum",
-    name: required(item.name, "Nama barang"),
+    category: toTitleCase(item.category || "Umum"),
+    name: toTitleCase(required(item.name, "Nama barang")),
     unit: item.unit || "pcs",
     unitContent: number(item.unitContent) || 1,
     basePrice: number(item.basePrice),

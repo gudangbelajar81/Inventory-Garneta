@@ -1394,9 +1394,7 @@ Minyak Goreng 3 45000"></textarea>
           data.push(...encoder.encode(formatLine('TOTAL:', total) + '\n'));
           data.push(0x1b, 0x61, 0x01); // Center align
           data.push(...encoder.encode('\nTerima kasih atas\n'));
-          data.push(...encoder.encode('kunjungan Anda!\n\n'));
-          data.push(...encoder.encode('Toko GARNETA\n'));
-          data.push(...encoder.encode('085123871118\n\n\n'));
+          data.push(...encoder.encode('kunjungan Anda!\n\n\n'));
           data.push(0x1b, 0x61, 0x00); // Left align
         
         let buffer = new Uint8Array(data);
@@ -1480,9 +1478,7 @@ Minyak Goreng 3 45000"></textarea>
                 <span>${rupiah(total)}</span>
               </div>
               <div class="footer">
-                Terima kasih atas<br>kunjungan Anda!<br><br>
-                <b style="font-size: 14px;">Toko GARNETA</b><br>
-                085123871118
+                Terima kasih atas<br>kunjungan Anda!
               </div>
               <script>
                 window.onload = function() {

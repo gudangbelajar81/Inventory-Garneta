@@ -1529,15 +1529,17 @@ function required(value, label) {
   return value;
 }
 
-function number(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function nullableNumber(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
+  function number(value) {
+    if (typeof value === 'string') value = value.replace(/\./g, '').replace(',', '.');
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  
+  function nullableNumber(value) {
+    if (typeof value === 'string') value = value.replace(/\./g, '').replace(',', '.');
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
 
 function hashPassword(password) {
   return crypto.createHash("sha256").update(String(password)).digest("hex");

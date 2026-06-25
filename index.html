@@ -684,7 +684,7 @@
             
             const empId = form.elements.employeeId.value;
             const emp = employees().find(x => x.id == empId);
-            let basicCalc = emp.salaryType === 'Harian' ? (emp.baseSalary * Number(form.elements.attendanceDays.value || 0)) : emp.baseSalary;
+            let basicCalc = emp.salaryType === 'Harian' ? (emp.baseSalary * plainNumber(form.elements.attendanceDays.value || 0)) : emp.baseSalary;
             
             const unpaidBons = cashAdvances().filter(c => c.employeeId == empId && c.status === 'Belum Lunas');
             const totalBon = unpaidBons.reduce((sum, c) => sum + Number(c.amount), 0);
@@ -1106,8 +1106,8 @@ Minyak Goreng 3 45000"></textarea>
         html += `
           <tr>
             <td><input type="text" value="${escapeAttr(row.name)}" onchange="ngitungUpdateRow(this, ${row.id}, 'name')" list="ngitung-history-list" placeholder="Ketik nama..." style="width: 100%;"></td>
-            <td><input type="number" value="${row.price}" onchange="ngitungUpdateRow(this, ${row.id}, 'price')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="Harga" style="width: 100px;"></td>
-            <td><input type="number" value="${row.qty}" onchange="ngitungUpdateRow(this, ${row.id}, 'qty')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="1" style="width: 60px;"></td>
+            <td><input type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${row.price}" onchange="ngitungUpdateRow(this, ${row.id}, 'price')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="Harga" style="width: 100px;"></td>
+            <td><input type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${row.qty}" onchange="ngitungUpdateRow(this, ${row.id}, 'qty')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="1" style="width: 60px;"></td>
             <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 120px;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount)}</td>
             <td style="width: 50px;"><button class="btn danger" onclick="ngitungRemoveRow(${row.id})" ${window.ngitungRows.length === 1 ? 'disabled' : ''}>X</button></td>
           </tr>
@@ -1130,8 +1130,8 @@ Minyak Goreng 3 45000"></textarea>
       const priceInput = tr.querySelector('td:nth-child(2) input');
       const qtyInput = tr.querySelector('td:nth-child(3) input');
       
-      const p = Number(priceInput.value) || 0;
-      const q = Number(qtyInput.value) || 1;
+      const p = plainNumber(priceInput.value) || 0;
+      const q = plainNumber(qtyInput.value) || 1;
       const amt = priceInput.value ? p * q : 0;
       
       tr.querySelector('.row-amount').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amt);
@@ -1912,11 +1912,11 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           <label>Hasil Scanner<input id="scanner-result" placeholder="Scan barcode atau ketik manual"></label>
           <label>Nama Barang<input id="scanner-product-name" placeholder="Nama barang dari hasil scan"></label>
           <label>Kategori<input id="scanner-product-category" value="Umum"></label>
-          <label>Harga Dasar<input id="scanner-base-price" type="number" value="0"></label>
+          <label>Harga Dasar<input id="scanner-base-price" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="0"></label>
           <label>Unit<select id="scanner-unit"><option>sak</option><option>karton/dus</option><option>jligen</option><option>kg</option><option>ball</option><option>pcs</option></select></label>
-          <label>Isi/Unit<input id="scanner-unit-content" type="number" value="1"></label>
-          <label>Harga Jual<input id="scanner-sale-price" type="number" value="0"></label>
-          <label>Stok<input id="scanner-stock" type="number" value="0"></label>
+          <label>Isi/Unit<input id="scanner-unit-content" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="1"></label>
+          <label>Harga Jual<input id="scanner-sale-price" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="0"></label>
+          <label>Stok<input id="scanner-stock" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="0"></label>
         </div>
         <video id="scanner-video" class="scanner-preview hidden" playsinline></video>
         <div class="actions">
@@ -2045,10 +2045,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             <td><input data-draft-field="name" value="${escapeAttr(row.name)}"></td>
             <td><input data-draft-field="category" value="${escapeAttr(row.category || "Umum")}"></td>
             <td><select data-draft-field="unit">${["sak", "karton/dus", "jligen", "kg", "ball", "pcs"].map((unit) => `<option ${row.unit === unit ? "selected" : ""}>${unit}</option>`).join("")}</select></td>
-            <td><input data-draft-field="unitContent" type="number" value="${Number(row.unitContent || 1)}"></td>
-            <td><input data-draft-field="stock" type="number" value="${Number(row.stock || 0)}"></td>
-            <td><input data-draft-field="basePrice" type="number" value="${Number(row.basePrice || 0)}"></td>
-            <td><input data-draft-field="salePrice" type="number" value="${Number(row.salePrice || 0)}"></td>
+            <td><input data-draft-field="unitContent" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(Number(row.unitContent || 1))}"></td>
+            <td><input data-draft-field="stock" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(Number(row.stock || 0))}"></td>
+            <td><input data-draft-field="basePrice" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(Number(row.basePrice || 0))}"></td>
+            <td><input data-draft-field="salePrice" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(Number(row.salePrice || 0))}"></td>
             <td><button class="btn danger delete-invoice-draft" data-id="${row.id}" type="button">Hapus</button></td>
           </tr>
         `).join("")}</tbody>
@@ -2073,7 +2073,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function input(name, label, required, type = "text", value = "") {
-      return `<label>${label}<input name="${name}" type="${type}" value="${value}" ${required ? "required" : ""}></label>`;
+      if (type === "number") {
+          return `<label>${label}<input name="${name}" type="text" inputmode="numeric" value="${value}" ${required ? "required" : ""} oninput="formatNumberInput(this)"></label>`;
+        }
+        return `<label>${label}<input name="${name}" type="${type}" value="${value}" ${required ? "required" : ""}></label>`;
     }
 
     function select(name, label, options) {
@@ -2096,7 +2099,24 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return state.data.products.find((product) => product.name.toLowerCase() === String(name || "").trim().toLowerCase());
     }
 
-    function plainNumber(value) {
+    
+      function formatNumberInput(el) {
+        let val = el.value.replace(/[^0-9-]/g, '');
+        if (val) {
+          let isNegative = val.startsWith('-');
+          val = val.replace(/-/g, '');
+          el.value = (isNegative ? '-' : '') + val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        } else {
+          el.value = '';
+        }
+      }
+      
+      function formatInitialNumber(val) {
+        if (!val) return "";
+        return String(val).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      }
+
+      function plainNumber(value) {
       const cleaned = String(value ?? "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
       const parsed = Number(cleaned);
       return Number.isFinite(parsed) ? parsed : 0;
@@ -2384,7 +2404,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         const totalInput = purchaseFormEl.querySelector('input[name="total"]');
         const updatePurchaseTotal = () => {
           if (qtyInput && priceInput && totalInput) {
-            totalInput.value = (parseFloat(qtyInput.value) || 0) * (parseFloat(priceInput.value) || 0);
+            totalInput.value = (plainplainNumber(qtyInput.value) || 0) * (plainplainNumber(priceInput.value) || 0);
           }
         };
         if (qtyInput) qtyInput.addEventListener('input', updatePurchaseTotal);
@@ -2462,7 +2482,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       if (form) {
         const updateCuan = () => {
           const productName = form.elements.product.value.trim().toLowerCase();
-          const unitSold = Number(form.elements.unitSold.value || 0);
+          const unitSold = plainNumber(form.elements.unitSold.value || 0);
           
           let prod = state.data.products.find(p => p.name.trim().toLowerCase() === productName);
           if (!prod) {
@@ -2491,7 +2511,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           const formData = new FormData(form);
           const date = formData.get("date");
           const productName = formData.get("product").trim().toLowerCase();
-          const unitSold = Number(formData.get("unitSold"));
+          const unitSold = plainNumber(formData.get("unitSold"));
           
           let prod = state.data.products.find(p => p.name.trim().toLowerCase() === productName);
           if (!prod) {
@@ -3485,9 +3505,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         <tbody>${rows.map((row) => `
           <tr data-wa-id="${row.id}">
             <td><input data-wa-field="name" value="${escapeAttr(row.name)}" style="width:100%"></td>
-            <td><input data-wa-field="qty" type="number" value="${row.qty}" style="width:60px"></td>
-            <td><input data-wa-field="amount" type="number" value="${row.amount}" style="width:100px"></td>
-            <td><input data-wa-field="basePriceEcer" type="number" value="${row.basePriceEcer}" style="width:100px"></td>
+            <td><input data-wa-field="qty" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(row.qty)}" style="width:60px"></td>
+            <td><input data-wa-field="amount" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(row.amount)}" style="width:100px"></td>
+            <td><input data-wa-field="basePriceEcer" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(row.basePriceEcer)}" style="width:100px"></td>
             <td>${row.existingProduct ? '<span class="api-badge ok">Update</span>' : '<span class="api-badge warn">Baru</span>'}</td>
             <td><button class="btn danger delete-wa-item" data-id="${row.id}" type="button">Hapus</button></td>
           </tr>
@@ -3506,7 +3526,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       document.querySelectorAll("tr[data-wa-id]").forEach((tr) => {
         const row = { id: tr.dataset.waId };
         tr.querySelectorAll("[data-wa-field]").forEach((input) => {
-          row[input.dataset.waField] = input.type === "number" ? plainNumber(input.value) : input.value;
+          row[input.dataset.waField] = input.type === "number" ? plainplainNumber(input.value) : input.value;
         });
         rows.push(row);
       });
@@ -3601,8 +3621,8 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         const id = formData.get("id") || Date.now() + Math.random();
         const name = formData.get("name").trim();
         const product = findProduct(name);
-        const qty = plainNumber(formData.get("qty"));
-        const amount = plainNumber(formData.get("amount")) || Number(product?.basePrice || 0);
+        const qty = plainplainNumber(formData.get("qty"));
+        const amount = plainplainNumber(formData.get("amount")) || Number(product?.basePrice || 0);
         const next = { id, name, unit: product?.unit || "", qty, amount, subtotal: qty * amount };
         const rows = shoppingRows();
         const exists = rows.some((row) => String(row.id) === String(id));
@@ -3827,10 +3847,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             const unitContent = parseFloat(rawUnit);
             if (!isNaN(unitContent) && unitContent > 0) {
               if (e.target.name === 'basePriceEcer') {
-                const ecer = parseFloat(e.target.value) || 0;
+                const ecer = plainplainNumber(e.target.value) || 0;
                 form.basePrice.value = Math.round(ecer * unitContent);
               } else if (e.target.name === 'basePrice' || e.target.name === 'unitContent') {
-                const base = parseFloat(form.basePrice.value) || 0;
+                const base = plainplainNumber(form.basePrice.value) || 0;
                 form.basePriceEcer.value = Math.round(base / unitContent);
               }
             }
@@ -3839,8 +3859,8 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
         // Auto Hitung Potensi Cuan
         if (['basePrice', 'basePriceEcer', 'salePrice', 'salePriceEcer', 'unitContent'].includes(e.target.name)) {
-           const bPriceEcer = parseFloat(form.basePriceEcer?.value) || 0;
-           const sPriceEcer = parseFloat(form.salePriceEcer?.value) || 0;
+           const bPriceEcer = plainplainNumber(form.basePriceEcer?.value) || 0;
+           const sPriceEcer = plainplainNumber(form.salePriceEcer?.value) || 0;
            
            const cuanEcer = sPriceEcer - bPriceEcer;
            

@@ -552,8 +552,8 @@ async function addRow(collection, item = {}) {
     if (collection === "cashAdvances") {
       const [result] = await db.query(`
         INSERT INTO cash_advances (employee_id, date, amount, notes, status)
-        VALUES (?, ?, ?, ?, ?)
-      `, [item.employeeId, item.date || new Date(), item.amount, item.notes || null, item.status || 'Belum Lunas']);
+          VALUES (?, ?, ?, ?, ?)
+        `, [item.employeeId, item.date || new Date(), number(item.amount), item.notes || null, item.status || 'Belum Lunas']);
       await recordAudit(`Tambah bon untuk karyawan ID ${item.employeeId}`);
       return findRow("cashAdvances", result.insertId);
     }
@@ -678,7 +678,7 @@ async function updateRow(collection, id, item = {}) {
     if (collection === "cashAdvances") {
       await db.query(`
         UPDATE cash_advances SET date=?, amount=?, notes=?, status=? WHERE id=?
-      `, [item.date, item.amount, item.notes || null, item.status, id]);
+        `, [item.date, number(item.amount), item.notes || null, item.status, id]);
       await recordAudit(`Update bon ID ${id}`);
       return findRow("cashAdvances", id);
     }

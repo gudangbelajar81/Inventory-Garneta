@@ -595,7 +595,7 @@
             form.elements.id.value = bon.id;
             form.elements.employeeId.value = bon.employeeId;
             form.elements.date.value = bon.date ? bon.date.slice(0,10) : '';
-            form.elements.amount.value = bon.amount;
+            form.elements.amount.value = formatInitialNumber(bon.amount);
             form.elements.notes.value = bon.notes;
             form.scrollIntoView();
           }
@@ -635,7 +635,7 @@
             const payload = {
               employeeId: form.elements.employeeId.value,
               date: form.elements.date.value,
-              amount: form.elements.amount.value,
+              amount: plainNumber(form.elements.amount.value),
               notes: form.elements.notes.value,
               status: "Belum Lunas"
             };

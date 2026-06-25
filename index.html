@@ -2195,20 +2195,36 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         const cats = [...new Set((state?.data?.products || []).map(p => p.category).filter(Boolean))];
         return `<form data-form="purchases" class="grid forms">
           ${hiddenId()}
-          ${input("date", "Tanggal", true, "date", today())}
-          <label>Kategori Barang<input name="category" type="text" list="category-list">
-            <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
-          </label>
-          ${input("name", "Nama Barang", true)}
-          ${select("unit", "Unit Grosir", ["-", "Sak", "Karton", "Dus", "Jligen", "Ball", "Pack", "Kotak"])}
-          ${select("unitEcer", "Unit Eceran", ["-", "pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol"])}
-          ${input("unitContent", "Isi/Unit", false, "number")}
-          ${input("basePrice", "Harga Dasar (Beli)", false, "number")}
-          ${input("basePriceEcer", "Harga Dasar Ecer", false, "number")}
-          ${input("salePrice", "Harga Jual (Grosir)", false, "number")}
-          ${input("salePriceEcer", "Harga Jual Ecer", false, "number")}
-          <label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>
-          ${input("qty", "Banyak Dibeli (Stok Masuk)", true, "text", "1")}
+          
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+            ${input("date", "Tanggal", true, "date", today())}
+            <label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>
+          </div>
+          
+          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; grid-column: 1/-1;">
+            <label>Kategori Barang<input name="category" type="text" list="category-list">
+              <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
+            </label>
+            ${input("name", "Nama Barang", true)}
+            ${input("qty", "Banyak Dibeli", true, "text", "1")}
+          </div>
+          
+          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; grid-column: 1/-1;">
+            ${select("unit", "Unit Grosir", ["-", "Sak", "Karton", "Dus", "Jligen", "Ball", "Pack", "Kotak"])}
+            ${select("unitEcer", "Unit Eceran", ["-", "pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol"])}
+            ${input("unitContent", "Isi/Unit", false, "number")}
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+            ${input("basePrice", "Harga Dasar (Beli)", false, "number")}
+            ${input("basePriceEcer", "Harga Dasar Ecer", false, "number")}
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+            ${input("salePrice", "Harga Jual (Grosir)", false, "number")}
+            ${input("salePriceEcer", "Harga Jual Ecer", false, "number")}
+          </div>
+
           ${formButtons()}
         </form>`;
       }

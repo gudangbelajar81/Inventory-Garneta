@@ -1229,8 +1229,8 @@ Minyak Goreng 3 45000"></textarea>
       let total = 0;
       
       window.ngitungRows.forEach((row, index) => {
-        const qty = Number(row.qty) || 1;
-        const price = Number(row.price) || 0;
+        const qty = Number(String(row.qty).replace(/[^0-9-]/g, '')) || 1;
+        const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
         const amount = row.price ? price * qty : 0;
         total += amount;
         
@@ -2338,7 +2338,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         if (val) {
           let isNegative = val.startsWith('-');
           val = val.replace(/-/g, '');
-          el.value = (isNegative ? '-' : '') + val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+          el.value = (isNegative ? '-' : '') + val; // Tidak pakai titik lagi
         } else {
           el.value = '';
         }

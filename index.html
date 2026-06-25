@@ -1354,9 +1354,9 @@ Minyak Goreng 3 45000"></textarea>
           let encoder = new TextEncoder();
         let data = [
           0x1b, 0x40, // init
-          ...encoder.encode('=== Toko GARNETA ===\\n'),
-          ...encoder.encode('Tgl: ' + new Date().toLocaleString('id-ID') + '\\n'),
-          ...encoder.encode('--------------------------------\\n')
+          ...encoder.encode('=== Toko GARNETA ===\n'),
+          ...encoder.encode('Tgl: ' + new Date().toLocaleString('id-ID') + '\n'),
+          ...encoder.encode('--------------------------------\n')
         ];
         
         let total = 0;
@@ -1367,12 +1367,12 @@ Minyak Goreng 3 45000"></textarea>
           const amount = row.price ? price * qty : 0;
           total += amount;
           
-          data.push(...encoder.encode(row.name + '\\n'));
-          data.push(...encoder.encode(qty + ' x ' + price + ' = ' + amount + '\\n'));
+          data.push(...encoder.encode(row.name + '\n'));
+          data.push(...encoder.encode(qty + ' x ' + price + ' = ' + amount + '\n'));
         });
         
-        data.push(...encoder.encode('--------------------------------\\n'));
-        data.push(...encoder.encode('TOTAL: ' + total + '\\n\\n\\n\\n'));
+        data.push(...encoder.encode('--------------------------------\n'));
+        data.push(...encoder.encode('TOTAL: ' + total + '\n\n\n\n'));
         
         let buffer = new Uint8Array(data);
         for (let i = 0; i < buffer.length; i += 512) {

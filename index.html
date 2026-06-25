@@ -4045,16 +4045,23 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
         // Auto Hitung Potensi Cuan
         if (['basePrice', 'basePriceEcer', 'salePrice', 'salePriceEcer', 'unitContent'].includes(e.target.name)) {
-           const bPriceEcer = plainplainNumber(form.basePriceEcer?.value) || 0;
-           const sPriceEcer = plainplainNumber(form.salePriceEcer?.value) || 0;
-           
-           const cuanEcer = sPriceEcer - bPriceEcer;
-           
-           if(form.cuan) {
-              form.cuan.value = sPriceEcer > 0 ? rupiah(cuanEcer) : '';
-              form.cuan.style.color = cuanEcer >= 0 ? '#10b981' : '#f43f5e';
-           }
-        }
+             const bPriceEcer = plainplainNumber(form.basePriceEcer?.value) || 0;
+             const sPriceEcer = plainplainNumber(form.salePriceEcer?.value) || 0;
+             const bPrice = plainplainNumber(form.basePrice?.value) || 0;
+             const sPrice = plainplainNumber(form.salePrice?.value) || 0;
+             
+             let cuan = 0;
+             if (sPriceEcer > 0) {
+                cuan = sPriceEcer - bPriceEcer;
+             } else {
+                cuan = sPrice - bPrice;
+             }
+             
+             if(form.cuan) {
+                form.cuan.value = (sPriceEcer > 0 || sPrice > 0) ? rupiah(cuan) : '';
+                form.cuan.style.color = cuan >= 0 ? '#10b981' : '#f43f5e';
+             }
+          }
       });
   
       setInterval(() => el("clock").textContent = new Date().toLocaleString("id-ID"), 1000);

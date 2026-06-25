@@ -525,10 +525,15 @@
                 <h3>💰 Hitung & Bayar Gaji</h3>
                 <form id="form-payroll" class="grid forms">
                   <label>Karyawan <select name="employeeId" id="payroll-employee" required><option value="">Pilih...</option>${empOptions2}</select></label>
-                  ${input("periodStart", "Periode Mulai", false, "date")}
-                  ${input("periodEnd", "Periode Akhir", false, "date")}
-                  ${input("attendanceDays", "Kehadiran (Hari)", false, "number")}
+                  ${input("periodStart", "Periode Mulai (Tgl Masuk)", false, "date")}
+                  ${input("periodEnd", "Periode Akhir (Hr Ini)", false, "date")}
+                  ${input("leaveDays", "Potong Libur / Izin (Hari)", false, "number")}
+                  <label>Total Hari Kerja Aktual <input name="attendanceDays" type="text" readonly style="background:var(--bg);font-weight:bold;"></label>
                   ${input("notes", "Keterangan")}
+                  <label style="display:flex;align-items:center;gap:8px;margin-top:0.5rem;font-size:0.9rem;">
+                    <input type="checkbox" name="resetJoinDate" checked style="width:auto;margin:0;"> 
+                    Set "Tanggal Masuk" ke besok (Centang jika lanjut kerja besok)
+                  </label>
                   
                   <div style="grid-column: 1 / -1; background: var(--bg); padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
@@ -648,7 +653,11 @@
         
         // Payroll Calculate Logic
         const payrollEmp = document.getElementById("payroll-employee");
+        const pStart = document.getElementsByName("periodStart")[0];
+        const pEnd = document.getElementsByName("periodEnd")[0];
+        const pLeave = document.getElementsByName("leaveDays")[0];
         const payrollDays = document.getElementsByName("attendanceDays")[0];
+        
         const calcPayroll = () => {
           if (!payrollEmp || !payrollDays) return;
           const empId = payrollEmp.value;
@@ -656,13 +665,34 @@
             document.getElementById("payroll-basic-salary").innerText = "Rp 0";
             document.getElementById("payroll-deduction").innerText = "- Rp 0";
             document.getElementById("payroll-net").innerText = "Rp 0";
+            if (pStart) pStart.value = "";
+            if (pEnd) pEnd.value = "";
             return;
           }
           
           const emp = employees().find(e => e.id == empId);
+          if (pStart && !pStart.value && emp.joinDate) pStart.value = emp.joinDate.split('T')[0];
+          if (pEnd && !pEnd.value) pEnd.value = today();
+          
+          let actualDays = 0;
+          if (emp.salaryType === 'Harian') {
+            if (pStart.value && pEnd.value) {
+              const d1 = new Date(pStart.value);
+              const d2 = new Date(pEnd.value);
+              const diffTime = d2 - d1;
+              const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24))) + 1; // inclusive
+              const leave = Number(pLeave ? pLeave.value : 0) || 0;
+              actualDays = Math.max(0, diffDays - leave);
+            }
+            payrollDays.value = actualDays;
+          } else {
+            payrollDays.value = 1; // For bulanan, it doesn't matter visually
+            actualDays = 1;
+          }
+          
           let basicCalc = 0;
           if (emp.salaryType === 'Harian') {
-            basicCalc = emp.baseSalary * Number(payrollDays.value || 0);
+            basicCalc = emp.baseSalary * actualDays;
           } else {
             basicCalc = emp.baseSalary; // Bulanan
           }
@@ -676,8 +706,15 @@
           document.getElementById("payroll-net").innerText = rupiah(net);
         };
         
-        if (payrollEmp) payrollEmp.addEventListener("change", calcPayroll);
-        if (payrollDays) payrollDays.addEventListener("input", calcPayroll);
+        if (payrollEmp) payrollEmp.addEventListener("change", () => {
+          if (pStart) pStart.value = "";
+          if (pEnd) pEnd.value = "";
+          if (pLeave) pLeave.value = "";
+          calcPayroll();
+        });
+        if (pStart) pStart.addEventListener("input", calcPayroll);
+        if (pEnd) pEnd.addEventListener("input", calcPayroll);
+        if (pLeave) pLeave.addEventListener("input", calcPayroll);
         
         // Payroll Submit
         const formPayroll = document.getElementById("form-payroll");
@@ -688,7 +725,8 @@
             
             const empId = form.elements.employeeId.value;
             const emp = employees().find(x => x.id == empId);
-            let basicCalc = emp.salaryType === 'Harian' ? (emp.baseSalary * plainNumber(form.elements.attendanceDays.value || 0)) : emp.baseSalary;
+            let actualDays = Number(form.elements.attendanceDays.value || 0);
+            let basicCalc = emp.salaryType === 'Harian' ? (emp.baseSalary * actualDays) : emp.baseSalary;
             
             const unpaidBons = cashAdvances().filter(c => c.employeeId == empId && c.status === 'Belum Lunas');
             const totalBon = unpaidBons.reduce((sum, c) => sum + Number(c.amount), 0);
@@ -706,6 +744,7 @@
               totalDeductionBon: totalBon,
               netSalary: net,
               notes: form.elements.notes.value,
+              resetJoinDate: form.elements.resetJoinDate.checked,
               bonIds: bonIds
             };
             

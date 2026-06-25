@@ -568,6 +568,15 @@ async function addRow(collection, item = {}) {
       if (item.bonIds && item.bonIds.length > 0) {
          await db.query(`UPDATE cash_advances SET status = 'Lunas' WHERE id IN (?)`, [item.bonIds]);
       }
+      
+      // Reset Tanggal Masuk (untuk Karyawan Harian yang tidak libur)
+      if (item.resetJoinDate) {
+        const nextDay = new Date();
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextDayStr = nextDay.toISOString().split('T')[0];
+        await db.query(`UPDATE employees SET join_date = ? WHERE id = ?`, [nextDayStr, item.employeeId]);
+      }
+      
       await recordAudit(`Bayar gaji untuk karyawan ID ${item.employeeId}`);
       return findRow("payrolls", result.insertId);
     }

@@ -569,6 +569,15 @@ async function addRow(collection, item = {}) {
          await db.query(`UPDATE cash_advances SET status = 'Lunas' WHERE id IN (?)`, [item.bonIds]);
       }
       
+      // Sisipkan bon baru untuk sisa tunggakan
+      if (item.sisaBonBaru && item.sisaBonBaru > 0) {
+         const nextD = new Date();
+         nextD.setDate(nextD.getDate() + 1);
+         const nextDStr = nextD.toISOString().split('T')[0];
+         await db.query(`INSERT INTO cash_advances (employee_id, date, amount, notes, status) VALUES (?, ?, ?, ?, ?)`, 
+         [item.employeeId, nextDStr, item.sisaBonBaru, "Sisa Bon Sebelumnya (Otomatis)", "Belum Lunas"]);
+      }
+      
       // Reset Tanggal Masuk (untuk Karyawan Harian yang tidak libur)
       if (item.resetJoinDate) {
         const nextDay = new Date();

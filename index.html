@@ -2695,7 +2695,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         const totalInput = purchaseFormEl.querySelector('input[name="total"]');
         const updatePurchaseTotal = () => {
           if (qtyInput && priceInput && totalInput) {
-            totalInput.value = (plainplainNumber(qtyInput.value) || 0) * (plainplainNumber(priceInput.value) || 0);
+            totalInput.value = (Number(String(qtyInput.value).replace(/[^0-9-]/g, '')) || 0) * (Number(String(priceInput.value).replace(/[^0-9-]/g, '')) || 0);
           }
         };
         if (qtyInput) qtyInput.addEventListener('input', updatePurchaseTotal);
@@ -3824,7 +3824,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       document.querySelectorAll("tr[data-wa-id]").forEach((tr) => {
         const row = { id: tr.dataset.waId };
         tr.querySelectorAll("[data-wa-field]").forEach((input) => {
-          row[input.dataset.waField] = input.type === "number" ? plainplainNumber(input.value) : input.value;
+          row[input.dataset.waField] = input.type === "number" ? Number(String(input.value).replace(/[^0-9-]/g, '')) : input.value;
         });
         rows.push(row);
       });
@@ -3919,8 +3919,8 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         const id = formData.get("id") || Date.now() + Math.random();
         const name = formData.get("name").trim();
         const product = findProduct(name);
-        const qty = plainplainNumber(formData.get("qty"));
-        const amount = plainplainNumber(formData.get("amount")) || Number(product?.basePrice || 0);
+        const qty = Number(String(formData.get("qty").replace(/[^0-9-]/g, '')));
+        const amount = Number(String(formData.get("amount").replace(/[^0-9-]/g, ''))) || Number(product?.basePrice || 0);
         const next = { id, name, unit: product?.unit || "", qty, amount, subtotal: qty * amount };
         const rows = shoppingRows();
         const exists = rows.some((row) => String(row.id) === String(id));
@@ -4145,10 +4145,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             const unitContent = parseFloat(rawUnit);
             if (!isNaN(unitContent) && unitContent > 0) {
               if (e.target.name === 'basePriceEcer') {
-                const ecer = plainplainNumber(e.target.value) || 0;
+                const ecer = Number(String(e.target.value).replace(/[^0-9-]/g, '')) || 0;
                 form.basePrice.value = Math.round(ecer * unitContent);
               } else if (e.target.name === 'basePrice' || e.target.name === 'unitContent') {
-                const base = plainplainNumber(form.basePrice.value) || 0;
+                const base = Number(String(form.basePrice.value).replace(/[^0-9-]/g, '')) || 0;
                 form.basePriceEcer.value = Math.round(base / unitContent);
               }
             }
@@ -4157,10 +4157,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
         // Auto Hitung Potensi Cuan
         if (['basePrice', 'basePriceEcer', 'salePrice', 'salePriceEcer', 'unitContent'].includes(e.target.name)) {
-             const bPriceEcer = plainplainNumber(form.basePriceEcer?.value) || 0;
-             const sPriceEcer = plainplainNumber(form.salePriceEcer?.value) || 0;
-             const bPrice = plainplainNumber(form.basePrice?.value) || 0;
-             const sPrice = plainplainNumber(form.salePrice?.value) || 0;
+             const bPriceEcer = Number(String(form.basePriceEcer?.value).replace(/[^0-9-]/g, '')) || 0;
+             const sPriceEcer = Number(String(form.salePriceEcer?.value).replace(/[^0-9-]/g, '')) || 0;
+             const bPrice = Number(String(form.basePrice?.value).replace(/[^0-9-]/g, '')) || 0;
+             const sPrice = Number(String(form.salePrice?.value).replace(/[^0-9-]/g, '')) || 0;
              
              let cuan = 0;
              if (sPriceEcer > 0) {

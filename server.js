@@ -143,7 +143,7 @@ app.use((req, res, next) => {
 
 
 // Actions yang tidak perlu auth (public)
-const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap", "resetAdmin"]);
+const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap"]);
 
 function verifyToken(req, res, next) {
   const action = req.body?.action;

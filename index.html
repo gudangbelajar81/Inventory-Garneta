@@ -731,70 +731,72 @@ function bindGajiEvents() {
   if (pEnd && !pEnd.value) pEnd.value = today();
   
   const calcPayroll = () => {
-    let actualDays = 0;
-    if (emp.salaryType === 'Harian') {
-      if (pStart && pEnd && pStart.value && pEnd.value) {
-        const d1 = new Date(pStart.value);
-        const d2 = new Date(pEnd.value);
-        const diffTime = d2 - d1;
-        const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24))) + 1;
-        const leave = Number(pLeave ? pLeave.value : 0) || 0;
-        actualDays = Math.max(0, diffDays - leave);
+      const fEmp = document.getElementById("form-employee");
+      let currentSalaryType = emp.salaryType;
+      let currentBaseSalary = emp.baseSalary;
+      if (fEmp) {
+         currentSalaryType = fEmp.elements.salaryType.value;
+         currentBaseSalary = plainNumber(fEmp.elements.baseSalary.value);
       }
-      if(payrollDays) payrollDays.value = actualDays;
-    } else {
-      if(payrollDays) payrollDays.value = 1;
-      actualDays = 1;
-    }
-    
-    let basicCalc = 0;
-    let breakdownText = "";
-    if (emp.salaryType === 'Harian') {
-      const dailyRate = Math.round(emp.baseSalary / 30);
-      basicCalc = dailyRate * actualDays;
-      breakdownText = `(${rupiah(dailyRate)}/hr x ${actualDays}hr)`;
-    } else {
-      basicCalc = emp.baseSalary;
-      breakdownText = "(1 Bulan)";
-    }
-    
-    const cicil = plainNumber(cicilInput ? cicilInput.value : 0) || 0;
-    const net = basicCalc - cicil;
-    const sisaBon = Math.max(0, totalBon - cicil);
-    
-    const brkElement = document.getElementById("payroll-basic-breakdown");
-    if (brkElement) brkElement.innerText = breakdownText;
-    const basicEl = document.getElementById("payroll-basic-salary");
-    if (basicEl) basicEl.innerText = rupiah(basicCalc);
-    const netEl = document.getElementById("payroll-net");
-    if (netEl) netEl.innerText = rupiah(net);
-    const sisaEl = document.getElementById("payroll-sisa-bon");
-    if (sisaEl) sisaEl.innerText = rupiah(sisaBon);
-  };
-  
-  // Auto-fill cicilan
-  if (cicilInput && !cicilInput.value) {
-     // Default calculate first to find basicCalc
-     let actualDays = 0;
-     if (emp.salaryType === 'Harian') {
+
+      let actualDays = 0;
+      if (currentSalaryType === 'Harian') {
         if (pStart && pEnd && pStart.value && pEnd.value) {
           const d1 = new Date(pStart.value);
           const d2 = new Date(pEnd.value);
-          const diffDays = Math.max(0, Math.floor((d2 - d1) / (1000 * 60 * 60 * 24))) + 1;
-          actualDays = Math.max(0, diffDays - (Number(pLeave ? pLeave.value : 0) || 0));
+          const diffTime = d2 - d1;
+          const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24))) + 1;
+          const leave = Number(pLeave ? pLeave.value : 0) || 0;
+          actualDays = Math.max(0, diffDays - leave);
         }
-     }
-     let basicCalc = emp.salaryType === 'Harian' ? Math.round(emp.baseSalary / 30) * actualDays : emp.baseSalary;
-     
-     // By default, cicil is max totalBon, but not exceeding salary
-     let defaultCicil = Math.min(totalBon, basicCalc);
-     cicilInput.value = formatInitialNumber(defaultCicil);
-  }
-  
-  if (pStart) pStart.addEventListener("input", calcPayroll);
-  if (pEnd) pEnd.addEventListener("input", calcPayroll);
-  if (pLeave) pLeave.addEventListener("input", calcPayroll);
-  if (cicilInput) cicilInput.addEventListener("input", calcPayroll);
+        if(payrollDays) payrollDays.value = actualDays;
+      } else {
+        if(payrollDays) payrollDays.value = 1;
+        actualDays = 1;
+      }
+      
+      let basicCalc = 0;
+      let breakdownText = "";
+      if (currentSalaryType === 'Harian') {
+        const dailyRate = Math.round(currentBaseSalary / 30);
+        basicCalc = dailyRate * actualDays;
+        breakdownText = `(${rupiah(dailyRate)}/hr x ${actualDays}hr)`;
+      } else {
+        basicCalc = currentBaseSalary;
+        breakdownText = "(1 Bulan)";
+      }
+      
+      const cicil = plainNumber(cicilInput ? cicilInput.value : 0) || 0;
+      const net = basicCalc - cicil;
+      const sisaBon = Math.max(0, totalBon - cicil);
+      
+      const brkElement = document.getElementById("payroll-basic-breakdown");
+      if (brkElement) brkElement.innerText = breakdownText;
+      const basicEl = document.getElementById("payroll-basic-salary");
+      if (basicEl) basicEl.innerText = rupiah(basicCalc);
+      const netEl = document.getElementById("payroll-net");
+      if (netEl) netEl.innerText = rupiah(net);
+      const sisaEl = document.getElementById("payroll-sisa-bon");
+      if (sisaEl) sisaEl.innerText = rupiah(sisaBon);
+      
+      return basicCalc;
+    };
+    
+    // Auto-fill cicilan
+    if (cicilInput && !cicilInput.value) {
+       let basicCalc = calcPayroll();
+       let defaultCicil = Math.min(totalBon, basicCalc);
+       cicilInput.value = formatInitialNumber(defaultCicil);
+    }
+    
+    if (pStart) pStart.addEventListener("input", calcPayroll);
+    if (pEnd) pEnd.addEventListener("input", calcPayroll);
+    if (pLeave) pLeave.addEventListener("input", calcPayroll);
+    if (cicilInput) cicilInput.addEventListener("input", calcPayroll);
+    if (formEmp) {
+      formEmp.elements.salaryType.addEventListener("change", calcPayroll);
+      formEmp.elements.baseSalary.addEventListener("input", calcPayroll);
+    }
   
   calcPayroll(); // Run once
   

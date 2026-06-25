@@ -2191,8 +2191,6 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           ${input("salePriceEcer", "Harga Jual Ecer", false, "number")}
           <label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>
           ${input("qty", "Banyak Dibeli (Stok Masuk)", true, "text", "1")}
-          ${input("total", "Total Tagihan", true, "text", "0", true)}
-          ${input("supplier", "Supplier / Toko")}
           ${formButtons()}
         </form>`;
       }
@@ -2749,9 +2747,8 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
               await gas(prod ? "update" : "add", { collection: "products", id: prod ? prod.id : undefined, item: productData });
               
               item.product = item.name.trim();
-              item.supplier = item.supplier || "Restock";
               item.qty = purchaseQty;
-              item.amount = Number(String(item.total || 0).replace(/[^0-9-]/g, ''));
+              item.amount = 0;
               
               delete item.name;
               delete item.category;
@@ -2763,7 +2760,6 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
               delete item.salePrice;
               delete item.salePriceEcer;
               delete item.cuan;
-              delete item.total;
             }
 
             await gas(id ? "update" : "add", { collection, id, item });

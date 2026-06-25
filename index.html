@@ -660,7 +660,7 @@ function bindGajiEvents() {
       };
       const id = form.elements.id.value;
       try {
-        await gas(id ? "edit" : "add", { collection: "employees", id, item: payload });
+        await gas(id ? "update" : "add", { collection: "employees", id, item: payload });
         alert("Profil Karyawan berhasil diperbarui");
         await load();
       } catch(err) { alert(err.message); }
@@ -681,7 +681,7 @@ function bindGajiEvents() {
       };
       const id = form.elements.id.value;
       try {
-        await gas(id ? "edit" : "add", { collection: "cashAdvances", id, item: payload });
+        await gas(id ? "update" : "add", { collection: "cashAdvances", id, item: payload });
         alert("Bon berhasil dicatat");
         await load();
       } catch(err) { alert(err.message); }

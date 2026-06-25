@@ -2220,7 +2220,19 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function productRows() {
-      return actionTable("products", state.data.products, ["category", "name", "unit", "unitContent", "unitEcer", "basePrice", "basePriceEcer", "costPrice", "salePrice", "salePriceEcer", "stock", "barcode"], ["Kategori", "Nama", "Unit Grosir", "Isi", "Unit Ecer", "Harga Dasar", "H. Dasar/Ecer", "HPP", "H. Jual Grosir", "H. Jual Ecer", "Stok", "Barcode"], priceFormat);
+      const sorted = [...(state.data.products || [])].sort((a, b) => {
+        const catA = (a.category || "").toLowerCase();
+        const catB = (b.category || "").toLowerCase();
+        if (catA < catB) return -1;
+        if (catA > catB) return 1;
+        const nameA = (a.name || "").toLowerCase();
+        const nameB = (b.name || "").toLowerCase();
+        return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+      });
+      return actionTable("products", sorted,
+        ["category", "name", "unit", "unitEcer", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"],
+        ["Kategori", "Nama", "Unit Grosir/Ecer", "Unit Ecer", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"],
+        priceFormat);
     }
 
 
@@ -2627,7 +2639,19 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         );
         const res = document.getElementById("search-barang-results");
         if (res) {
-          res.innerHTML = actionTable("products", results, ["category", "name", "unit", "unitContent", "unitEcer", "basePrice", "basePriceEcer", "costPrice", "salePrice", "salePriceEcer", "stock", "barcode"], ["Kategori", "Nama", "Unit Grosir", "Isi", "Unit Ecer", "Harga Dasar", "H. Dasar/Ecer", "HPP", "H. Jual Grosir", "H. Jual Ecer", "Stok", "Barcode"], priceFormat);
+          const sortedResults = [...results].sort((a, b) => {
+            const catA = (a.category || "").toLowerCase();
+            const catB = (b.category || "").toLowerCase();
+            if (catA < catB) return -1;
+            if (catA > catB) return 1;
+            const nameA = (a.name || "").toLowerCase();
+            const nameB = (b.name || "").toLowerCase();
+            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+          });
+          res.innerHTML = actionTable("products", sortedResults,
+            ["category", "name", "unit", "unitEcer", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"],
+            ["Kategori", "Nama", "Unit Grosir/Ecer", "Unit Ecer", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"],
+            priceFormat);
         }
       };
       

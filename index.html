@@ -2372,7 +2372,55 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return `<div class="chart">${values.map((value) => `<div class="bar" title="${rupiah(value)}" style="height:${Math.max(Number(value) / max * 100, 5)}%"></div>`).join("")}</div>`;
     }
 
-    function bindForms() {
+    
+      window.searchBarang = function(query) {
+        if (!query) {
+          const res = document.getElementById("search-barang-results");
+          if (res) res.innerHTML = "";
+          return;
+        }
+        const q = query.toLowerCase();
+        const results = (state.data.products || []).filter(p => 
+          (p.name && p.name.toLowerCase().includes(q)) || 
+          (p.category && p.category.toLowerCase().includes(q)) || 
+          (p.barcode && String(p.barcode).toLowerCase().includes(q))
+        );
+        const res = document.getElementById("search-barang-results");
+        if (res) {
+          res.innerHTML = actionTable("products", results, ["category", "name", "unit", "unitContent", "unitEcer", "basePrice", "basePriceEcer", "costPrice", "salePrice", "salePriceEcer", "stock", "barcode"], ["Kategori", "Nama", "Unit Grosir", "Isi", "Unit Ecer", "Harga Dasar", "H. Dasar/Ecer", "HPP", "H. Jual Grosir", "H. Jual Ecer", "Stok", "Barcode"], priceFormat);
+        }
+      };
+      
+      window.clearSearchBarang = function() {
+        const input = document.getElementById("search-barang-input");
+        if (input) input.value = "";
+        window.searchBarang("");
+      };
+
+      window.searchPembelian = function(query) {
+        if (!query) {
+          const res = document.getElementById("search-pembelian-results");
+          if (res) res.innerHTML = "";
+          return;
+        }
+        const q = query.toLowerCase();
+        const results = (state.data.purchases || []).filter(p => 
+          (p.date && String(p.date).toLowerCase().includes(q)) || 
+          (p.product && p.product.toLowerCase().includes(q))
+        );
+        const res = document.getElementById("search-pembelian-results");
+        if (res) {
+          res.innerHTML = actionTable("purchases", results, ["date", "product", "qty", "amount", "total"], ["Tanggal", "Barang", "Banyak", "Harga", "Total"], priceFormat);
+        }
+      };
+      
+      window.clearSearchPembelian = function() {
+        const input = document.getElementById("search-pembelian-input");
+        if (input) input.value = "";
+        window.searchPembelian("");
+      };
+
+      function bindForms() {
         document.querySelectorAll('input[name="name"], input[name="category"]').forEach(el => {
           el.addEventListener('input', function() {
             const start = this.selectionStart;

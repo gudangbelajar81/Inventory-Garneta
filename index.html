@@ -2230,8 +2230,8 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
       });
       return actionTable("products", sorted,
-        ["category", "name", "unit", "unitEcer", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"],
-        ["Kategori", "Nama", "Unit Grosir/Ecer", "Unit Ecer", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"],
+        ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"],
+        ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"],
         priceFormat);
     }
 
@@ -2649,8 +2649,8 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
           });
           res.innerHTML = actionTable("products", sortedResults,
-            ["category", "name", "unit", "unitEcer", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"],
-            ["Kategori", "Nama", "Unit Grosir/Ecer", "Unit Ecer", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"],
+            ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"],
+            ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"],
             priceFormat);
         }
       };

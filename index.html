@@ -345,7 +345,7 @@
     let invoiceStream = null;
     let deferredInstallPrompt = null;
 
-    const rupiah = (value) => Number(value || 0).toString();
+    const rupiah = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(String(value || 0).replace(/[^0-9-]/g, "")));
     const today = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
     const API_URL = window.location.protocol === "file:" ? "http://127.0.0.1:3000/api" : "/api";
@@ -1239,14 +1239,14 @@ Minyak Goreng 3 45000"></textarea>
             <td><input type="text" value="${escapeAttr(row.name)}" onchange="ngitungUpdateRow(this, ${row.id}, 'name')" list="ngitung-history-list" placeholder="Ketik nama..." style="width: 100%;"></td>
             <td><input type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${row.price}" onchange="ngitungUpdateRow(this, ${row.id}, 'price')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="Harga" style="width: 100px;"></td>
             <td><input type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${row.qty}" onchange="ngitungUpdateRow(this, ${row.id}, 'qty')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="1" style="width: 60px;"></td>
-            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 120px;">${Number(amount || 0).toString()}</td>
+            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 120px;">${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount)}</td>
             <td style="width: 50px;"><button class="btn danger" onclick="ngitungRemoveRow(${row.id})" ${window.ngitungRows.length === 1 ? 'disabled' : ''}>X</button></td>
           </tr>
         `;
       });
       
       tbody.innerHTML = html;
-      document.getElementById('ngitung-total').innerText = Number(total || 0).toString();
+      document.getElementById('ngitung-total').innerText = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(total);
       
       const datalist = document.getElementById('ngitung-history-list');
       if (datalist) {
@@ -1352,9 +1352,10 @@ Minyak Goreng 3 45000"></textarea>
           
           if (!characteristic) throw new Error("Sistem mengenali perangkat Bluetooth, tapi tidak menemukan service Print. Pastikan ini adalah Printer Thermal.");
           let encoder = new TextEncoder();
-        const formatLine = (left, right) => {
+        const formatRibuan = (num) => new Intl.NumberFormat('id-ID').format(Number(String(num).replace(/[^0-9-]/g, '')) || 0);
+          const formatLine = (left, right) => {
             const leftStr = String(left);
-            const rightStr = String(right);
+            const rightStr = formatRibuan(right);
             let spaceCount = 32 - leftStr.length - rightStr.length;
             if (spaceCount < 1) spaceCount = 1;
             return leftStr + ' '.repeat(spaceCount) + rightStr + '\n';
@@ -1370,13 +1371,13 @@ Minyak Goreng 3 45000"></textarea>
           let total = 0;
           window.ngitungRows.forEach(row => {
             if (!row.name && !row.price) return;
-            const qty = Number(row.qty) || 1;
-            const price = Number(row.price) || 0;
+            const qty = Number(String(row.qty).replace(/[^0-9-]/g, '')) || 1;
+            const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
             const amount = row.price ? price * qty : 0;
             total += amount;
             
             data.push(...encoder.encode(row.name + '\n'));
-            data.push(...encoder.encode(formatLine(qty + ' x ' + price, amount)));
+            data.push(...encoder.encode(formatLine(qty + " x " + formatRibuan(price), amount)));
           });
           
           data.push(...encoder.encode('--------------------------------\n'));
@@ -1404,8 +1405,8 @@ Minyak Goreng 3 45000"></textarea>
         let total = 0;
         let itemsHtml = window.ngitungRows.map(row => {
           if (!row.name && !row.price) return '';
-          const qty = Number(row.qty) || 1;
-          const price = Number(row.price) || 0;
+          const qty = Number(String(row.qty).replace(/[^0-9-]/g, '')) || 1;
+          const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
           const amount = row.price ? price * qty : 0;
           total += amount;
           return `
@@ -2347,7 +2348,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         if (val) {
           let isNegative = val.startsWith('-');
           val = val.replace(/-/g, '');
-          el.value = (isNegative ? '-' : '') + val; // Tidak pakai titik lagi
+          el.value = (isNegative ? '-' : '') + val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         } else {
           el.value = '';
         }

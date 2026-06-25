@@ -648,7 +648,6 @@ window.editBon = function(id) {
 };
 
 window.hapusBon = async function(id) {
-  if (!confirm("Yakin ingin menghapus riwayat bon ini secara permanen?")) return;
   try {
     await gas("remove", { collection: "cashAdvances", id });
     await load();
@@ -1747,7 +1746,6 @@ Beras Premium 1"></textarea>
     
     // Attach global delete function for sale
     window.deleteSale = async function(id) {
-       if (!confirm("Batal transaksi ini? Data akan dihapus dan stok akan dikembalikan.")) return;
        try {
          await gas("remove", { collection: "sales", id });
          await load();
@@ -2806,7 +2804,6 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
       document.querySelectorAll("[data-delete]").forEach((button) => {
         button.onclick = async () => {
-          if (!confirm("Hapus data ini?")) return;
           if (button.dataset.delete === "shopping") {
             saveShoppingRows(shoppingRows().filter((row) => String(row.id) !== String(button.dataset.id)));
             render();
@@ -3429,7 +3426,6 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
       document.querySelectorAll(".delete-ai-key").forEach((button) => {
         button.addEventListener("click", async () => {
-          if (!confirm("Hapus API key DEAD ini?")) return;
           const target = el("ai-settings-test-result");
           try {
             target.textContent = "Menghapus API key DEAD...";

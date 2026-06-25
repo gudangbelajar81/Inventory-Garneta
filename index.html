@@ -650,7 +650,7 @@ window.editBon = function(id) {
 window.hapusBon = async function(id) {
   if (!confirm("Yakin ingin menghapus riwayat bon ini secara permanen?")) return;
   try {
-    await gas("delete", { collection: "cashAdvances", id });
+    await gas("remove", { collection: "cashAdvances", id });
     await load();
   } catch(err) { alert(err.message); }
 };

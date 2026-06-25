@@ -1645,7 +1645,7 @@ Beras Premium 1"></textarea>
             ${saleForm()}
           </div>
           <div class="card">
-            <h3>Keranjang Penjualan - Total Cuan: <span style="color:#10b981;">${rupiah(totalCuan)}</span></h3>
+            <h3>Keranjang Penjualan${isSuperAdmin() ? ` - Total Cuan: <span style="color:#10b981;">${rupiah(totalCuan)}</span>` : ''}</h3>
             ${posTable(rows)}
             <div class="actions" style="margin-top: 1rem;">
               <button class="btn success" id="save-pos" style="width:100%; padding: 1rem; font-size: 1.1rem; font-weight: bold;">Simpan Semua Transaksi</button>
@@ -1702,7 +1702,7 @@ Beras Premium 1"></textarea>
                         <th style="font-size:0.8rem; padding:0.5rem">Jam</th>
                         <th style="font-size:0.8rem; padding:0.5rem">Barang</th>
                         <th style="font-size:0.8rem; padding:0.5rem">Unit</th>
-                        <th style="font-size:0.8rem; padding:0.5rem; text-align:right">Cuan</th>
+                        ${isSuperAdmin() ? '<th style="font-size:0.8rem; padding:0.5rem; text-align:right">Cuan</th>' : ''}
                         <th style="font-size:0.8rem; padding:0.5rem; text-align:center">Aksi</th>
                       </tr>
                     </thead>
@@ -1712,7 +1712,7 @@ Beras Premium 1"></textarea>
                           <td style="font-size:0.9rem; padding:0.5rem">${new Date(item.date).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}</td>
                           <td style="font-size:0.9rem; padding:0.5rem">${escapeAttr(item.productName)}</td>
                           <td style="font-size:0.9rem; padding:0.5rem">${item.unitSold}</td>
-                          <td style="font-size:0.9rem; padding:0.5rem; text-align:right; color:${item.cuan >= 0 ? '#10b981' : '#f43f5e'}">${rupiah(item.cuan)}</td>
+                          ${isSuperAdmin() ? `<td style="font-size:0.9rem; padding:0.5rem; text-align:right; color:${item.cuan >= 0 ? '#10b981' : '#f43f5e'}">${rupiah(item.cuan)}</td>` : ''}
                           <td style="font-size:0.9rem; padding:0.5rem; text-align:center">
                             <button class="btn danger small" onclick="deleteSale('${item.id}')" style="padding:0.25rem 0.5rem; font-size:0.8rem">Hapus</button>
                           </td>
@@ -2212,7 +2212,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           <datalist id="sale-products-list">${prodOptions}</datalist>
         </label>
         ${input("unitSold", "Unit Terjual", true, "number")}
-        <label>Potensi Cuan (Rp)<input name="cuan" type="text" readonly style="background-color:#1c2536;color:#10b981;font-weight:bold;" placeholder="Rp 0"></label>
+        ${isSuperAdmin() ? '<label>Potensi Cuan (Rp)<input name="cuan" type="text" readonly style="background-color:#1c2536;color:#10b981;font-weight:bold;" placeholder="Rp 0"></label>' : '<input name="cuan" type="hidden">'}
         <div class="form-actions" style="grid-column: 1 / -1">
           <button type="submit" class="btn primary" style="width:100%;font-weight:bold;">Tambah ke Keranjang</button>
         </div>
@@ -2237,10 +2237,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         const nameB = (b.name || "").toLowerCase();
         return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
       });
-      return actionTable("products", sorted,
-        ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"],
-        ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"],
-        priceFormat);
+      const prodKeys   = isSuperAdmin()
+        ? ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"]
+        : ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer"];
+      const prodLabels = isSuperAdmin()
+        ? ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"]
+        : ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer"];
+      return actionTable("products", sorted, prodKeys, prodLabels, priceFormat);
     }
 
 
@@ -2296,7 +2299,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function posTable(rows) {
-      return actionTable("pos", rows, ["date", "product", "unitSold", "cuan"], ["Tanggal", "Nama Barang", "Unit Terjual", "Cuan"], (key, value) => key === "cuan" ? rupiah(value) : value);
+      const cols   = isSuperAdmin() ? ["date", "product", "unitSold", "cuan"] : ["date", "product", "unitSold"];
+      const labels = isSuperAdmin() ? ["Tanggal", "Nama Barang", "Unit Terjual", "Cuan"]  : ["Tanggal", "Nama Barang", "Unit Terjual"];
+      return actionTable("pos", rows, cols, labels, (key, value) => key === "cuan" ? rupiah(value) : value);
     }
 
     function invoiceDraftTable() {
@@ -2656,10 +2661,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             const nameB = (b.name || "").toLowerCase();
             return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
           });
-          res.innerHTML = actionTable("products", sortedResults,
-            ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"],
-            ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"],
-            priceFormat);
+          const srchKeys   = isSuperAdmin()
+            ? ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"]
+            : ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer"];
+          const srchLabels = isSuperAdmin()
+            ? ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"]
+            : ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer"];
+          res.innerHTML = actionTable("products", sortedResults, srchKeys, srchLabels, priceFormat);
         }
       };
       

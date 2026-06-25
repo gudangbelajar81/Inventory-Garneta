@@ -1,6 +1,8 @@
 require("dotenv").config({ quiet: true });
 const crypto = require("crypto");
 const express = require("express");
+const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit");
 const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
@@ -11,6 +13,7 @@ const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
 const SHUTDOWN_TIMEOUT_MS = Number(process.env.SHUTDOWN_TIMEOUT_MS || 30000);
 
 let server;
@@ -60,18 +63,33 @@ const db = createDatabasePool();
 const featureModules = loadFeatureModules();
 const tableColumnCache = new Map();
 
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = req.headers.origin || "";
+  if (!allowedOrigins.length || allowedOrigins.includes(origin) || !origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  }
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Vary", "Origin");
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
 
-app.use(express.json({ limit: "15mb" }));
+app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use("/assets", express.static(path.join(__dirname, "assets")));
+
+// Rate limiting — max 120 request per menit per IP
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, message: "Terlalu banyak request, coba lagi dalam 1 menit." }
+});
+app.use("/api", apiLimiter);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
@@ -123,7 +141,27 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post("/api", async (req, res) => {
+
+// Actions yang tidak perlu auth (public)
+const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap"]);
+
+function verifyToken(req, res, next) {
+  const action = req.body?.action;
+  if (PUBLIC_ACTIONS.has(action)) return next();
+
+  const authHeader = req.headers["authorization"] || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ ok: false, message: "Akses ditolak. Silakan login terlebih dahulu." });
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch (err) {
+    return res.status(401).json({ ok: false, message: "Akses ditolak. Session tidak valid atau sudah kedaluwarsa." });
+  }
+}
+
+app.post("/api", verifyToken, async (req, res) => {
   try {
     const { action, payload = {} } = req.body || {};
     if (!action) throw new Error("Action wajib dikirim.");
@@ -315,6 +353,20 @@ async function bootstrap() {
   return { products, suppliers, purchases, sales, users, priceHistory, auditLogs, employees, cashAdvances, payrolls, dashboard: stats };
 }
 
+
+// Pastikan index ada untuk performa query pencarian
+async function ensureIndexes() {
+  try {
+    await db.query("CREATE INDEX IF NOT EXISTS idx_products_name ON products(name)");
+    await db.query("CREATE INDEX IF NOT EXISTS idx_products_category ON products(category)");
+    await db.query("CREATE INDEX IF NOT EXISTS idx_purchases_product ON purchases(purchased_at)");
+    await db.query("CREATE INDEX IF NOT EXISTS idx_sales_date ON sales(sold_at)");
+    logger.info("Database indexes sudah siap.");
+  } catch (e) {
+    logger.warn("Index creation skipped (mungkin sudah ada):", e.message);
+  }
+}
+
 async function dashboard() {
   const [[stats]] = await db.query(`
     SELECT
@@ -336,7 +388,7 @@ async function listRows(collection) {
 
   if (collection === "products") {
     const [rows] = await db.query(`
-      SELECT id, supplier_id, category, name, unit, unit_content, base_price, base_price_ecer, cost_price, sale_price, stock, barcode
+      SELECT id, supplier_id, category, name, unit, unit_content, base_price, base_price_ecer, cost_price, sale_price, sale_price_ecer, stock, barcode
       FROM products
       ORDER BY id DESC
     `);
@@ -729,11 +781,11 @@ async function verifySuperAdmin(adminId, password) {
     LIMIT 1
   `, [adminId]);
   const user = rows[0];
-  if (!user || user.status !== "Aktif" || (user.password_hash !== hashPassword(password) && password !== "garneta")) {
+  if (!user || user.status !== "Aktif" || user.password_hash !== hashPassword(password)) {
     throw new Error("Password Super Admin salah.");
   }
-  const token = "bypass-token-aktif";
-  return { id: user.id, name: user.name, role: user.role, token: token };
+  const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: "12h" });
+  return { id: user.id, name: user.name, role: user.role, token };
 }
 
 async function loginUser(name, password) {
@@ -747,11 +799,11 @@ async function loginUser(name, password) {
   `, [name]);
   const user = rows[0];
 
-  if (!user || user.status !== "Aktif" || (user.password_hash !== hashPassword(password) && password !== "garneta")) {
+  if (!user || user.status !== "Aktif" || user.password_hash !== hashPassword(password)) {
     throw new Error("Nama atau password Super Admin salah.");
   }
 
-  const token = "bypass-token-aktif";
+  const token = jwt.sign({ id: user.id, name: user.name, role: displayRole(user.role) }, JWT_SECRET, { expiresIn: "12h" });
 
   return {
     id: user.id,
@@ -759,15 +811,23 @@ async function loginUser(name, password) {
     email: user.email,
     role: displayRole(user.role),
     status: user.status,
-    token: token
+    token
   };
 }
 
 async function findRow(collection, id) {
-  const rows = await listRows(collection);
-  const row = rows.find((item) => String(item.id) === String(id));
-  if (!row) throw new Error("Data tidak ditemukan.");
-  return row;
+  const tbl = tableName(collection);
+  const [rows] = await db.query(`SELECT * FROM ${tbl} WHERE id = ? LIMIT 1`, [id]);
+  if (!rows.length) throw new Error("Data tidak ditemukan.");
+  // map the raw row using the appropriate mapper
+  const mappers = {
+    products: mapProduct,
+    suppliers: mapSupplier,
+    employees: mapEmployee,
+    users: mapUser,
+  };
+  const mapper = mappers[collection];
+  return mapper ? mapper(rows[0]) : rows[0];
 }
 
 async function recordPriceHistory(productId, source) {
@@ -1567,6 +1627,8 @@ function formatDate(value) {
   if (!value) return "";
   return new Date(value).toISOString().slice(0, 10);
 }
+
+ensureIndexes().catch(e => logger.warn("Index setup error:", e.message));
 
 server = app.listen(PORT, () => {
   logger.info(`Server berjalan di http://localhost:${PORT}`);

@@ -393,6 +393,10 @@
       render();
     }
 
+    function employees() { return state.data.employees || []; }
+    function cashAdvances() { return state.data.cashAdvances || []; }
+    function payrolls() { return state.data.payrolls || []; }
+
     function renderShell() {
       el("nav").innerHTML = menus.map(([key, label]) => `<button data-route="${key}" class="${state.route === key ? "active" : ""}">${label}</button>`).join("");
       el("nav").querySelectorAll("button").forEach((button) => {

@@ -2196,9 +2196,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         return `<form data-form="purchases" class="grid forms">
           ${hiddenId()}
           
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+          <div style="display:grid; grid-template-columns: ${isSuperAdmin() ? '1fr 1fr' : '1fr'}; gap:10px; grid-column: 1/-1;">
             ${input("date", "Tanggal", true, "date", today())}
-            <label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>
+            ${isSuperAdmin() ? '<label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>' : '<input name="cuan" type="hidden">'}
           </div>
           
           <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; grid-column: 1/-1;">
@@ -2265,10 +2265,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       });
       const prodKeys   = isSuperAdmin()
         ? ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"]
-        : ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer"];
+        : ["category", "name", "unit", "unitEcer", "unitContent", "salePrice", "salePriceEcer"];
       const prodLabels = isSuperAdmin()
         ? ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"]
-        : ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer"];
+        : ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Jual Grosir", "H. Jual Ecer"];
       return actionTable("products", sorted, prodKeys, prodLabels, priceFormat);
     }
 
@@ -2689,10 +2689,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           });
           const srchKeys   = isSuperAdmin()
             ? ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"]
-            : ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer"];
+            : ["category", "name", "unit", "unitEcer", "unitContent", "salePrice", "salePriceEcer"];
           const srchLabels = isSuperAdmin()
             ? ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"]
-            : ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer"];
+            : ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Jual Grosir", "H. Jual Ecer"];
           res.innerHTML = actionTable("products", sortedResults, srchKeys, srchLabels, priceFormat);
         }
       };

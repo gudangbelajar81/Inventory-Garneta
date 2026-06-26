@@ -1240,12 +1240,12 @@ Minyak Goreng 3 45000"></textarea>
         const amount = row.price ? price * qty : 0;
         total += amount;
         
+        const val = escapeAttr(row.rawInput !== undefined ? row.rawInput : (row.name ? `${row.name} ${row.price || ''} ${row.qty > 1 ? row.qty : ''}`.trim() : ''));
+        
         html += `
           <tr>
-            <td><input type="text" value="${escapeAttr(row.name)}" onchange="ngitungUpdateRow(this, ${row.id}, 'name')" list="ngitung-history-list" placeholder="Ketik nama..." style="width: 100%;"></td>
-            <td><input type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${row.price}" onchange="ngitungUpdateRow(this, ${row.id}, 'price')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="Harga" style="width: 100px;"></td>
-            <td><input type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${row.qty}" onchange="ngitungUpdateRow(this, ${row.id}, 'qty')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="1" style="width: 60px;"></td>
-            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 120px;">${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount)}</td>
+            <td colspan="3"><input type="text" value="${val}" oninput="ngitungParseAndUpdate(this, ${row.id})" onchange="ngitungFocusNext(this, ${row.id})" list="ngitung-history-list" placeholder="Cth: terong 3000 5 (Nama Harga Banyak)" style="width: 100%; font-size: 1.1rem; padding: 12px; border-radius: 8px;"></td>
+            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 140px; font-size: 1.1rem;">${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount)}</td>
             <td style="width: 50px;"><button class="btn danger" onclick="ngitungRemoveRow(${row.id})" ${window.ngitungRows.length === 1 ? 'disabled' : ''}>X</button></td>
           </tr>
         `;
@@ -1260,59 +1260,70 @@ Minyak Goreng 3 45000"></textarea>
       }
     };
 
-    window.ngitungCalcRow = function(inputEl, id) {
+    window.ngitungParseAndUpdate = function(el, id) {
+      const val = el.value;
       const row = window.ngitungRows.find(r => r.id === id);
       if (!row) return;
-      const tr = inputEl.closest('tr');
-      const priceInput = tr.querySelector('td:nth-child(2) input');
-      const qtyInput = tr.querySelector('td:nth-child(3) input');
+      row.rawInput = val;
       
-      const p = plainNumber(priceInput.value) || 0;
-      const q = plainNumber(qtyInput.value) || 1;
-      const amt = priceInput.value ? p * q : 0;
+      let name = val.trim();
+      let price = 0;
+      let qty = 1;
       
-      tr.querySelector('.row-amount').innerText = Number(amt || 0).toString();
-      
-      let sum = 0;
-      document.querySelectorAll('#ngitung-tbody tr').forEach(tr => {
-         const p2 = Number(tr.querySelector('td:nth-child(2) input').value) || 0;
-         const q2 = Number(tr.querySelector('td:nth-child(3) input').value) || 1;
-         sum += (tr.querySelector('td:nth-child(2) input').value ? p2 * q2 : 0);
-      });
-      document.getElementById('ngitung-total').innerText = Number(sum || 0).toString();
-    };
-
-    window.ngitungUpdateRow = function(inputEl, id, field) {
-      const row = window.ngitungRows.find(r => r.id === id);
-      if (!row) return;
-      
-      if (field === 'name') {
-        const titleCased = inputEl.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-        inputEl.value = titleCased;
-        row[field] = titleCased;
+      const match2 = val.match(/^(.*?)\s+(\d+)\s+(\d+)$/);
+      if (match2) {
+        name = match2[1].trim();
+        price = Number(match2[2]);
+        qty = Number(match2[3]);
       } else {
-        row[field] = inputEl.value;
+        const match1 = val.match(/^(.*?)\s+(\d+)$/);
+        if (match1) {
+          name = match1[1].trim();
+          price = Number(match1[2]);
+          qty = 1;
+        }
       }
       
-      if (field === 'name' && inputEl.value.trim().length > 1) {
-         const cleanVal = inputEl.value.trim();
-         if (!window.ngitungHistory.includes(cleanVal)) {
-           window.ngitungHistory.push(cleanVal);
+      name = name.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+      row.name = name;
+      row.price = price;
+      row.qty = qty;
+      
+      const amount = (price || 0) * (qty || 1);
+      const tr = el.closest('tr');
+      if (tr) {
+        tr.querySelector('.row-amount').innerText = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount);
+      }
+      
+      let sum = 0;
+      window.ngitungRows.forEach(r => {
+         sum += (r.price || 0) * (r.qty || 1);
+      });
+      const totalEl = document.getElementById('ngitung-total');
+      if (totalEl) totalEl.innerText = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(sum);
+    };
+
+    window.ngitungFocusNext = function(el, id) {
+      const row = window.ngitungRows.find(r => r.id === id);
+      if (!row || !row.name || !row.price) return;
+      
+      if (row.name.trim().length > 1) {
+         if (!window.ngitungHistory.includes(row.name)) {
+           window.ngitungHistory.push(row.name);
            if (window.ngitungHistory.length > 100) window.ngitungHistory.shift();
            gas('setSetting', { key: 'ngitungHistory', value: JSON.stringify(window.ngitungHistory) });
-           
            const datalist = document.getElementById('ngitung-history-list');
-           if (datalist) {
-             datalist.innerHTML = window.ngitungHistory.map(name => `<option value="${escapeAttr(name)}">`).join('');
-           }
+           if (datalist) datalist.innerHTML = window.ngitungHistory.map(n => `<option value="${escapeAttr(n)}">`).join('');
          }
       }
       
       const isLastRow = window.ngitungRows[window.ngitungRows.length - 1].id === id;
-      if (isLastRow && row.name && row.price) {
+      if (isLastRow) {
         window.ngitungAddRow();
-      } else {
-        window.ngitungRenderTable();
+        setTimeout(() => {
+          const inputs = document.querySelectorAll('#ngitung-tbody input[type="text"]');
+          if (inputs.length > 0) inputs[inputs.length - 1].focus();
+        }, 50);
       }
     };
 
@@ -1506,9 +1517,7 @@ Minyak Goreng 3 45000"></textarea>
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Nama Barang</th>
-                  <th>Harga</th>
-                  <th>Banyak</th>
+                  <th colspan="3">Data Barang</th>
                   <th>Jumlah</th>
                   <th>Aksi</th>
                 </tr>

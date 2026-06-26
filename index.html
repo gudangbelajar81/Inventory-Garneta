@@ -2201,12 +2201,11 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             ${isSuperAdmin() ? '<label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>' : '<input name="cuan" type="hidden">'}
           </div>
           
-          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; grid-column: 1/-1;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
             <label>Kategori Barang<input name="category" type="text" list="category-list">
               <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
             </label>
             ${input("name", "Nama Barang", true)}
-            ${input("qty", "Banyak Dibeli", true, "text", "1")}
           </div>
           
           <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; grid-column: 1/-1;">

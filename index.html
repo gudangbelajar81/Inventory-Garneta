@@ -978,7 +978,8 @@ function bindGajiEvents() {
       // Admin: hanya search & form. Super Admin: semua tab
       const adminWorkspaces = [
         { id: 'search', icon: '🔍', label: 'Cari' },
-        { id: 'form', icon: '➕', label: 'Form' }
+        { id: 'form', icon: '➕', label: 'Form' },
+        { id: 'list', icon: '📋', label: 'Daftar' }
       ];
 
       const superAdminWorkspaces = [
@@ -2137,7 +2138,7 @@ Beras Premium 1"></textarea>
         ${input("basePriceEcer", "Harga Dasar/Pcs", false, "number")}
         ${input("salePrice", "Harga Jual (Grosir)", false, "number")}
         ${input("salePriceEcer", "Harga Jual Ecer", false, "number")}
-          <label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>
+        ${isSuperAdmin() ? '<label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>' : '<input name="cuan" type="hidden">'}
         ${input("stock", "Stok", false, "number")}
         ${input("barcode", "Barcode / Kode Scanner")}
         ${formButtons()}

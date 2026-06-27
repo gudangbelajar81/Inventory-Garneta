@@ -1301,6 +1301,15 @@ Minyak Goreng 3 45000"></textarea>
         tr.querySelector('.row-amount').innerText = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount);
       }
       
+      const isLastRow = window.ngitungRows[window.ngitungRows.length - 1].id === id;
+      if (isLastRow && cleanVal.length > 0) {
+        window.ngitungAddRow();
+        if (tr) {
+           const btn = tr.querySelector('.btn.danger');
+           if (btn) btn.disabled = false;
+        }
+      }
+      
       let sum = 0;
       window.ngitungRows.forEach(r => {
          sum += (r.price || 0) * (r.qty || 1);
@@ -1323,13 +1332,11 @@ Minyak Goreng 3 45000"></textarea>
          }
       }
       
-      const isLastRow = window.ngitungRows[window.ngitungRows.length - 1].id === id;
-      if (isLastRow) {
-        window.ngitungAddRow();
-        setTimeout(() => {
-          const inputs = document.querySelectorAll('#ngitung-tbody input[type="text"]');
-          if (inputs.length > 0) inputs[inputs.length - 1].focus();
-        }, 50);
+      // Focus the next row's input
+      const tr = el.closest('tr');
+      if (tr && tr.nextElementSibling) {
+         const nextInput = tr.nextElementSibling.querySelector('input[type="text"]');
+         if (nextInput) nextInput.focus();
       }
     };
 
@@ -1409,8 +1416,23 @@ Minyak Goreng 3 45000"></textarea>
     };
 
     window.ngitungAddRow = function() {
-      window.ngitungRows.push({ id: Date.now(), name: '', price: '', qty: '' });
-      window.ngitungRenderTable();
+      const newId = Date.now();
+      window.ngitungRows.push({ id: newId, name: '', price: '', qty: '' });
+      const tbody = document.getElementById('ngitung-tbody');
+      if (tbody) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td colspan="3">
+              <div style="display:flex; gap:8px;">
+                <input type="text" value="" oninput="ngitungParseAndUpdate(this, ${newId})" onchange="ngitungFocusNext(this, ${newId})" list="ngitung-history-list" placeholder="Cth: terong 3000 5 (Nama Harga Banyak)" style="flex:1; font-size: 1.1rem; padding: 12px; border-radius: 8px;">
+                <button class="btn info" onclick="ngitungStartVoice(this, ${newId})" style="padding: 0 15px; font-size: 1.2rem; border-radius: 8px;" title="Input via Suara">🎤</button>
+              </div>
+            </td>
+            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 140px; font-size: 1.1rem;">Rp 0</td>
+            <td style="width: 50px;"><button class="btn danger" onclick="ngitungRemoveRow(${newId})">X</button></td>
+        `;
+        tbody.appendChild(tr);
+      }
     };
 
     window.ngitungRemoveRow = function(id) {

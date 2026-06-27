@@ -1244,7 +1244,12 @@ Minyak Goreng 3 45000"></textarea>
         
         html += `
           <tr>
-            <td colspan="3"><input type="text" value="${val}" oninput="ngitungParseAndUpdate(this, ${row.id})" onchange="ngitungFocusNext(this, ${row.id})" list="ngitung-history-list" placeholder="Cth: terong 3000 5 (Nama Harga Banyak)" style="width: 100%; font-size: 1.1rem; padding: 12px; border-radius: 8px;"></td>
+            <td colspan="3">
+              <div style="display:flex; gap:8px;">
+                <input type="text" value="${val}" oninput="ngitungParseAndUpdate(this, ${row.id})" onchange="ngitungFocusNext(this, ${row.id})" list="ngitung-history-list" placeholder="Cth: terong 3000 5 (Nama Harga Banyak)" style="flex:1; font-size: 1.1rem; padding: 12px; border-radius: 8px;">
+                <button class="btn info" onclick="ngitungStartVoice(this, ${row.id})" style="padding: 0 15px; font-size: 1.2rem; border-radius: 8px;" title="Input via Suara">🎤</button>
+              </div>
+            </td>
             <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 140px; font-size: 1.1rem;">${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount)}</td>
             <td style="width: 50px;"><button class="btn danger" onclick="ngitungRemoveRow(${row.id})" ${window.ngitungRows.length === 1 ? 'disabled' : ''}>X</button></td>
           </tr>
@@ -1326,6 +1331,81 @@ Minyak Goreng 3 45000"></textarea>
           if (inputs.length > 0) inputs[inputs.length - 1].focus();
         }, 50);
       }
+    };
+
+    window.ngitungVoiceToText = function(text) {
+        let t = text.toLowerCase();
+        
+        t = t.replace(/setengah/gi, '0.5');
+        t = t.replace(/seperempat/gi, '0.25');
+        
+        const map = {
+            'nol': 0, 'satu': 1, 'dua': 2, 'tiga': 3, 'empat': 4, 'lima': 5,
+            'enam': 6, 'tujuh': 7, 'delapan': 8, 'sembilan': 9, 'sepuluh': 10, 'sebelas': 11
+        };
+        
+        for (let k in map) {
+            if(k!=='nol'&&k!=='sepuluh'&&k!=='sebelas') {
+                t = t.replace(new RegExp('\\b' + k + '\\s+belas\\b', 'gi'), (10 + map[k]));
+                t = t.replace(new RegExp('\\b' + k + '\\s+puluh\\b', 'gi'), (map[k] * 10));
+            }
+        }
+        
+        for (let k in map) {
+            t = t.replace(new RegExp('\\b' + k + '\\b', 'gi'), map[k]);
+        }
+        
+        t = t.replace(/(\d+)\s+0\.(\d+)/g, '$1.$2');
+        
+        t = t.replace(/(\d+)\s*ribu/gi, (m, p1) => parseInt(p1) * 1000);
+        t = t.replace(/(\d+)\s*ratus/gi, (m, p1) => parseInt(p1) * 100);
+        t = t.replace(/(\d+)\s*juta/gi, (m, p1) => parseInt(p1) * 1000000);
+        
+        t = t.replace(/\b(kilo|kg|rupiah|perak)\b/gi, '');
+        
+        return t.replace(/\s+/g, ' ').trim();
+    };
+
+    window.ngitungStartVoice = function(btn, id) {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert("Browser ini tidak mendukung sensor suara. Harap gunakan Google Chrome Android/PC.");
+        return;
+      }
+      
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'id-ID';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '🔴'; // recording indicator
+      
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        const parsed = window.ngitungVoiceToText(transcript);
+        
+        const tr = btn.closest('tr');
+        if (tr) {
+          const inputEl = tr.querySelector('input[type="text"]');
+          if (inputEl) {
+            inputEl.value = parsed;
+            window.ngitungParseAndUpdate(inputEl, id);
+            window.ngitungFocusNext(inputEl, id);
+          }
+        }
+      };
+      
+      recognition.onerror = function(e) {
+        console.error("Speech error", e);
+        btn.innerHTML = originalHtml;
+      };
+      
+      recognition.onend = function() {
+        btn.innerHTML = originalHtml;
+      };
+      
+      recognition.start();
     };
 
     window.ngitungAddRow = function() {

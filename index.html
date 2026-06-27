@@ -1523,6 +1523,10 @@ Minyak Goreng 3 45000"></textarea>
         }
         
         alert("Berhasil mencetak!");
+        
+        // Bersihkan area input setelah sukses ngeprint
+        window.ngitungRows = [{ id: Date.now(), name: '', price: '', qty: '' }];
+        window.ngitungRenderTable();
       } catch (error) {
         console.error(error);
         alert("Gagal koneksi ke printer Bluetooth: " + error.message);
@@ -1613,6 +1617,10 @@ Minyak Goreng 3 45000"></textarea>
         const printWindow = window.open("", "_blank", "width=300,height=500");
         printWindow.document.write(receiptHtml);
         printWindow.document.close();
+        
+        // Bersihkan area input setelah cetak USB/PC
+        window.ngitungRows = [{ id: Date.now(), name: '', price: '', qty: '' }];
+        window.ngitungRenderTable();
       };
 
       function ngitung() {

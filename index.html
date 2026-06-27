@@ -1266,17 +1266,18 @@ Minyak Goreng 3 45000"></textarea>
       if (!row) return;
       row.rawInput = val;
       
-      let name = val.trim();
+      const cleanVal = val.trim();
+      let name = cleanVal;
       let price = 0;
       let qty = 1;
       
-      const match2 = val.match(/^(.*?)\s+(\d+)\s+(\d+)$/);
+      const match2 = cleanVal.match(/^(.*?)\s+(\d+)\s+(\d+)$/);
       if (match2) {
         name = match2[1].trim();
         price = Number(match2[2]);
         qty = Number(match2[3]);
       } else {
-        const match1 = val.match(/^(.*?)\s+(\d+)$/);
+        const match1 = cleanVal.match(/^(.*?)\s+(\d+)$/);
         if (match1) {
           name = match1[1].trim();
           price = Number(match1[2]);

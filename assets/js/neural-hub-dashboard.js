@@ -46,6 +46,12 @@
           <button class="anim-button" data-anim="glitch">⚡ Glitch</button>
           <button class="anim-button" data-anim="rainbow">🌈 Rainbow</button>
         </div>
+
+        <!-- Install QR Code -->
+        <div class="install-qr-container" style="margin-top: 40px; text-align: center; background: rgba(0,0,0,0.5); padding: 15px 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); display: inline-block;">
+          <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #fff;">📲 Scan untuk Buka di HP Lain</p>
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://gudangbelajar81.github.io/Inventory-Garneta/" alt="QR Code Install" style="width: 120px; height: 120px; border-radius: 8px; border: 4px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+        </div>
       </div>
 
       <!-- Floating Menu Overlay -->

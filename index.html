@@ -1394,7 +1394,7 @@ Minyak Goreng 3 45000"></textarea>
           let total = 0;
           window.ngitungRows.forEach(row => {
             if (!row.name && !row.price) return;
-            const qty = Number(String(row.qty).replace(/[^0-9-]/g, '')) || 1;
+            const qty = Number(String(row.qty).replace(/[^0-9-.]/g, '')) || 1;
             const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
             const amount = row.price ? price * qty : 0;
             total += amount;
@@ -1415,6 +1415,11 @@ Minyak Goreng 3 45000"></textarea>
           await characteristic.writeValue(buffer.slice(i, i + 512));
         }
         
+        // Putuskan koneksi agar HP lain bisa gantian ngeprint
+        if (device.gatt.connected) {
+          device.gatt.disconnect();
+        }
+        
         alert("Berhasil mencetak!");
       } catch (error) {
         console.error(error);
@@ -1432,7 +1437,7 @@ Minyak Goreng 3 45000"></textarea>
         let total = 0;
         let itemsHtml = window.ngitungRows.map(row => {
           if (!row.name && !row.price) return '';
-          const qty = Number(String(row.qty).replace(/[^0-9-]/g, '')) || 1;
+          const qty = Number(String(row.qty).replace(/[^0-9-.]/g, '')) || 1;
           const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
           const amount = row.price ? price * qty : 0;
           total += amount;

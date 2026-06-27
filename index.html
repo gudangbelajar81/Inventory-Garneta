@@ -1235,12 +1235,12 @@ Minyak Goreng 3 45000"></textarea>
       let total = 0;
       
       window.ngitungRows.forEach((row, index) => {
-        const qty = Number(String(row.qty).replace(/[^0-9-]/g, '')) || 1;
+        const qty = Number(String(row.qty).replace(/[^0-9-.]/g, '')) || 1;
         const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
         const amount = row.price ? price * qty : 0;
         total += amount;
         
-        const val = escapeAttr(row.rawInput !== undefined ? row.rawInput : (row.name ? `${row.name} ${row.price || ''} ${row.qty > 1 ? row.qty : ''}`.trim() : ''));
+        const val = escapeAttr(row.rawInput !== undefined ? row.rawInput : (row.name ? `${row.name} ${row.price || ''} ${row.qty !== 1 ? row.qty : ''}`.trim() : ''));
         
         html += `
           <tr>
@@ -1271,11 +1271,11 @@ Minyak Goreng 3 45000"></textarea>
       let price = 0;
       let qty = 1;
       
-      const match2 = cleanVal.match(/^(.*?)\s+(\d+)\s+(\d+)$/);
+      const match2 = cleanVal.match(/^(.*?)\s+(\d+)\s+([\d.,]+)$/);
       if (match2) {
         name = match2[1].trim();
         price = Number(match2[2]);
-        qty = Number(match2[3]);
+        qty = parseFloat(match2[3].replace(',', '.'));
       } else {
         const match1 = cleanVal.match(/^(.*?)\s+(\d+)$/);
         if (match1) {

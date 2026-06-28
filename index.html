@@ -2400,7 +2400,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
 
     function purchaseRows() {
-      return actionTable("purchases", state.data.purchases, ["date", "product", "qty", "amount", "total"], ["Tanggal", "Barang", "Banyak", "Harga", "Total"], priceFormat);
+      const keys = isSuperAdmin()
+        ? ["date", "product", "qty", "amount", "total"]
+        : ["date", "product", "qty"];
+      const labels = isSuperAdmin()
+        ? ["Tanggal", "Barang", "Banyak", "Harga Beli", "Total"]
+        : ["Tanggal", "Barang", "Banyak"];
+      return actionTable("purchases", state.data.purchases, keys, labels, priceFormat);
     }
 
     function saleRows() {
@@ -2841,7 +2847,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         );
         const res = document.getElementById("search-pembelian-results");
         if (res) {
-          res.innerHTML = actionTable("purchases", results, ["date", "product", "qty", "amount", "total"], ["Tanggal", "Barang", "Banyak", "Harga", "Total"], priceFormat);
+          const keys = isSuperAdmin() ? ["date", "product", "qty", "amount", "total"] : ["date", "product", "qty"];
+          const labels = isSuperAdmin() ? ["Tanggal", "Barang", "Banyak", "Harga Beli", "Total"] : ["Tanggal", "Barang", "Banyak"];
+          res.innerHTML = actionTable("purchases", results, keys, labels, priceFormat);
         }
       };
       

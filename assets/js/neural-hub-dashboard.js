@@ -47,10 +47,20 @@
           <button class="anim-button" data-anim="rainbow">🌈 Rainbow</button>
         </div>
 
-        <!-- Install QR Code -->
-        <div class="install-qr-container" style="margin-top: 40px; text-align: center; background: rgba(0,0,0,0.5); padding: 15px 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); display: inline-block;">
-          <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #fff;">📲 Scan untuk Buka di HP Lain</p>
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + window.location.pathname)}" alt="QR Code Install" style="width: 120px; height: 120px; border-radius: 8px; border: 4px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+        <!-- Install Section -->
+        <div class="install-section-dashboard" style="margin-top: 40px; text-align: center; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: center;">
+          <div style="flex: 1; min-width: 250px; text-align: left;">
+             <h3 style="margin: 0 0 10px 0; color: #fff;">📲 Install Aplikasi Kasir</h3>
+             <p style="margin: 0 0 15px 0; font-size: 14px; color: #ddd; line-height: 1.5;">Jadikan GARNETA SYSTEM sebagai aplikasi utama di HP Anda. Akses lebih cepat dan layar penuh!</p>
+             <button class="btn primary" id="dashboard-install-btn" style="padding: 12px 24px; font-size: 16px; border-radius: 8px; width: 100%; margin-bottom: 15px;">INSTALL SEKARANG (Android/PC)</button>
+             <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; font-size: 13px; color: #ccc;">
+               <strong>Khusus Pengguna iPhone/iPad:</strong><br>Buka web ini di browser Safari, tap ikon Share (Kirim <span style="font-size:18px;">⍐</span>) di bawah, lalu pilih <strong>'Add to Home Screen'</strong> atau <strong>'Tambah ke Layar Utama'</strong>.
+             </div>
+          </div>
+          <div style="text-align: center; background: #fff; padding: 10px; border-radius: 12px;">
+            <p style="margin: 0 0 10px 0; font-size: 13px; color: #333; font-weight:bold;">Scan untuk buka di HP lain</p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + window.location.pathname)}" alt="QR Code Install" style="width: 120px; height: 120px; border-radius: 8px;">
+          </div>
         </div>
       </div>
 
@@ -197,10 +207,24 @@
           window.state.route = route;
           if (window.renderShell) window.renderShell();
           if (window.render) window.render();
+          e.stopPropagation();
           toggleMenu();
         }
       }
     });
+
+    const installBtn = document.getElementById('dashboard-install-btn');
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (!window.deferredInstallPrompt) {
+          alert("Tombol otomatis tidak tersedia.\n\nJika Anda pakai iPhone, silakan ikuti petunjuk tertulis (Pilih ikon Share -> Add to Home Screen).\n\nJika Android, pilih 'Add to Home Screen' atau 'Install App' dari menu browser (titik 3 di kanan atas).");
+          return;
+        }
+        window.deferredInstallPrompt.prompt();
+        await window.deferredInstallPrompt.userChoice;
+        window.deferredInstallPrompt = null;
+      });
+    }
 
     // Initialize Smart Search automatically if available
     if (window.initSmartSearch) {

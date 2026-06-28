@@ -343,7 +343,7 @@
     let scannerStream = null;
     let scannerActive = false;
     let invoiceStream = null;
-    let deferredInstallPrompt = null;
+    window.deferredInstallPrompt = null;
 
     const rupiah = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(String(value || 0).replace(/[^0-9-]/g, "")));
     const today = () => new Date().toISOString().slice(0, 10);
@@ -4366,7 +4366,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     applyTheme();
     window.addEventListener("beforeinstallprompt", (event) => {
       event.preventDefault();
-      deferredInstallPrompt = event;
+      window.deferredInstallPrompt = event;
     });
     if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
       navigator.serviceWorker.register("/service-worker.js").catch((error) => console.warn(error));

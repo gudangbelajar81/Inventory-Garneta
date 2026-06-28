@@ -2256,9 +2256,13 @@ Beras Premium 1"></textarea>
           <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
         </label>
         ${input("name", "Nama Barang", true)}
-        ${select("unit", "Unit Grosir", ["-", "Sak", "Karton", "Dus", "Jligen", "Ball", "Pack", "Kotak"])}
-        ${select("unitEcer", "Unit Eceran", ["-", "pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol"])}
-        ${input("unitContent", "Isi/Unit", false, "number")}
+        <label>Unit Grosir<input name="unit" type="text" list="unit-grosir-list" placeholder="-">
+          <datalist id="unit-grosir-list">${["-", "Sak", "Karton", "Dus", "Jligen", "Ball", "Pack", "Kotak", "Ikat", "Karung"].map(o => `<option value="${o}">`).join("")}</datalist>
+        </label>
+        <label>Unit Eceran<input name="unitEcer" type="text" list="unit-ecer-list" placeholder="-">
+          <datalist id="unit-ecer-list">${["-", "pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol", "ikat"].map(o => `<option value="${o}">`).join("")}</datalist>
+        </label>
+        ${input("unitContent", "Isi/Unit", false, "text")}
         ${input("basePrice", "Harga Dasar", false, "number")}
         ${input("basePriceEcer", "Harga Dasar/Pcs", false, "number")}
         ${input("salePrice", "Harga Jual (Grosir)", false, "number")}
@@ -2335,9 +2339,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           </div>
           
           <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; grid-column: 1/-1;">
-            ${select("unit", "Unit Grosir", ["-", "Sak", "Karton", "Dus", "Jligen", "Ball", "Pack", "Kotak"])}
-            ${select("unitEcer", "Unit Eceran", ["-", "pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol"])}
-            ${input("unitContent", "Isi/Unit", false, "number")}
+            <label>Unit Grosir<input name="unit" type="text" list="unit-grosir-list" placeholder="-">
+              <datalist id="unit-grosir-list">${["-", "Sak", "Karton", "Dus", "Jligen", "Ball", "Pack", "Kotak", "Ikat", "Karung"].map(o => `<option value="${o}">`).join("")}</datalist>
+            </label>
+            <label>Unit Eceran<input name="unitEcer" type="text" list="unit-ecer-list" placeholder="-">
+              <datalist id="unit-ecer-list">${["-", "pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol", "ikat"].map(o => `<option value="${o}">`).join("")}</datalist>
+            </label>
+            ${input("unitContent", "Isi/Unit", false, "text")}
           </div>
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">

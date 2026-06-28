@@ -387,6 +387,18 @@
       return result?.data !== undefined ? result.data : result;
     }
 
+    async function clearAuditLogs() {
+      if (!confirm("Yakin ingin menghapus semua log aktivitas?")) return;
+      try {
+        await gas("clearAuditLogs");
+        await load();
+        alert("Semua log aktivitas berhasil dihapus!");
+      } catch (err) {
+        alert("Gagal menghapus log: " + err.message);
+      }
+    }
+    window.clearAuditLogs = clearAuditLogs;
+
     async function load() {
       state.data = await gas("bootstrap");
       renderShell();
@@ -1933,7 +1945,13 @@ Beras Premium 1"></textarea>
 
     function audit() {
       return `<section class="grid">
-        <div class="card"><h2>Audit Log</h2><p class="muted">Riwayat tambah, edit, hapus, backup, dan restore.</p></div>
+        <div class="card">
+          <h2 style="display:flex; justify-content:space-between; align-items:center;">
+            Audit Log
+            <button class="btn danger" onclick="clearAuditLogs()">🗑 Hapus Log</button>
+          </h2>
+          <p class="muted">Riwayat tambah, edit, hapus, backup, dan restore.</p>
+        </div>
         <div class="card">${simpleTable(state.data.auditLogs || [], ["createdAt", "user", "message"], ["Tanggal", "User", "Aktivitas"])}</div>
       </section>`;
     }

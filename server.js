@@ -207,6 +207,7 @@ async function handleAction(action, payload) {
     analyzeInvoiceImage: () => analyzeInvoiceImage(payload),
     backupData: () => backupData(),
     restoreData: () => restoreData(payload.backup),
+    clearAuditLogs: () => clearAuditLogs(),
     modules: () => availableModules(),
     getSetting: () => getSetting(payload.key, payload.fallback),
     setSetting: async () => { await setSetting(payload.key, payload.value); return { ok: true }; },
@@ -1124,6 +1125,12 @@ async function getTableColumns(table, connection = db, refresh = false) {
   const columns = new Set(rows.map((row) => row.Field));
   tableColumnCache.set(table, columns);
   return columns;
+}
+
+async function clearAuditLogs() {
+  await db.query("DELETE FROM activity_logs");
+  await db.query("ALTER TABLE activity_logs AUTO_INCREMENT = 1").catch(() => {});
+  return { success: true };
 }
 
 async function backupData() {

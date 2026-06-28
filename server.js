@@ -366,6 +366,10 @@ async function bootstrap() {
 // Pastikan index ada untuk performa query pencarian
 async function ensureIndexes() {
   try {
+    // Auto-migrate schema fixes
+    await db.query("ALTER TABLE products MODIFY COLUMN unit VARCHAR(100) NOT NULL DEFAULT 'pcs'").catch(e => logger.warn("Schema unit: " + e.message));
+    await db.query("ALTER TABLE products ADD COLUMN unit_ecer VARCHAR(100) NULL AFTER unit").catch(e => logger.warn("Schema unit_ecer: " + e.message));
+
     await db.query("CREATE INDEX IF NOT EXISTS idx_products_name ON products(name)");
     await db.query("CREATE INDEX IF NOT EXISTS idx_products_category ON products(category)");
     await db.query("CREATE INDEX IF NOT EXISTS idx_purchases_product ON purchases(purchased_at)");
@@ -523,11 +527,12 @@ async function addRow(collection, item = {}) {
       // UPDATE produk lama (harga & stok)
       await db.query(`
         UPDATE products 
-        SET category = ?, unit = ?, unit_content = ?, base_price = ?, base_price_ecer = ?, sale_price = ?, sale_price_ecer = ?, barcode = ?, stock = stock + ?
+        SET category = ?, unit = ?, unit_ecer = ?, unit_content = ?, base_price = ?, base_price_ecer = ?, sale_price = ?, sale_price_ecer = ?, barcode = ?, stock = stock + ?
         WHERE id = ?
       `, [
         item.category || 'Umum',
         item.unit || 'pcs',
+        item.unitEcer || null,
         number(item.unitContent) || 1,
         number(item.basePrice),
         number(item.basePriceEcer),
@@ -541,12 +546,13 @@ async function addRow(collection, item = {}) {
       isNewProduct = true;
       // INSERT produk baru
       const [prodResult] = await db.query(`
-        INSERT INTO products (category, name, unit, unit_content, base_price, base_price_ecer, sale_price, sale_price_ecer, stock, barcode)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO products (category, name, unit, unit_ecer, unit_content, base_price, base_price_ecer, sale_price, sale_price_ecer, stock, barcode)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         item.category || 'Umum',
         item.name,
         item.unit || 'pcs',
+        item.unitEcer || null,
         number(item.unitContent) || 1,
         number(item.basePrice),
         number(item.basePriceEcer),

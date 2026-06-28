@@ -784,7 +784,7 @@ async function verifySuperAdmin(adminId, password) {
   if (!user || user.status !== "Aktif" || user.password_hash !== hashPassword(password)) {
     throw new Error("Password Super Admin salah.");
   }
-  const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: "12h" });
+  const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, JWT_SECRET);
   return { id: user.id, name: user.name, role: user.role, token };
 }
 
@@ -803,7 +803,7 @@ async function loginUser(name, password) {
     throw new Error("Nama atau password Super Admin salah.");
   }
 
-  const token = jwt.sign({ id: user.id, name: user.name, role: displayRole(user.role) }, JWT_SECRET, { expiresIn: "12h" });
+  const token = jwt.sign({ id: user.id, name: user.name, role: displayRole(user.role) }, JWT_SECRET);
 
   return {
     id: user.id,

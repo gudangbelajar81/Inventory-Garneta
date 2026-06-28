@@ -21,8 +21,8 @@
 
     dashboard.innerHTML = `
       <div class="neural-dashboard neural-dashboard-minimal" style="min-height:calc(100vh - 200px);padding:0;">
-        <!-- Logo G Center - SUPER BESAR memenuhi halaman -->
-        <div class="logo-g-center" id="logo-g-trigger" title="Klik untuk membuka menu" style="width:min(60vw,60vh);height:min(60vw,60vh);max-width:600px;max-height:600px;">
+        <!-- Logo G Center - Diperkecil agar tidak terpotong -->
+        <div class="logo-g-center" id="logo-g-trigger" title="Klik untuk membuka menu" style="width:min(45vw,45vh);height:min(45vw,45vh);max-width:350px;max-height:350px; margin-top: 20px;">
           <!-- Outer Ring -->
           <div class="logo-g-ring-outer"></div>
           <!-- Ripple Effect -->

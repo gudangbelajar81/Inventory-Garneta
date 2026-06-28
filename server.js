@@ -13,7 +13,7 @@ const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
+const JWT_SECRET = process.env.JWT_SECRET || "GarnetaSystemSuperSecretKey2026_Static!";
 const SHUTDOWN_TIMEOUT_MS = Number(process.env.SHUTDOWN_TIMEOUT_MS || 30000);
 
 let server;

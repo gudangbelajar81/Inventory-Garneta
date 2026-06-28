@@ -2331,7 +2331,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             <label>Kategori Barang<input name="category" type="text" list="category-list">
               <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
             </label>
-            ${input("name", "Nama Barang", true)}
+            ${input("name", "Nama Barang", false)}
           </div>
           
           <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; grid-column: 1/-1;">
@@ -2917,8 +2917,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             
             if (collection === "purchases") {
               // ── Validasi nama barang ──
-              const namaBarang = (item.name || "").trim();
-              if (!namaBarang) throw new Error("Nama Barang wajib diisi!");
+              const namaBarang = (item.name || "").trim() || "Barang Tanpa Nama";
 
               const purchaseQty = Number(String(item.qty || 1).replace(/[^0-9]/g, '')) || 1;
 

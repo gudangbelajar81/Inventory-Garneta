@@ -143,11 +143,20 @@ app.use((req, res, next) => {
 
 
 // Actions yang tidak perlu auth (public)
-const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap"]);
+const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap", "dashboard", "getSetting", "setSetting", "modules"]);
+const KASIR_COLLECTIONS = new Set(["products", "suppliers", "purchases", "sales", "priceHistory"]);
 
 function verifyToken(req, res, next) {
   const action = req.body?.action;
   if (PUBLIC_ACTIONS.has(action)) return next();
+
+  // Beri akses ke Kasir untuk collection tertentu tanpa perlu login
+  if (["list", "add", "update"].includes(action)) {
+    const collection = req.body?.payload?.collection;
+    if (KASIR_COLLECTIONS.has(collection)) {
+      return next();
+    }
+  }
 
   const authHeader = req.headers["authorization"] || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;

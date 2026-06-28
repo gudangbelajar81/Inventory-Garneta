@@ -2256,11 +2256,8 @@ Beras Premium 1"></textarea>
           <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
         </label>
         ${input("name", "Nama Barang", true)}
-        <label>Unit Grosir<input name="unit" type="text" list="unit-grosir-list" placeholder="-">
-          <datalist id="unit-grosir-list">${["-", "Sak", "Karton", "Dus", "Jligen", "Ball", "Pack", "Kotak", "Ikat", "Karung"].map(o => `<option value="${o}">`).join("")}</datalist>
-        </label>
-        <label>Unit Eceran<input name="unitEcer" type="text" list="unit-ecer-list" placeholder="-">
-          <datalist id="unit-ecer-list">${["-", "pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol", "ikat"].map(o => `<option value="${o}">`).join("")}</datalist>
+        <label>Satuan<input name="unit" type="text" list="satuan-list" placeholder="Contoh: Dus, Kg, Pcs">
+          <datalist id="satuan-list">${["sak", "kotak", "ball", "dus", "kg", "ons", "gram", "pcs", "ikat"].map(o => `<option value="${o}">`).join("")}</datalist>
         </label>
         ${input("unitContent", "Isi/Unit", false, "text")}
         ${input("basePrice", "Harga Dasar", false, "number")}
@@ -2338,12 +2335,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             ${input("name", "Nama Barang", false)}
           </div>
           
-          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; grid-column: 1/-1;">
-            <label>Unit Grosir<input name="unit" type="text" list="unit-grosir-list" placeholder="-">
-              <datalist id="unit-grosir-list">${["-", "Sak", "Karton", "Dus", "Jligen", "Ball", "Pack", "Kotak", "Ikat", "Karung"].map(o => `<option value="${o}">`).join("")}</datalist>
-            </label>
-            <label>Unit Eceran<input name="unitEcer" type="text" list="unit-ecer-list" placeholder="-">
-              <datalist id="unit-ecer-list">${["-", "pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol", "ikat"].map(o => `<option value="${o}">`).join("")}</datalist>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+            <label>Satuan<input name="unit" type="text" list="satuan-list" placeholder="Contoh: Dus, Kg, Pcs">
+              <datalist id="satuan-list">${["sak", "kotak", "ball", "dus", "kg", "ons", "gram", "pcs", "ikat"].map(o => `<option value="${o}">`).join("")}</datalist>
             </label>
             ${input("unitContent", "Isi/Unit", false, "text")}
           </div>
@@ -2397,11 +2391,11 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
       });
       const prodKeys   = isSuperAdmin()
-        ? ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"]
-        : ["category", "name", "unit", "unitEcer", "unitContent", "salePrice", "salePriceEcer"];
+        ? ["category", "name", "unit", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"]
+        : ["category", "name", "unit", "unitContent", "salePrice", "salePriceEcer"];
       const prodLabels = isSuperAdmin()
-        ? ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"]
-        : ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Jual Grosir", "H. Jual Ecer"];
+        ? ["Kategori", "Nama", "Satuan", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"]
+        : ["Kategori", "Nama", "Satuan", "Isi/Unit", "H. Jual Grosir", "H. Jual Ecer"];
       return actionTable("products", sorted, prodKeys, prodLabels, priceFormat);
     }
 
@@ -2821,11 +2815,11 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
           });
           const srchKeys   = isSuperAdmin()
-            ? ["category", "name", "unit", "unitEcer", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"]
-            : ["category", "name", "unit", "unitEcer", "unitContent", "salePrice", "salePriceEcer"];
+            ? ["category", "name", "unit", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"]
+            : ["category", "name", "unit", "unitContent", "salePrice", "salePriceEcer"];
           const srchLabels = isSuperAdmin()
-            ? ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"]
-            : ["Kategori", "Nama", "Unit/Satuan", "Unit Ecer", "Isi/Unit", "H. Jual Grosir", "H. Jual Ecer"];
+            ? ["Kategori", "Nama", "Satuan", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"]
+            : ["Kategori", "Nama", "Satuan", "Isi/Unit", "H. Jual Grosir", "H. Jual Ecer"];
           res.innerHTML = actionTable("products", sortedResults, srchKeys, srchLabels, priceFormat);
         }
       };

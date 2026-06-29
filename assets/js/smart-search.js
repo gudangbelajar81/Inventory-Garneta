@@ -168,8 +168,8 @@
   }
 
   function renderBarangQuickCard(product) {
-    const grosirStr = (product.salePrice ? formatRupiah(product.salePrice) + ' / ' + escapeHtml(product.unit || '-') : '');
-    const ecerStr = (product.salePriceEcer ? formatRupiah(product.salePriceEcer) + ' / ' + escapeHtml(product.unitEcer || '-') : '');
+    const grosirStr = product.salePrice ? formatRupiah(product.salePrice) + (product.unit ? ' / ' + escapeHtml(product.unit) : '') : '';
+    const ecerStr = product.salePriceEcer ? formatRupiah(product.salePriceEcer) + (product.unitEcer ? ' / ' + escapeHtml(product.unitEcer) : '') : '';
     const priceDisplay = [grosirStr, ecerStr].filter(Boolean).join(' | ') || 'Harga belum diatur';
 
     return '<div class="quick-action-card compact hover-ninja-container" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">' +

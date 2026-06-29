@@ -2865,8 +2865,8 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           });
           const displayResults = sortedResults.map(p => ({
             ...p,
-            displayGrosir: p.salePrice ? `${rupiah(p.salePrice)} / ${p.unit || '-'}` : '-',
-            displayEcer: p.salePriceEcer ? `${rupiah(p.salePriceEcer)} / ${p.unitEcer || '-'}` : '-'
+            displayGrosir: p.salePrice ? `${rupiah(p.salePrice)}${p.unit ? ' / ' + p.unit : ''}` : '-',
+            displayEcer: p.salePriceEcer ? `${rupiah(p.salePriceEcer)}${p.unitEcer ? ' / ' + p.unitEcer : ''}` : '-'
           }));
           const srchKeys = ["category", "name", "stock", "displayGrosir", "displayEcer"];
           const srchLabels = ["Kategori", "Nama Barang", "Stok", "Harga Grosir", "Harga Ecer"];

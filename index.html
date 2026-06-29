@@ -4269,7 +4269,14 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       const row = state.data[collection]?.find((item) => String(item.id) === String(id));
       if (!form || !row) return;
       Object.keys(row).forEach((key) => {
-        if (form.elements[key]) form.elements[key].value = row[key];
+        const el = form.elements[key];
+        if (el) {
+          if (el.length !== undefined && !el.tagName) {
+            for (let i=0; i<el.length; i++) el[i].value = row[key];
+          } else {
+            el.value = row[key];
+          }
+        }
       });
       if (form.elements.password) form.elements.password.value = "";
       

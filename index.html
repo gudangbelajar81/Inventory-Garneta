@@ -869,8 +869,8 @@ function bindGajiEvents() {
         el("content").innerHTML = `<div class="card"><h2>Akses dibatasi</h2><p class="muted">Menu ini hanya bisa diakses Super Admin.</p></div>`;
         return;
       }
-      const views = { dashboard, "neural-hub": neuralHub, barang, pembelian, ngitung, kalkulator, penjualan, laporan, statistik, audit, users, gaji, settings };
-      el("content").innerHTML = views[state.route]();
+      const views = { dashboard, "neural-hub": neuralHub, barang, supplier, pembelian, ngitung, kalkulator, penjualan, laporan, statistik, audit, users, gaji, settings };
+      el("content").innerHTML = views[state.route] ? views[state.route]() : `<div class="card"><h2>Menu tidak ditemukan</h2><p class="muted">Route: ${state.route}</p></div>`;
       bindForms();
     }
 

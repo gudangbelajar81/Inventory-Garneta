@@ -1535,10 +1535,6 @@ Minyak Goreng 3 45000"></textarea>
         }
         
         alert("Berhasil mencetak!");
-        
-        // Bersihkan area input setelah sukses ngeprint
-        window.ngitungRows = [{ id: Date.now(), name: '', price: '', qty: '' }];
-        window.ngitungRenderTable();
       } catch (error) {
         console.error(error);
         alert("Gagal koneksi ke printer Bluetooth: " + error.message);
@@ -1629,10 +1625,13 @@ Minyak Goreng 3 45000"></textarea>
         const printWindow = window.open("", "_blank", "width=300,height=500");
         printWindow.document.write(receiptHtml);
         printWindow.document.close();
-        
-        // Bersihkan area input setelah cetak USB/PC
-        window.ngitungRows = [{ id: Date.now(), name: '', price: '', qty: '' }];
-        window.ngitungRenderTable();
+      };
+
+      window.ngitungClearAll = function() {
+        if(confirm("Yakin ingin mengosongkan semua isian NGITUNG?")) {
+          window.ngitungRows = [{ id: Date.now(), name: '', price: '', qty: '' }];
+          window.ngitungRenderTable();
+        }
       };
 
       function ngitung() {
@@ -1664,8 +1663,9 @@ Minyak Goreng 3 45000"></textarea>
           
             <div class="actions" style="margin-top: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
               <button class="btn soft" onclick="ngitungAddRow()">➕ Tambah Baris</button>
-              <div style="display: flex; gap: 10px;">
-                <button class="btn primary" onclick="ngitungPrintUSB()" style="background: var(--primary);">🖨️ Cetak USB / PC</button>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn danger" onclick="ngitungClearAll()" style="background: var(--red);">🗑 Hapus Semua</button>
+                <button class="btn primary" onclick="ngitungPrintUSB()" style="background: var(--primary);">🖨️ Cetak USB</button>
                 <button class="btn soft" onclick="ngitungPrintBluetooth()">📡 Cetak Bluetooth</button>
               </div>
             </div>
@@ -2808,7 +2808,6 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     function filteredPriceHistory(productId) {
       return (state.data.priceHistory || []).filter((row) => !productId || String(row.productId) === String(productId));
     }
-
     function superAdmins() {
       return state.data.users.filter((user) => user.role === "Super Admin");
     }
@@ -2817,11 +2816,11 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return state.role === "Super Admin";
     }
 
-    // Menu untuk Admin (5 menu termasuk Pembelian)
+    // Menu untuk Admin (6 menu)
     const adminMenus = [
       ["dashboard", "🏠 Dashboard"],
       ["barang", "📦 Barang"],
-
+      ["supplier", "🚚 Supplier"],
       ["pembelian", "🛒 Pembelian"],
       ["ngitung", "🧮 NGITUNG"],
       ["penjualan", "💵 Penjualan"]
@@ -2829,9 +2828,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     
     // Menu untuk Super Admin (semua menu)
     const superAdminMenus = [
-      ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"],
-      ["pembelian", "🛒 Pembelian"], ["ngitung", "🧮 NGITUNG"], ["kalkulator", "🧮 Kalkulator"], ["penjualan", "💵 Penjualan"], ["laporan", "📈 Laporan"],
-      ["statistik", "📊 Statistik"], ["audit", "📋 Audit"], ["users", "👥 Users"], ["gaji", "💸 Gaji & Bon"], ["settings", "⚙️ Setting"]
+      ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"], ["supplier", "🚚 Supplier"],
+      ["pembelian", "🛒 Pembelian"], ["ngitung", "🧮 NGITUNG"], ["kalkulator", "📱 Kalkulator"], ["penjualan", "💵 Penjualan"], ["laporan", "📊 Laporan"],
+      ["statistik", "📈 Statistik"], ["audit", "🕵️‍♂️ Audit"], ["users", "👥 Users"], ["gaji", "💸 Gaji & Bon"], ["settings", "⚙️ Setting"]
     ];
     
     // Pilih menu berdasarkan role

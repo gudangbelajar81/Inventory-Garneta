@@ -2274,14 +2274,11 @@ Beras Premium 1"></textarea>
           <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
         </label>
         ${input("name", "Nama Barang", true)}
-        <label>Satuan<input name="unit" type="text" list="satuan-list" placeholder="Contoh: Dus, Kg, Pcs">
-          <datalist id="satuan-list">${["sak", "kotak", "ball", "dus", "kg", "ons", "gram", "pcs", "ikat"].map(o => `<option value="${o}">`).join("")}</datalist>
-        </label>
         ${input("unitContent", "Isi/Unit", false, "text")}
-        ${input("basePrice", "Harga Dasar", false, "number")}
-        ${input("basePriceEcer", "Harga Dasar/Pcs", false, "number")}
-        ${input("salePrice", "Harga Jual (Grosir)", false, "number")}
-        ${input("salePriceEcer", "Harga Jual Ecer", false, "number")}
+        ${priceWithUnit("basePrice", "unit", "Harga Dasar (Beli)", "Grosir", false)}
+        ${priceWithUnit("basePriceEcer", "unitEcer", "Harga Dasar Ecer", "Ecer", true)}
+        ${priceWithUnit("salePrice", "unit", "Harga Jual (Grosir)", "Grosir", false)}
+        ${priceWithUnit("salePriceEcer", "unitEcer", "Harga Jual Ecer", "Ecer", true)}
         ${isSuperAdmin() ? '<label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>' : '<input name="cuan" type="hidden">'}
         ${input("stock", "Stok", false, "number")}
         ${input("barcode", "Barcode / Kode Scanner")}
@@ -2353,21 +2350,18 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             ${input("name", "Nama Barang", false)}
           </div>
           
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
-            <label>Satuan<input name="unit" type="text" list="satuan-list" placeholder="Contoh: Dus, Kg, Pcs">
-              <datalist id="satuan-list">${["sak", "kotak", "ball", "dus", "kg", "ons", "gram", "pcs", "ikat"].map(o => `<option value="${o}">`).join("")}</datalist>
-            </label>
-            ${input("unitContent", "Isi/Unit", false, "text")}
+          <div style="display:grid; grid-template-columns: 1fr; gap:10px; grid-column: 1/-1;">
+            ${input("unitContent", "Isi/Unit (Jumlah Eceran Dalam Grosir)", false, "text")}
           </div>
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
-            ${input("basePrice", "Harga Dasar (Beli)", false, "number")}
-            ${input("basePriceEcer", "Harga Dasar Ecer", false, "number")}
+            ${priceWithUnit("basePrice", "unit", "Harga Dasar (Beli)", "Grosir", false)}
+            ${priceWithUnit("basePriceEcer", "unitEcer", "Harga Dasar Ecer", "Ecer", true)}
           </div>
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
-            ${input("salePrice", "Harga Jual (Grosir)", false, "number")}
-            ${input("salePriceEcer", "Harga Jual Ecer", false, "number")}
+            ${priceWithUnit("salePrice", "unit", "Harga Jual (Grosir)", "Grosir", false)}
+            ${priceWithUnit("salePriceEcer", "unitEcer", "Harga Jual Ecer", "Ecer", true)}
           </div>
 
           ${formButtons()}
@@ -2518,6 +2512,33 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         }
         return `<label>${label}<input name="${name}" type="${type}" value="${value}" ${required ? "required" : ""}></label>`;
     }
+
+    function priceWithUnit(namePrice, nameUnit, label, unitPlaceholder, isEcer) {
+      const listOptions = isEcer 
+        ? ["pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol", "ikat"]
+        : ["sak", "kotak", "ball", "dus", "kg", "ons", "gram", "pcs", "ikat"];
+      const dataListId = isEcer ? "satuan-ecer-list" : "satuan-list";
+      
+      return `<label>${label}
+        <div style="display:flex; gap:5px; margin-top:5px;">
+          <input name="${namePrice}" type="text" inputmode="numeric" oninput="formatNumberInput(this)" style="flex:1" placeholder="Rp">
+          <span style="display:flex; align-items:center; font-weight:bold; color:var(--muted)">/</span>
+          <input name="${nameUnit}" type="text" list="${dataListId}" placeholder="${unitPlaceholder}" style="width:100px; text-align:center;">
+          <datalist id="${dataListId}">${listOptions.map(o => `<option value="${o}">`).join("")}</datalist>
+        </div>
+      </label>`;
+    }
+
+    document.addEventListener('input', e => {
+      if (e.target.name === 'unit' || e.target.name === 'unitEcer') {
+        const form = e.target.closest('form');
+        if (form) {
+          form.querySelectorAll(`input[name="${e.target.name}"]`).forEach(el => {
+            if (el !== e.target) el.value = e.target.value;
+          });
+        }
+      }
+    });
 
     function select(name, label, options) {
       return `<label>${label}<select name="${name}">${options.map((item) => `<option>${item}</option>`).join("")}</select></label>`;

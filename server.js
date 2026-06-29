@@ -987,6 +987,7 @@ function mapProduct(row) {
     category: row.category,
     name: row.name,
     unit: row.unit,
+    unitEcer: row.unit_ecer,
     unitContent: Number(row.unit_content || 1),
     basePrice: Number(row.base_price || 0),
     basePriceEcer: Number(row.base_price_ecer || 0),

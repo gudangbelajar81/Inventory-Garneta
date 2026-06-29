@@ -2270,18 +2270,34 @@ Beras Premium 1"></textarea>
       const cats = [...new Set((state?.data?.products || []).map(p => p.category).filter(Boolean))];
       return `<form data-form="products" class="grid forms">
         ${hiddenId()}
-        <label>Kategori Barang<input name="category" type="text" list="category-list">
-          <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
-        </label>
-        ${input("name", "Nama Barang", true)}
-        ${input("unitContent", "Isi/Unit", false, "text")}
-        ${priceWithUnit("basePrice", "unit", "Harga Dasar (Beli)", "Grosir", false)}
-        ${priceWithUnit("basePriceEcer", "unitEcer", "Harga Dasar Ecer", "Ecer", true)}
-        ${priceWithUnit("salePrice", "unit", "Harga Jual (Grosir)", "Grosir", false)}
-        ${priceWithUnit("salePriceEcer", "unitEcer", "Harga Jual Ecer", "Ecer", true)}
-        ${isSuperAdmin() ? '<label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>' : '<input name="cuan" type="hidden">'}
-        ${input("stock", "Stok", false, "number")}
-        ${input("barcode", "Barcode / Kode Scanner")}
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+          <label>Kategori Barang<input name="category" type="text" list="category-list">
+            <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
+          </label>
+          ${input("name", "Nama Barang", true)}
+        </div>
+        
+        <div style="display:grid; grid-template-columns: ${isSuperAdmin() ? '1fr 1fr 1fr' : '1fr 1fr'}; gap:10px; grid-column: 1/-1;">
+          ${input("unitContent", "Isi/Unit", false, "text")}
+          ${input("stock", "Stok", false, "number")}
+          ${isSuperAdmin() ? '<label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>' : '<input name="cuan" type="hidden">'}
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+          ${priceWithUnit("basePrice", "unit", "Harga Dasar (Beli)", "Grosir", false)}
+          ${priceWithUnit("basePriceEcer", "unitEcer", "Harga Dasar Ecer", "Ecer", true)}
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+          ${priceWithUnit("salePrice", "unit", "Harga Jual (Grosir)", "Grosir", false)}
+          ${priceWithUnit("salePriceEcer", "unitEcer", "Harga Jual Ecer", "Ecer", true)}
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr; gap:10px; grid-column: 1/-1;">
+          ${input("barcode", "Barcode / Kode Scanner")}
+        </div>
+
         ${formButtons()}
       </form>`;
     }
@@ -2338,20 +2354,17 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         return `<form data-form="purchases" class="grid forms">
           ${hiddenId()}
           
-          <div style="display:grid; grid-template-columns: ${isSuperAdmin() ? '1fr 1fr' : '1fr'}; gap:10px; grid-column: 1/-1;">
-            ${input("date", "Tanggal", true, "date", today())}
-            ${isSuperAdmin() ? '<label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>' : '<input name="cuan" type="hidden">'}
-          </div>
-          
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+            ${input("date", "Tanggal", true, "date", today())}
             <label>Kategori Barang<input name="category" type="text" list="category-list">
               <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
             </label>
-            ${input("name", "Nama Barang", false)}
           </div>
-          
-          <div style="display:grid; grid-template-columns: 1fr; gap:10px; grid-column: 1/-1;">
-            ${input("unitContent", "Isi/Unit (Jumlah Eceran Dalam Grosir)", false, "text")}
+
+          <div style="display:grid; grid-template-columns: ${isSuperAdmin() ? '2fr 1fr 1fr' : '2fr 1fr'}; gap:10px; grid-column: 1/-1;">
+            ${input("name", "Nama Barang", false)}
+            ${input("unitContent", "Isi/Unit", false, "text")}
+            ${isSuperAdmin() ? '<label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>' : '<input name="cuan" type="hidden">'}
           </div>
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
@@ -2523,7 +2536,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         <div style="display:flex; gap:5px; margin-top:5px;">
           <input name="${namePrice}" type="text" inputmode="numeric" oninput="formatNumberInput(this)" style="flex:1" placeholder="Rp">
           <span style="display:flex; align-items:center; font-weight:bold; color:var(--muted)">/</span>
-          <input name="${nameUnit}" type="text" list="${dataListId}" placeholder="${unitPlaceholder}" style="width:100px; text-align:center;">
+          <input name="${nameUnit}" type="text" list="${dataListId}" placeholder="${unitPlaceholder}" style="width:70px; padding-left:4px; padding-right:4px; text-align:center;">
           <datalist id="${dataListId}">${listOptions.map(o => `<option value="${o}">`).join("")}</datalist>
         </div>
       </label>`;

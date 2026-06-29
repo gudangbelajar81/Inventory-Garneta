@@ -2264,6 +2264,34 @@ Beras Premium 1"></textarea>
       return `<div class="card"><div class="muted">${label}</div><h2>${value ?? 0}</h2></div>`;
     }
 
+    function supplier() {
+      return crudView("suppliers", "Data Supplier", supplierForm(), supplierRows());
+    }
+
+    function supplierForm() {
+      return `<form data-form="suppliers" class="grid forms">
+        ${hiddenId()}
+        ${input("name", "Nama Supplier", true)}
+        ${input("phone", "No Telepon / WhatsApp", false, "text", "", "Contoh: 0812... (Otomatis dapat link WA)")}
+        ${input("address", "Alamat (Opsional)")}
+        ${input("notes", "Keterangan (Opsional)")}
+        ${formButtons()}
+      </form>`;
+    }
+
+    function supplierRows() {
+      const keys = ["name", "phone", "address", "notes"];
+      const labels = ["Nama Supplier", "No Telepon / WhatsApp", "Alamat", "Keterangan"];
+      const formatter = (key, val) => {
+        if (key === "phone" && val) {
+          const waLink = `https://wa.me/${String(val).replace(/^0/, '62').replace(/\\D/g, '')}`;
+          return `${escapeHtml(val)} <br> <a href="${waLink}" target="_blank" class="btn soft" style="padding:4px 8px;font-size:12px;background:#10b981;color:#fff;margin-top:4px;display:inline-block;">WhatsApp</a>`;
+        }
+        return escapeHtml(val || "-");
+      };
+      return actionTable("suppliers", state.data.suppliers || [], keys, labels, formatter);
+    }
+
     function productForm() {
       const cats = [...new Set((state?.data?.products || []).map(p => p.category).filter(Boolean))];
       return `<form data-form="products" class="grid forms">

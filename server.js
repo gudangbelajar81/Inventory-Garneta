@@ -499,8 +499,8 @@ async function addRow(collection, item = {}) {
   if (collection === "products") {
     const payload = productPayload(item);
     const [result] = await db.query(`
-      INSERT INTO products (supplier_id, category, name, unit, unit_content, base_price, base_price_ecer, sale_price, sale_price_ecer, stock, barcode)
-      VALUES (:supplierId, :category, :name, :unit, :unitContent, :basePrice, :basePriceEcer, :salePrice, :salePriceEcer, :stock, :barcode)
+      INSERT INTO products (supplier_id, category, name, unit, unit_ecer, unit_content, base_price, base_price_ecer, sale_price, sale_price_ecer, stock, barcode)
+      VALUES (:supplierId, :category, :name, :unit, :unitEcer, :unitContent, :basePrice, :basePriceEcer, :salePrice, :salePriceEcer, :stock, :barcode)
     `, payload);
     await recordPriceHistory(result.insertId, "barang");
     await recordAudit(`Tambah barang: ${payload.name}`);
@@ -698,7 +698,7 @@ async function updateRow(collection, id, item = {}) {
     await db.query(`
       UPDATE products 
       SET supplier_id = :supplierId, category = :category, name = :name, 
-          unit = :unit, unit_content = :unitContent, base_price = :basePrice, 
+          unit = :unit, unit_ecer = :unitEcer, unit_content = :unitContent, base_price = :basePrice, 
           base_price_ecer = :basePriceEcer, sale_price = :salePrice, sale_price_ecer = :salePriceEcer,
           stock = :stock, barcode = :barcode
       WHERE id = :id
@@ -901,6 +901,7 @@ function productPayload(item) {
     category: toTitleCase(item.category || "Umum"),
     name: toTitleCase(required(item.name, "Nama barang")),
     unit: item.unit || "pcs",
+    unitEcer: item.unitEcer || null,
     unitContent: number(item.unitContent) || 1,
     basePrice: number(item.basePrice),
     basePriceEcer: number(item.basePriceEcer),

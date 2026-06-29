@@ -1628,10 +1628,8 @@ Minyak Goreng 3 45000"></textarea>
       };
 
       window.ngitungClearAll = function() {
-        if(confirm("Yakin ingin mengosongkan semua isian NGITUNG?")) {
-          window.ngitungRows = [{ id: Date.now(), name: '', price: '', qty: '' }];
-          window.ngitungRenderTable();
-        }
+        window.ngitungRows = [{ id: Date.now(), name: '', price: '', qty: '' }];
+        window.ngitungRenderTable();
       };
 
       function ngitung() {

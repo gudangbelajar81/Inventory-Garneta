@@ -451,17 +451,16 @@
         <div class="card">
           <div class="table-wrap">
             <table class="table">
-              <thead><tr><th>Nama</th><th>Tipe</th><th>Gaji Pokok</th><th>Total Kasbon Aktif</th><th>Aksi</th></tr></thead>
+              <thead><tr><th>Nama</th><th>Tipe</th><th>Gaji Pokok</th><th>Total Kasbon Aktif</th></tr></thead>
               <tbody>
                 ${employees().map(e => {
                   const unpaidBons = cashAdvances().filter(c => c.employeeId == e.id && c.status === 'Belum Lunas');
                   const totalBon = unpaidBons.reduce((sum, c) => sum + Number(c.amount), 0);
-                  return `<tr>
-                    <td><strong>${e.name}</strong></td>
+                  return `<tr onclick="openEmployeeDashboard('${e.id}')" style="cursor:pointer; transition:all 0.3s ease;" onmouseover="this.style.background='rgba(0,255,204,0.05)'" onmouseout="this.style.background='transparent'">
+                    <td><strong style="color:var(--mint); text-decoration:underline; text-underline-offset:3px;">${escapeHtml(e.name)}</strong></td>
                     <td>${e.salaryType}</td>
                     <td>${rupiah(e.baseSalary)}</td>
                     <td style="color: #f43f5e;">${totalBon > 0 ? rupiah(totalBon) : '-'}</td>
-                    <td><button class="btn primary" onclick="openEmployeeDashboard('${e.id}')">Kelola</button></td>
                   </tr>`;
                 }).join('')}
               </tbody>

@@ -510,6 +510,7 @@
               ${input("baseSalary", "Gaji Pokok (Rp)", true, "text", "")}
               <div class="form-actions" style="margin-top:1rem;">
                 <button type="submit" class="btn primary">Update Profil</button>
+                <button type="button" class="btn danger" onclick="hapusKaryawan('${emp.id}')">Hapus</button>
               </div>
             </form>
           </div>
@@ -617,7 +618,7 @@
 
 window.openEmployeeDashboard = function(id) {
   window.gajiActiveEmpId = id || null;
-  load();
+  render();
 };
 
 window.tambahKasbon = function(empId) {
@@ -640,6 +641,18 @@ window.editEmployee = function(id) {
         .then(() => { alert("Berhasil ditambahkan. Silakan klik Kelola untuk melengkapi profil."); load(); })
         .catch(e => alert(e.message));
      }
+  }
+};
+
+window.hapusKaryawan = async function(id) {
+  if (!confirm("Yakin ingin menghapus data karyawan ini?")) return;
+  window.gajiActiveEmpId = null;
+  render();
+  try {
+    await gas("remove", { collection: "employees", id });
+    await load();
+  } catch(err) {
+    alert("Gagal menghapus karyawan: " + err.message);
   }
 };
 

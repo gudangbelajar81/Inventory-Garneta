@@ -111,6 +111,71 @@ async function migrate() {
       logger.error('Migrasi Title Case gagal', { error: e.message });
     }
 
+    try {
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS employees (
+          id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(120) NOT NULL,
+          phone VARCHAR(40) NULL,
+          join_date DATE NOT NULL,
+          salary_type ENUM('Bulanan', 'Harian') NOT NULL DEFAULT 'Bulanan',
+          base_salary DECIMAL(14,2) NOT NULL DEFAULT 0,
+          status ENUM('Aktif', 'Nonaktif') NOT NULL DEFAULT 'Aktif',
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB
+      `);
+      logger.info(`Migrasi: Tabel employees dipastikan ada`);
+    } catch (e) {
+      logger.error('Migrasi tabel employees gagal', { error: e.message });
+    }
+
+    try {
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS cash_advances (
+          id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+          employee_id BIGINT UNSIGNED NOT NULL,
+          date DATE NOT NULL,
+          amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+          notes TEXT NULL,
+          status ENUM('Belum Lunas', 'Lunas') NOT NULL DEFAULT 'Belum Lunas',
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+          CONSTRAINT fk_cash_advances_employee
+            FOREIGN KEY (employee_id) REFERENCES employees(id)
+            ON DELETE CASCADE
+            ON UPDATE CASCADE
+        ) ENGINE=InnoDB
+      `);
+      logger.info(`Migrasi: Tabel cash_advances dipastikan ada`);
+    } catch (e) {
+      logger.error('Migrasi tabel cash_advances gagal', { error: e.message });
+    }
+
+    try {
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS payrolls (
+          id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+          employee_id BIGINT UNSIGNED NOT NULL,
+          period_start DATE NULL,
+          period_end DATE NULL,
+          attendance_days INT NOT NULL DEFAULT 0,
+          basic_salary_calculated DECIMAL(14,2) NOT NULL DEFAULT 0,
+          total_deduction_bon DECIMAL(14,2) NOT NULL DEFAULT 0,
+          net_salary DECIMAL(14,2) NOT NULL DEFAULT 0,
+          paid_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          notes TEXT NULL,
+          CONSTRAINT fk_payrolls_employee
+            FOREIGN KEY (employee_id) REFERENCES employees(id)
+            ON DELETE CASCADE
+            ON UPDATE CASCADE
+        ) ENGINE=InnoDB
+      `);
+      logger.info(`Migrasi: Tabel payrolls dipastikan ada`);
+    } catch (e) {
+      logger.error('Migrasi tabel payrolls gagal', { error: e.message });
+    }
+
     logger.info(`Migrasi database sepenuhnya selesai: ${database}`);
   } finally {
     await connection.end();

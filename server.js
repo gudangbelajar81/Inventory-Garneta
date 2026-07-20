@@ -1880,9 +1880,44 @@ async function requestMagicLink(phoneOrEmail) {
   const link = \`\${origin}/?magic=\${token}\`;
   logger.info("Magic Link generated", { link, user: user.name });
   
-  // TO DO: Panggil API WhatsApp (Fonnte/Omni-Bot) di sini.
-  // Untuk saat ini, kita kembalikan linknya langsung ke frontend untuk keperluan demo & copy-paste.
-  return { ok: true, message: "Magic link berhasil dibuat.", demoLink: link };
+  // Integrasi Fonnte API
+  const fonnteToken = process.env.FONNTE_TOKEN;
+  const targetWa = process.env.SUPERADMIN_WA;
+  
+  if (fonnteToken && targetWa) {
+    try {
+      const waMessage = \`*🚨 LOGIN DARURAT SUPER ADMIN*\\n\\nKlik link di bawah ini untuk langsung masuk ke dalam aplikasi (berlaku 5 menit):\\n\\n\${link}\\n\\n_Abaikan pesan ini jika Anda tidak memintanya._\`;
+      
+      // Node.js 18+ has built-in fetch
+      const fonnteRes = await fetch("https://api.fonnte.com/send", {
+        method: "POST",
+        headers: {
+          "Authorization": fonnteToken,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams({
+          target: targetWa,
+          message: waMessage,
+          countryCode: "62"
+        })
+      });
+      
+      const fonnteData = await fonnteRes.json();
+      logger.info("Fonnte API Response", { status: fonnteData.status, detail: fonnteData.detail });
+      
+      if (!fonnteData.status) {
+        throw new Error("Gagal mengirim WA dari Fonnte: " + (fonnteData.detail || "Unknown error"));
+      }
+      
+      return { ok: true, message: "Magic link berhasil dikirim ke WhatsApp Anda! Silakan cek HP Bos.", demoLink: "" };
+    } catch (apiError) {
+      logger.error("Error calling Fonnte API", { error: apiError.message });
+      throw new Error("Gagal mengirim pesan WA: " + apiError.message);
+    }
+  } else {
+    // Fallback if env is missing
+    return { ok: true, message: "Magic link berhasil dibuat (Namun Token Fonnte/WA belum diset di .env).", demoLink: link };
+  }
 }
 
 async function verifyMagicLink(token) {

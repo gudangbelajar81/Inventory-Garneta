@@ -53,11 +53,11 @@
     .content { padding: 18px; }
     .card { background: var(--card-bg); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 22px 54px rgba(0,0,0,.4), inset 0 0 20px rgba(0,255,204,.05); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: transform 0.3s ease, box-shadow 0.3s ease; }
     .card:hover { transform: translateY(-2px); box-shadow: 0 26px 60px rgba(0,0,0,.5), inset 0 0 25px rgba(0,255,204,.08); }
-    .grid { display: grid; gap: 14px; }
-    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .forms { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .btn { border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; background: rgba(255,255,255,.05); color: #e8fbff; cursor: pointer; font-weight: 800; transition: all 0.3s ease; backdrop-filter: blur(4px); }
+    .grid { display: grid; gap: 8px; }
+    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .forms { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .btn { border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; background: rgba(255,255,255,.05); color: #e8fbff; cursor: pointer; font-weight: 800; font-size: 0.82rem; transition: all 0.3s ease; backdrop-filter: blur(4px); min-height: 36px; }
     .btn:hover { background: rgba(255,255,255,.1); transform: translateY(-1px); }
     .btn.primary { border: 0; color: #000000; background: linear-gradient(135deg, var(--green), var(--mint)); box-shadow: 0 10px 24px rgba(0,255,204,.3), inset 0 0 10px rgba(255,255,255,.5); }
     .btn.primary:hover { box-shadow: 0 12px 28px rgba(0,255,204,.4), inset 0 0 12px rgba(255,255,255,.6); }
@@ -65,18 +65,18 @@
     .btn.danger:hover { background: rgba(255,0,127,.2); box-shadow: 0 0 15px rgba(255,0,127,.3); }
     .btn.soft { color: var(--green); background: rgba(0,255,204,.1); border-color: rgba(0,255,204,.3); }
     .btn.soft:hover { background: rgba(0,255,204,.2); box-shadow: 0 0 15px rgba(0,255,204,.2); }
-    label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; color: var(--mint); }
-    input, select, textarea { width: 100%; border: 1px solid rgba(0,255,204,.2); border-radius: 10px; padding: 9px 10px; background: var(--field-bg); color: var(--text); outline: none; transition: all 0.3s ease; backdrop-filter: blur(8px); }
+    label { display: grid; gap: 4px; font-size: 12px; font-weight: 700; color: var(--mint); }
+    input, select, textarea { width: 100%; border: 1px solid rgba(0,255,204,.2); border-radius: 10px; padding: 7px 8px; background: var(--field-bg); color: var(--text); outline: none; transition: all 0.3s ease; backdrop-filter: blur(8px); font-size: 13px; max-height: 38px; }
     input[type="text"] { text-transform: capitalize; }
     input:focus, select:focus, textarea:focus { border-color: var(--green); box-shadow: 0 0 12px rgba(0,255,204,.2); background: rgba(10,21,38,0.9); }
     table { width: 100%; border-collapse: collapse; background: var(--field-bg); border-radius: 12px; overflow: hidden; }
-    th, td { border-bottom: 1px solid rgba(141,247,223,.1); padding: 10px; text-align: left; font-size: 14px; vertical-align: top; }
-    th { background: rgba(127,127,127,.08); color: var(--text); font-size: 12px; text-transform: uppercase; }
+    th, td { border-bottom: 1px solid rgba(141,247,223,.1); padding: 8px; text-align: left; font-size: 13px; vertical-align: middle; }
+    th { background: rgba(127,127,127,.08); color: var(--text); font-size: 11px; text-transform: uppercase; }
     .table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; -webkit-overflow-scrolling: touch; }
     .muted { color: var(--soft-text); }
     .hidden { display: none !important; }
-    .modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(15,23,42,.45); padding: 20px; z-index: 20; }
-    .modal .card { max-width: 420px; width: 100%; }
+    .modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(15,23,42,.45); padding: 14px; z-index: 20; }
+    .modal .card { max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 14px; }
     .chart { display: flex; align-items: end; gap: 8px; height: 180px; padding-top: 12px; }
     .bar { min-width: 24px; flex: 1; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--orange), var(--green)); }
     textarea.input-area { min-height: 120px; resize: vertical; }
@@ -198,22 +198,22 @@
       #clock { font-size: 11px; }
       #role-label { display: none; }
       .content { padding: 12px; }
-      .grid { gap: 10px; }
-      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-      .forms { grid-template-columns: 1fr; }
-      .card { border-radius: 18px; padding: 12px; box-shadow: 0 16px 34px rgba(0,0,0,.24); }
-      .stats .card { min-height: 82px; padding: 12px; }
-      .stats .card .muted { font-size: 11px; }
-      .stats .card h2 { font-size: 18px; word-break: break-word; }
-      .actions { gap: 6px; }
-      .actions .btn, .btn { min-height: 36px; padding: 8px 10px; border-radius: 12px; font-size: 12px; }
-      label { font-size: 12px; gap: 5px; }
-      input, select, textarea { min-height: 38px; padding: 8px 9px; border-radius: 12px; font-size: 13px; }
-      textarea.input-area { min-height: 92px; }
-      .table-wrap { border-radius: 14px; max-width: 100%; }
-      table { min-width: 640px; }
-      th, td { padding: 8px; font-size: 12px; }
-      th { font-size: 10px; letter-spacing: .2px; }
+      .grid { gap: 6px; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+      .forms { grid-template-columns: 1fr; gap: 6px; }
+      .card { border-radius: 14px; padding: 10px; box-shadow: 0 16px 34px rgba(0,0,0,.24); }
+      .stats .card { min-height: 72px; padding: 10px; }
+      .stats .card .muted { font-size: 10px; }
+      .stats .card h2 { font-size: 16px; word-break: break-word; }
+      .actions { gap: 4px; }
+      .actions .btn, .btn { min-height: 40px; padding: 6px 8px; border-radius: 12px; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+      label { font-size: 11px; gap: 4px; }
+      input, select, textarea { min-height: 36px; max-height: 36px; padding: 6px 8px; border-radius: 12px; font-size: 12px; }
+      textarea.input-area { min-height: 72px; max-height: 120px; }
+      .table-wrap { border-radius: 12px; max-width: 100%; }
+      table { min-width: 480px; }
+      th, td { padding: 6px; font-size: 11px; }
+      th { font-size: 9px; letter-spacing: .2px; }
       .chart { height: 126px; gap: 5px; }
       .bar { min-width: 12px; border-radius: 6px 6px 0 0; }
       video.scanner-preview { height: min(58vh, 460px); min-height: 280px; border-radius: 16px; }
@@ -2558,10 +2558,16 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function input(name, label, required, type = "text", value = "") {
+      let eyeHtml = "";
+      let styleAttr = "";
+      if (type === "password") {
+        eyeHtml = `<button type="button" tabindex="-1" onclick="const i=this.previousElementSibling; if(i.type==='password'){i.type='text';this.textContent='🙈'}else{i.type='password';this.textContent='👁️'}" style="position:absolute; right:8px; top:20px; background:none; border:none; color:var(--soft-text); font-size:14px; cursor:pointer; padding:4px;">👁️</button>`;
+        styleAttr = `style="padding-right: 32px;"`;
+      }
       if (type === "number") {
-          return `<label>${label}<input name="${name}" type="text" inputmode="numeric" value="${value}" ${required ? "required" : ""} oninput="formatNumberInput(this)"></label>`;
-        }
-        return `<label>${label}<input name="${name}" type="${type}" value="${value}" ${required ? "required" : ""}></label>`;
+          return `<label style="position:relative">${label}<input name="${name}" type="text" inputmode="numeric" value="${value}" ${required ? "required" : ""} oninput="formatNumberInput(this)"></label>`;
+      }
+      return `<label style="position:relative">${label}<input name="${name}" type="${type}" value="${value}" ${required ? "required" : ""} ${styleAttr} onblur="if(this.type==='text') this.value=this.value.trim()">${eyeHtml}</label>`;
     }
 
     function priceWithUnit(namePrice, nameUnit, label, unitPlaceholder, isEcer) {

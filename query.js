@@ -1,0 +1,1 @@
+require('dotenv').config(); const mysql = require('mysql2/promise'); async function run() { const db = await mysql.createConnection(process.env.DB_URL); const [rows] = await db.query('SELECT name, unit, unit_ecer, base_price, sale_price FROM products WHERE name LIKE \'%Jae%\''); console.log(rows); process.exit(0); } run();

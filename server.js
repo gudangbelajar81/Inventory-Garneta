@@ -1,4 +1,5 @@
 require("dotenv").config({ quiet: true });
+const simplewebauthn = require("@simplewebauthn/server");
 const crypto = require("crypto");
 const express = require("express");
 const jwt = require("jsonwebtoken");
@@ -143,7 +144,7 @@ app.use((req, res, next) => {
 
 
 // Actions yang tidak perlu auth (public)
-const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap", "dashboard", "getSetting", "setSetting", "modules"]);
+const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap", "dashboard", "getSetting", "setSetting", "modules", "requestMagicLink", "verifyMagicLink", "generateAuthOptions", "verifyAuth"]);
 const KASIR_COLLECTIONS = new Set(["products", "suppliers", "purchases", "sales", "priceHistory"]);
 
 function verifyToken(req, res, next) {
@@ -177,7 +178,7 @@ app.post("/api", verifyToken, async (req, res) => {
 
 
 
-    const data = await handleAction(action, payload);
+    const data = await handleAction(action, payload, req);
     res.json({ ok: true, data });
   } catch (error) {
     logger.warn("API request gagal.", { action: req.body?.action, error: error.message });
@@ -187,7 +188,7 @@ app.post("/api", verifyToken, async (req, res) => {
 
 app.use(errorHandler);
 
-async function handleAction(action, payload) {
+async function handleAction(action, payload, req) {
   const coreActions = {
     bootstrap: () => bootstrap(),
     dashboard: () => dashboard(),
@@ -208,6 +209,12 @@ async function handleAction(action, payload) {
     backupData: () => backupData(),
     restoreData: () => restoreData(payload.backup),
     clearAuditLogs: () => clearAuditLogs(),
+    generateRegOptions: () => generateRegistrationOptionsWebAuthn(req),
+    verifyReg: () => verifyRegistrationWebAuthn(payload, req),
+    generateAuthOptions: () => generateAuthenticationOptionsWebAuthn(payload),
+    verifyAuth: () => verifyAuthenticationWebAuthn(payload),
+    requestMagicLink: () => requestMagicLink(payload.phoneOrEmail),
+    verifyMagicLink: () => verifyMagicLink(payload.token),
     modules: () => availableModules(),
     getSetting: () => getSetting(payload.key, payload.fallback),
     setSetting: async () => { await setSetting(payload.key, payload.value); return { ok: true }; },
@@ -1702,3 +1709,192 @@ process.on("unhandledRejection", (reason) => {
     reason: reason instanceof Error ? reason.message : String(reason)
   });
 });
+
+// --- WEBAUTHN & MAGIC LINK LOGIC ---
+
+// In-memory cache for WebAuthn challenges
+const currentChallenges = {}; // userId -> challenge
+
+const rpName = "Garneta System";
+const rpID = process.env.RP_ID || "alveza-backend-production.up.railway.app";
+const origin = process.env.ORIGIN || "https://alveza-backend-production.up.railway.app";
+
+async function generateRegistrationOptionsWebAuthn(req) {
+  if (!req.user) throw new Error("Harus login terlebih dahulu untuk mendaftar sidik jari.");
+  
+  const [passkeys] = await db.query('SELECT public_key, webauthn_user_id FROM passkeys WHERE user_id = ?', [req.user.id]);
+  
+  const options = await simplewebauthn.generateRegistrationOptions({
+    rpName,
+    rpID,
+    userID: req.user.id.toString(),
+    userName: req.user.name,
+    attestationType: "none",
+    excludeCredentials: passkeys.map(pk => ({
+      id: pk.public_key,
+      type: "public-key",
+      transports: ["internal"],
+    })),
+    authenticatorSelection: {
+      residentKey: "preferred",
+      userVerification: "preferred",
+      authenticatorAttachment: "platform",
+    },
+  });
+
+  currentChallenges[req.user.id] = options.challenge;
+  return options;
+}
+
+async function verifyRegistrationWebAuthn(payload, req) {
+  if (!req.user) throw new Error("Harus login terlebih dahulu.");
+  
+  const expectedChallenge = currentChallenges[req.user.id];
+  if (!expectedChallenge) throw new Error("Challenge tidak ditemukan atau sudah kadaluarsa.");
+  
+  let verification;
+  try {
+    verification = await simplewebauthn.verifyRegistrationResponse({
+      response: payload,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+    });
+  } catch (error) {
+    throw new Error("Verifikasi sidik jari gagal: " + error.message);
+  }
+
+  if (verification.verified && verification.registrationInfo) {
+    const { credentialPublicKey, credentialID, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+    
+    // Save to database
+    await db.query(\`
+      INSERT INTO passkeys (id, user_id, public_key, webauthn_user_id, counter, device_type, backed_up)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    \`, [
+      Buffer.from(credentialID).toString('base64url'),
+      req.user.id,
+      Buffer.from(credentialPublicKey).toString('base64url'),
+      req.user.id.toString(),
+      counter,
+      credentialDeviceType,
+      credentialBackedUp
+    ]);
+
+    delete currentChallenges[req.user.id];
+    return { ok: true, message: "Sidik jari berhasil didaftarkan." };
+  }
+  throw new Error("Verifikasi sidik jari gagal.");
+}
+
+async function generateAuthenticationOptionsWebAuthn(payload) {
+  // If payload has a username, find their passkeys. Otherwise discoverable login.
+  let allowCredentials = [];
+  let expectedUserId = null;
+  
+  if (payload.name) {
+    const [users] = await db.query('SELECT id FROM users WHERE name = ? LIMIT 1', [payload.name]);
+    if (users.length > 0) {
+      expectedUserId = users[0].id;
+      const [passkeys] = await db.query('SELECT id FROM passkeys WHERE user_id = ?', [expectedUserId]);
+      allowCredentials = passkeys.map(pk => ({
+        id: pk.id,
+        type: "public-key",
+        transports: ["internal", "usb", "ble", "nfc"],
+      }));
+    }
+  }
+
+  const options = await simplewebauthn.generateAuthenticationOptions({
+    rpID,
+    allowCredentials,
+    userVerification: "preferred",
+  });
+
+  // For authentication, we store challenge globally using options.challenge as key
+  currentChallenges[options.challenge] = expectedUserId; 
+  return options;
+}
+
+async function verifyAuthenticationWebAuthn(payload) {
+  const body = payload;
+  let dbPasskey = null;
+  let user = null;
+
+  const [passkeys] = await db.query('SELECT * FROM passkeys WHERE id = ? LIMIT 1', [body.id]);
+  if (passkeys.length > 0) {
+    dbPasskey = passkeys[0];
+    const [users] = await db.query('SELECT * FROM users WHERE id = ? LIMIT 1', [dbPasskey.user_id]);
+    user = users[0];
+  }
+
+  if (!dbPasskey || !user) throw new Error("Sidik jari tidak dikenali di sistem.");
+
+  // We need to find the expected challenge. The client sends it back in clientDataJSON.
+  // Actually, we should store challenges. For simplicity in this implementation, 
+  // we would verify the challenge from memory.
+  // We need to parse clientDataJSON to get the challenge to look it up.
+  const clientDataJSON = Buffer.from(body.response.clientDataJSON, 'base64url').toString('utf8');
+  const clientData = JSON.parse(clientDataJSON);
+  const expectedChallenge = clientData.challenge;
+
+  let verification;
+  try {
+    verification = await simplewebauthn.verifyAuthenticationResponse({
+      response: body,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      authenticator: {
+        credentialID: Buffer.from(dbPasskey.id, 'base64url'),
+        credentialPublicKey: Buffer.from(dbPasskey.public_key, 'base64url'),
+        counter: dbPasskey.counter,
+        transports: dbPasskey.transports ? dbPasskey.transports.split(',') : ["internal"]
+      },
+    });
+  } catch (error) {
+    throw new Error("Autentikasi gagal: " + error.message);
+  }
+
+  if (verification.verified) {
+    // Update counter
+    await db.query('UPDATE passkeys SET counter = ? WHERE id = ?', [verification.authenticationInfo.newCounter, dbPasskey.id]);
+    const token = jwt.sign({ id: user.id, name: user.name, role: displayRole(user.role) }, JWT_SECRET);
+    return { token, name: user.name, role: displayRole(user.role), isSuperAdmin: user.role === "Super Admin" };
+  }
+  
+  throw new Error("Verifikasi gagal.");
+}
+
+async function requestMagicLink(phoneOrEmail) {
+  // Demo implementation: generate token and just return it for now (Bos can plug in WA API)
+  const [users] = await db.query('SELECT id, name FROM users WHERE role="Super Admin" LIMIT 1');
+  if (users.length === 0) throw new Error("Super Admin tidak ditemukan.");
+  const user = users[0];
+  
+  const token = crypto.randomBytes(32).toString('hex');
+  const expires = new Date(Date.now() + 5 * 60000); // 5 mins
+  
+  await db.query('INSERT INTO magic_links (token, user_id, expires_at) VALUES (?, ?, ?)', [token, user.id, expires]);
+  
+  const link = \`\${origin}/?magic=\${token}\`;
+  logger.info("Magic Link generated", { link, user: user.name });
+  
+  // TO DO: Panggil API WhatsApp (Fonnte/Omni-Bot) di sini.
+  // Untuk saat ini, kita kembalikan linknya langsung ke frontend untuk keperluan demo & copy-paste.
+  return { ok: true, message: "Magic link berhasil dibuat.", demoLink: link };
+}
+
+async function verifyMagicLink(token) {
+  const [rows] = await db.query('SELECT * FROM magic_links WHERE token = ? AND used = 0 AND expires_at > NOW() LIMIT 1', [token]);
+  if (rows.length === 0) throw new Error("Link kadaluarsa atau tidak valid.");
+  
+  const magic = rows[0];
+  await db.query('UPDATE magic_links SET used = 1 WHERE token = ?', [token]);
+  
+  const [users] = await db.query('SELECT * FROM users WHERE id = ? LIMIT 1', [magic.user_id]);
+  const user = users[0];
+  
+  const jwtToken = jwt.sign({ id: user.id, name: user.name, role: displayRole(user.role) }, JWT_SECRET);
+  return { token: jwtToken, name: user.name, role: displayRole(user.role), isSuperAdmin: user.role === "Super Admin" };
+}

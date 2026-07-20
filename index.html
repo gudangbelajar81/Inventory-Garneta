@@ -264,6 +264,7 @@
     .arrow.open { transform: rotate(180deg) !important; }
     .hidden { display: none !important; }
 
+    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
   </style>
 </head>
 <body>
@@ -311,6 +312,20 @@
         <button class="btn soft" id="show-create-account">Buat Super Admin</button>
         <button class="btn" id="cancel-login">Batal</button>
         <button class="btn primary" id="submit-login">Masuk</button>
+      </div>
+      <div class="actions" style="justify-content:center; flex-direction:column; width:100%; margin-top: 12px; gap: 8px;">
+        <button class="btn primary" id="webauthn-login" style="width:100%; font-size: 14px; min-height: 44px; display:flex; align-items:center; justify-content:center; gap:8px;">
+          <span style="font-size:18px;">🟢</span> Login Cepat (Sidik Jari / Face ID)
+        </button>
+        <button class="btn" id="magic-link-login" style="width:100%; font-size: 14px; min-height: 44px; display:flex; align-items:center; justify-content:center; gap:8px; border-color: rgba(37, 99, 235, 0.5); background: rgba(37, 99, 235, 0.1); color: #60a5fa;">
+          <span style="font-size:18px;">🔵</span> Kirim Link Login via WhatsApp
+        </button>
+      </div>
+      <div id="webauthn-register-panel" class="hidden grid" style="border-top:1px solid var(--line);padding-top:12px; margin-top:12px;">
+        <p class="muted">Perangkat ini belum terdaftar untuk Login Cepat.</p>
+        <button class="btn primary" id="webauthn-register" style="width:100%; font-size: 14px; min-height: 44px; display:flex; align-items:center; justify-content:center; gap:8px;">
+          <span style="font-size:18px;">🛡️</span> Daftarkan Perangkat Ini
+        </button>
       </div>
       <div id="create-account-panel" class="hidden grid" style="border-top:1px solid var(--line);padding-top:12px">
         <h3>Buat Super Admin</h3>
@@ -4535,6 +4550,80 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
   
       setInterval(() => el("clock").textContent = new Date().toLocaleString("id-ID"), 1000);
     load().catch((error) => el("content").innerHTML = `<div class="card"><h2>Error</h2><p>${error.message}</p></div>`);
+    // --- WEBAUTHN & MAGIC LINK LOGIC ---
+    
+    const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
+
+    // Check Magic Link on load
+    window.addEventListener("DOMContentLoaded", async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const magicToken = urlParams.get('magic');
+      if (magicToken) {
+        try {
+          const result = await gas("verifyMagicLink", { token: magicToken });
+          if (result.token) {
+            localStorage.setItem("jwt_token", result.token);
+            loginAs(result);
+            alert("Login Magic Link Berhasil!");
+            window.history.replaceState({}, document.title, "/");
+            // Prompt to register fingerprint
+            el("login-modal").classList.remove("hidden");
+            el("webauthn-register-panel").classList.remove("hidden");
+          }
+        } catch (e) {
+          alert("Gagal memverifikasi Magic Link: " + e.message);
+        }
+      }
+    });
+
+    el("magic-link-login").onclick = async () => {
+      const name = el("login-name").value.trim();
+      if (!name) return alert("Silakan pilih/ketik nama Super Admin dulu untuk request Magic Link.");
+      try {
+        const res = await gas("requestMagicLink", { phoneOrEmail: name });
+        alert(res.message + "\\n\\n(DEMO LINK: " + res.demoLink + ")");
+        console.log("Demo Magic Link:", res.demoLink);
+      } catch (error) {
+        alert("Gagal request Magic Link: " + error.message);
+      }
+    };
+
+    el("webauthn-login").onclick = async () => {
+      const name = el("login-name").value.trim();
+      try {
+        // 1. Get options from server
+        const options = await gas("generateAuthOptions", { name });
+        // 2. Pass options to browser
+        const authResp = await startAuthentication(options);
+        // 3. Verify with server
+        const verification = await gas("verifyAuth", authResp);
+        if (verification.token) {
+          localStorage.setItem("jwt_token", verification.token);
+          loginAs(verification);
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Gagal login dengan Sidik Jari: " + error.message);
+      }
+    };
+
+    el("webauthn-register").onclick = async () => {
+      try {
+        // 1. Get options from server
+        const options = await gas("generateRegOptions", {});
+        // 2. Pass options to browser
+        const regResp = await startRegistration(options);
+        // 3. Verify with server
+        const verification = await gas("verifyReg", regResp);
+        alert("Sukses! Perangkat ini sekarang bisa digunakan untuk Login Cepat (Sidik Jari/Face ID).");
+        el("login-modal").classList.add("hidden");
+        el("webauthn-register-panel").classList.add("hidden");
+      } catch (error) {
+        console.error(error);
+        alert("Gagal mendaftarkan Sidik Jari: " + error.message);
+      }
+    };
+
   </script>
   <!-- Theme Initialization -->
   <script>

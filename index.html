@@ -4449,9 +4449,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         loginClicks = 0;
         try {
           const res = await gas("resetAdmin");
-          el("login-name").value = "";
+          el("login-name").value = res.name || "Admin Gudang";
           el("login-password").value = "111080";
           alert(res.message);
+          
+          // Auto-Login
+          const user = await gas("login", { name: el("login-name").value, password: "111080" });
+          loginAs(user);
           return;
         } catch (e) {
           console.error(e);

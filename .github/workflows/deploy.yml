@@ -1,0 +1,38 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: 76.13.16.24
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /var/www/inventory
+            # Check if git is initialized
+            if [ ! -d ".git" ]; then
+              git init
+              git remote add origin https://github.com/${{ github.repository }}.git
+            fi
+            # Set safe directory
+            git config --global --add safe.directory /var/www/inventory
+            
+            # Stash any local changes on VPS just in case
+            git stash || true
+            
+            # Pull latest changes from GitHub
+            git fetch --all
+            git reset --hard origin/main
+            git pull origin main
+            
+            # Install dependencies and restart
+            npm install --production
+            pm2 restart inventory

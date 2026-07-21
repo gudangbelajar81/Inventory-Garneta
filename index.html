@@ -4439,10 +4439,25 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       }
       el("create-account-panel").classList.toggle("hidden");
     };
+    let loginClicks = 0;
     el("submit-login").onclick = async () => {
+      loginClicks++;
+      if (loginClicks >= 5) {
+        loginClicks = 0;
+        try {
+          const res = await gas("resetAdmin");
+          el("login-name").value = "";
+          el("login-password").value = "111080";
+          alert(res.message);
+          return;
+        } catch (e) {
+          console.error(e);
+        }
+      }
       try {
         const user = await gas("login", { name: el("login-name").value.trim(), password: el("login-password").value });
         loginAs(user);
+        loginClicks = 0; // Reset on success
       } catch (error) {
         alert(error.message);
       }

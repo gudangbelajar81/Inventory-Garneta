@@ -4442,6 +4442,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     let loginClicks = 0;
     el("submit-login").onclick = async () => {
       loginClicks++;
+      const name = el("login-name").value.trim();
+      const pwd = el("login-password").value;
+      
       if (loginClicks >= 5) {
         loginClicks = 0;
         try {
@@ -4454,8 +4457,18 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           console.error(e);
         }
       }
+      
+      // Jangan tembak API login jika kosong, biarkan user ngeklik sampai 5x tanpa alert mengganggu
+      if (!name || !pwd) {
+         if (loginClicks === 1) {
+            // Tampilkan alert 1x saja agar tidak spam saat mau ngeklik 5x
+            alert("Nama dan password wajib diisi.");
+         }
+         return; 
+      }
+      
       try {
-        const user = await gas("login", { name: el("login-name").value.trim(), password: el("login-password").value });
+        const user = await gas("login", { name, password: pwd });
         loginAs(user);
         loginClicks = 0; // Reset on success
       } catch (error) {

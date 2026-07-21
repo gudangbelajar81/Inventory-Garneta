@@ -171,6 +171,78 @@ function verifyToken(req, res, next) {
   }
 }
 
+// Webhook Fonnte (CS Robot Otomatis)
+app.post("/api/webhook/fonnte", async (req, res) => {
+  try {
+    const { device, sender, message, name } = req.body;
+    
+    // Ignore empty or non-text messages
+    if (!message || typeof message !== 'string') return res.json({ status: true });
+
+    const txt = message.toLowerCase().trim();
+    
+    // Simple NLP: Remove common conversational words
+    let searchQuery = txt
+      .replace(/harga|berapa|stok|punya|ada|gak|ngga|tidak|min|mas|mbak|bos|bang|kak|tanya|dong/gi, "")
+      .replace(/[^a-z0-9 ]/gi, "")
+      .trim();
+      
+    // Split to find keywords > 2 chars
+    const keywords = searchQuery.split(" ").filter(w => w.length > 2);
+    
+    if (keywords.length > 0) {
+      let conditions = [];
+      let params = [];
+      for (const kw of keywords) {
+        conditions.push("name LIKE ?");
+        params.push(`%${kw}%`);
+      }
+      
+      const sql = `SELECT name, unit, unit_ecer, sale_price, sale_price_ecer, stock FROM products WHERE ${conditions.join(" AND ")} LIMIT 5`;
+      const [rows] = await db.query(sql, params);
+      
+      if (rows.length > 0) {
+        let reply = `🤖 *Asisten Virtual Garneta*\\nHalo Kak ${name || ""}, berikut info yang dicari:\\n\\n`;
+        
+        for (const item of rows) {
+          const statusStok = parseFloat(item.stock) > 0 ? "✅ Tersedia" : "❌ Habis";
+          const hrgGrosir = parseFloat(item.sale_price) > 0 ? parseInt(item.sale_price).toLocaleString('id-ID') : null;
+          const hrgEcer = parseFloat(item.sale_price_ecer) > 0 ? parseInt(item.sale_price_ecer).toLocaleString('id-ID') : null;
+          
+          reply += `📦 *${item.name}*\\n`;
+          if (hrgGrosir) reply += `💰 Grosir (${item.unit || '-'}): Rp ${hrgGrosir}\\n`;
+          if (hrgEcer) reply += `💰 Ecer (${item.unit_ecer || '-'}): Rp ${hrgEcer}\\n`;
+          reply += `🛒 Stok: ${statusStok}\\n\\n`;
+        }
+        
+        reply += `_Ketik nama barang lain jika ingin mencari lagi._`;
+        
+        // Kirim balasan via Fonnte
+        const fonnteToken = process.env.FONNTE_TOKEN;
+        if (fonnteToken) {
+          await fetch("https://api.fonnte.com/send", {
+            method: "POST",
+            headers: {
+              "Authorization": fonnteToken,
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams({
+              target: sender,
+              message: reply,
+              countryCode: "62"
+            })
+          });
+        }
+      }
+    }
+
+    res.json({ status: true, detail: "Webhook received" });
+  } catch (err) {
+    logger.error("Fonnte Webhook Error", { error: err.message });
+    res.json({ status: false, detail: err.message });
+  }
+});
+
 app.post("/api", verifyToken, async (req, res) => {
   try {
     const { action, payload = {} } = req.body || {};

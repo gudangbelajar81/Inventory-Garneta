@@ -202,17 +202,17 @@ app.post("/api/webhook/fonnte", async (req, res) => {
       const [rows] = await db.query(sql, params);
       
       if (rows.length > 0) {
-        let reply = `🤖 *Asisten Virtual Garneta*\\nHalo Kak ${name || ""}, berikut info yang dicari:\\n\\n`;
+        let reply = `🤖 *Asisten Virtual Garneta*\nHalo Kak ${name || ""}, berikut info yang dicari:\n\n`;
         
         for (const item of rows) {
           const statusStok = parseFloat(item.stock) > 0 ? "✅ Tersedia" : "❌ Habis";
           const hrgGrosir = parseFloat(item.sale_price) > 0 ? parseInt(item.sale_price).toLocaleString('id-ID') : null;
           const hrgEcer = parseFloat(item.sale_price_ecer) > 0 ? parseInt(item.sale_price_ecer).toLocaleString('id-ID') : null;
           
-          reply += `📦 *${item.name}*\\n`;
-          if (hrgGrosir) reply += `💰 Grosir (${item.unit || '-'}): Rp ${hrgGrosir}\\n`;
-          if (hrgEcer) reply += `💰 Ecer (${item.unit_ecer || '-'}): Rp ${hrgEcer}\\n`;
-          reply += `🛒 Stok: ${statusStok}\\n\\n`;
+          reply += `📦 *${item.name}*\n`;
+          if (hrgGrosir) reply += `💰 Grosir (${item.unit || '-'}): Rp ${hrgGrosir}\n`;
+          if (hrgEcer) reply += `💰 Ecer (${item.unit_ecer || '-'}): Rp ${hrgEcer}\n`;
+          reply += `🛒 Stok: ${statusStok}\n\n`;
         }
         
         reply += `_Ketik nama barang lain jika ingin mencari lagi._`;
@@ -1840,10 +1840,10 @@ async function verifyRegistrationWebAuthn(payload, req) {
     const { credentialPublicKey, credentialID, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
     
     // Save to database
-    await db.query(\`
+    await db.query(`
       INSERT INTO passkeys (id, user_id, public_key, webauthn_user_id, counter, device_type, backed_up)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    \`, [
+    `, [
       Buffer.from(credentialID).toString('base64url'),
       req.user.id,
       Buffer.from(credentialPublicKey).toString('base64url'),
@@ -1949,7 +1949,7 @@ async function requestMagicLink(phoneOrEmail) {
   
   await db.query('INSERT INTO magic_links (token, user_id, expires_at) VALUES (?, ?, ?)', [token, user.id, expires]);
   
-  const link = \`\${origin}/?magic=\${token}\`;
+  const link = `${origin}/?magic=${token}`;
   logger.info("Magic Link generated", { link, user: user.name });
   
   // Integrasi Fonnte API
@@ -1958,7 +1958,7 @@ async function requestMagicLink(phoneOrEmail) {
   
   if (fonnteToken && targetWa) {
     try {
-      const waMessage = \`*🚨 LOGIN DARURAT SUPER ADMIN*\\n\\nKlik link di bawah ini untuk langsung masuk ke dalam aplikasi (berlaku 5 menit):\\n\\n\${link}\\n\\n_Abaikan pesan ini jika Anda tidak memintanya._\`;
+      const waMessage = `*🚨 LOGIN DARURAT SUPER ADMIN*\n\nKlik link di bawah ini untuk langsung masuk ke dalam aplikasi (berlaku 5 menit):\n\n${link}\n\n_Abaikan pesan ini jika Anda tidak memintanya._`;
       
       // Node.js 18+ has built-in fetch
       const fonnteRes = await fetch("https://api.fonnte.com/send", {

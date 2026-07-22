@@ -249,3 +249,15 @@ CREATE TABLE payrolls (
     ON DELETE CASCADE
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE ngitung_sales (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  date DATETIME NOT NULL,
+  customer_name VARCHAR(120) NULL,
+  total_amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+  paid_amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+  status ENUM('Lunas', 'Hutang') NOT NULL DEFAULT 'Lunas',
+  items JSON NULL,
+  installments JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

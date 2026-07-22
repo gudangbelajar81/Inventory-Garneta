@@ -1,0 +1,1 @@
+const fs = require('fs'); let html = fs.readFileSync('index.html', 'utf8'); html = html.replace(/style="position:sticky; bottom:-16px;/g, 'style="grid-column: 1 / -1; position:sticky; bottom:-16px;'); fs.writeFileSync('index.html', html, 'utf8'); console.log('Replaced grid-column');

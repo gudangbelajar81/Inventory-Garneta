@@ -225,11 +225,13 @@
   }
   
   .smart-search-input-box {
-    padding: 8px 12px;
+    padding: 4px 10px;
   }
   
   .smart-search-input {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    min-height: 24px;
+    padding: 2px 0;
   }
   
   .smart-search-shortcut {

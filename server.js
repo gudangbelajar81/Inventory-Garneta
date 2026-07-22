@@ -145,7 +145,7 @@ app.use((req, res, next) => {
 
 // Actions yang tidak perlu auth (public)
 const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap", "dashboard", "getSetting", "setSetting", "modules", "requestMagicLink", "verifyMagicLink", "generateAuthOptions", "verifyAuth", "resetAdmin"]);
-const KASIR_COLLECTIONS = new Set(["products", "suppliers", "purchases", "sales", "priceHistory"]);
+const KASIR_COLLECTIONS = new Set(["products", "suppliers", "purchases", "sales", "priceHistory", "ngitungSales"]);
 
 function verifyToken(req, res, next) {
   const action = req.body?.action;
@@ -427,7 +427,7 @@ function actionNotFoundMessage(action) {
 }
 
 async function bootstrap() {
-  const [products, suppliers, purchases, sales, users, priceHistory, auditLogs, employees, cashAdvances, payrolls, stats] = await Promise.all([
+  const [products, suppliers, purchases, sales, users, priceHistory, auditLogs, employees, cashAdvances, payrolls, ngitungSales, stats] = await Promise.all([
     listRows("products"),
     listRows("suppliers"),
     listRows("purchases"),
@@ -438,10 +438,11 @@ async function bootstrap() {
     listRows("employees"),
     listRows("cashAdvances"),
     listRows("payrolls"),
+    listRows("ngitungSales"),
     dashboard()
   ]);
 
-  return { products, suppliers, purchases, sales, users, priceHistory, auditLogs, employees, cashAdvances, payrolls, dashboard: stats };
+  return { products, suppliers, purchases, sales, users, priceHistory, auditLogs, employees, cashAdvances, payrolls, ngitungSales, dashboard: stats };
 }
 
 
@@ -480,6 +481,11 @@ async function dashboard() {
 
 async function listRows(collection) {
   assertCollection(collection);
+
+  if (collection === "ngitungSales") {
+    const [rows] = await db.query(`SELECT * FROM ngitung_sales ORDER BY created_at DESC LIMIT 200`);
+    return rows.map(r => ({ ...r, items: JSON.parse(r.items || '[]'), installments: JSON.parse(r.installments || '[]') }));
+  }
 
   if (collection === "products") {
     const [rows] = await db.query(`
@@ -576,6 +582,14 @@ async function listRows(collection) {
 
 async function addRow(collection, item = {}) {
   assertCollection(collection);
+
+  if (collection === "ngitungSales") {
+    const [result] = await db.query(
+      `INSERT INTO ngitung_sales (date, customer_name, total_amount, paid_amount, status, items, installments) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [item.date || new Date(), item.customerName || null, item.totalAmount || 0, item.paidAmount || 0, item.status || 'Lunas', JSON.stringify(item.items || []), JSON.stringify(item.installments || [])]
+    );
+    return findRow("ngitungSales", result.insertId);
+  }
 
   if (collection === "products") {
     const payload = productPayload(item);
@@ -773,6 +787,14 @@ async function updateRow(collection, id, item = {}) {
   assertCollection(collection);
   if (!id) throw new Error("ID wajib dikirim.");
 
+  if (collection === "ngitungSales") {
+    await db.query(
+      `UPDATE ngitung_sales SET date=?, customer_name=?, total_amount=?, paid_amount=?, status=?, items=?, installments=? WHERE id=?`,
+      [item.date, item.customerName || null, item.totalAmount, item.paidAmount, item.status, JSON.stringify(item.items || []), JSON.stringify(item.installments || []), id]
+    );
+    return findRow("ngitungSales", id);
+  }
+
   if (collection === "products") {
     const before = await findRow("products", id);
     const payload = productPayload({ ...before, ...item });
@@ -922,6 +944,7 @@ async function findRow(collection, id) {
     suppliers: mapSupplier,
     employees: mapEmployee,
     users: mapUser,
+    ngitungSales: (r) => ({ ...r, items: JSON.parse(r.items || '[]'), installments: JSON.parse(r.installments || '[]') }),
   };
   const mapper = mappers[collection];
   return mapper ? mapper(rows[0]) : rows[0];
@@ -1684,7 +1707,7 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 }
 
 function assertCollection(collection) {
-  if (!["products", "suppliers", "purchases", "sales", "users", "priceHistory", "auditLogs"].includes(collection) && !["employees", "cashAdvances", "payrolls"].includes(collection)) {
+  if (!["products", "suppliers", "purchases", "sales", "users", "priceHistory", "auditLogs"].includes(collection) && !["employees", "cashAdvances", "payrolls", "ngitungSales"].includes(collection)) {
     throw new Error("Collection tidak dikenal.");
   }
 }
@@ -1696,11 +1719,12 @@ function tableName(collection) {
     purchases: "purchases",
     sales: "sales",
     users: "users",
-      employees: "employees",
-      cashAdvances: "cash_advances",
-      payrolls: "payrolls",
+    employees: "employees",
+    cashAdvances: "cash_advances",
+    payrolls: "payrolls",
     priceHistory: "price_history",
-    auditLogs: "activity_logs"
+    auditLogs: "activity_logs",
+    ngitungSales: "ngitung_sales"
   };
   return tables[collection];
 }

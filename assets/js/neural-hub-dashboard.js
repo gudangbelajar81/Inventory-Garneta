@@ -20,46 +20,67 @@
     const isSuperAdmin = window.isSuperAdmin ? window.isSuperAdmin() : false;
 
     dashboard.innerHTML = `
-      <div class="neural-dashboard neural-dashboard-minimal" style="min-height:calc(100vh - 200px);padding:0;">
-        <!-- Logo G Center - Diperkecil agar tidak terpotong -->
-        <div class="logo-g-center" id="logo-g-trigger" title="Klik untuk membuka menu" style="width:min(45vw,45vh);height:min(45vw,45vh);max-width:350px;max-height:350px; margin-top: 20px;">
-          <!-- Outer Ring -->
-          <div class="logo-g-ring-outer"></div>
-          <!-- Ripple Effect -->
-          <div class="logo-g-ripple"></div>
-          <!-- Particles Container -->
-          <div class="logo-g-particles" id="logo-particles"></div>
-          <!-- Scan Line -->
-          <div class="logo-g-scanline"></div>
-          <!-- Logo Image -->
-          <img src="/assets/images/garneta-logo-g.svg" alt="Garneta G" class="logo-g-image">
-        </div>
-
-        <!-- Hint -->
-        <p class="dashboard-hint" style="margin-top:32px;font-size:16px;">Klik logo untuk membuka menu</p>
-
-        <!-- Animation Controls -->
-        <div class="logo-animation-controls" id="animation-controls">
-          <button class="anim-button active" data-anim="glow">✨ Glow</button>
-          <button class="anim-button" data-anim="rotate">🔄 Rotate</button>
-          <button class="anim-button" data-anim="pulse">💫 Pulse</button>
-          <button class="anim-button" data-anim="glitch">⚡ Glitch</button>
-          <button class="anim-button" data-anim="rainbow">🌈 Rainbow</button>
-        </div>
-
-        <!-- Install Section -->
-        <div class="install-section-dashboard" style="margin-top: 40px; text-align: center; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: center;">
-          <div style="flex: 1; min-width: 250px; text-align: left;">
-             <h3 style="margin: 0 0 10px 0; color: #fff;">📲 Install Aplikasi Kasir</h3>
-             <p style="margin: 0 0 15px 0; font-size: 14px; color: #ddd; line-height: 1.5;">Jadikan GARNETA SYSTEM sebagai aplikasi utama di HP Anda. Akses lebih cepat dan layar penuh!</p>
-             <button class="btn primary" id="dashboard-install-btn" style="padding: 12px 24px; font-size: 16px; border-radius: 8px; width: 100%; margin-bottom: 15px;">INSTALL SEKARANG (Android/PC)</button>
-             <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; font-size: 13px; color: #ccc;">
-               <strong>Khusus Pengguna iPhone/iPad:</strong><br>Buka web ini di browser Safari, tap ikon Share (Kirim <span style="font-size:18px;">⍐</span>) di bawah, lalu pilih <strong>'Add to Home Screen'</strong> atau <strong>'Tambah ke Layar Utama'</strong>.
-             </div>
+      <div class="neural-dashboard neural-dashboard-minimal" style="min-height:calc(100vh - 120px);padding:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <!-- Center Container -->
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1;">
+          <!-- Logo G Center - Diperkecil agar tidak terpotong -->
+          <div class="logo-g-center" id="logo-g-trigger" title="Klik untuk membuka menu" style="width:min(45vw,45vh);height:min(45vw,45vh);max-width:350px;max-height:350px;">
+            <!-- Outer Ring -->
+            <div class="logo-g-ring-outer"></div>
+            <!-- Ripple Effect -->
+            <div class="logo-g-ripple"></div>
+            <!-- Particles Container -->
+            <div class="logo-g-particles" id="logo-particles"></div>
+            <!-- Scan Line -->
+            <div class="logo-g-scanline"></div>
+            <!-- Logo Image -->
+            <img src="/assets/images/garneta-logo-g.svg" alt="Garneta G" class="logo-g-image">
           </div>
-          <div style="text-align: center; background: #fff; padding: 10px; border-radius: 12px;">
-            <p style="margin: 0 0 10px 0; font-size: 13px; color: #333; font-weight:bold;">Scan untuk buka di HP lain</p>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + window.location.pathname)}" alt="QR Code Install" style="width: 120px; height: 120px; border-radius: 8px;">
+
+          <!-- Hint -->
+          <p class="dashboard-hint" style="margin-top:32px;font-size:16px;">Klik logo untuk membuka menu</p>
+        </div>
+
+        <!-- Bottom Controls Container -->
+        <div style="width:100%; padding-bottom:24px;">
+          <!-- Animation Controls (Hidden by default) -->
+          <div class="logo-animation-controls" id="animation-controls" style="margin-bottom: 20px; display: none;">
+            <button class="anim-button active" data-anim="glow">✨ Glow</button>
+            <button class="anim-button" data-anim="rotate">🔄 Rotate</button>
+            <button class="anim-button" data-anim="pulse">💫 Pulse</button>
+            <button class="anim-button" data-anim="glitch">⚡ Glitch</button>
+            <button class="anim-button" data-anim="rainbow">🌈 Rainbow</button>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+            <button id="toggle-animation-btn" class="anim-button" style="padding: 10px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s;">
+              <span style="font-size: 16px;">✨</span> Animasi
+            </button>
+            <button id="show-pwa-modal-btn" class="anim-button" style="padding: 10px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s;">
+              <span style="font-size: 16px;">📱</span> Install Aplikasi
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PWA Install Modal (Hidden by default) -->
+        <div id="pwa-install-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+          <div style="background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 30px; max-width: 380px; width: 90%; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; animation: slideUp 0.3s ease-out;">
+            <button id="close-pwa-modal-btn" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #9ca3af; font-size: 28px; cursor: pointer; line-height: 1;">&times;</button>
+            <h3 style="margin: 0 0 10px 0; color: #fff; font-size: 20px;">📲 Install GARNETA</h3>
+            <p style="margin: 0 0 20px 0; font-size: 14px; color: #9ca3af; line-height: 1.5;">Jadikan GARNETA SYSTEM sebagai aplikasi utama di perangkat Anda. Akses instan dan layar penuh!</p>
+            
+            <div style="background: #fff; padding: 15px; border-radius: 16px; display: inline-block; margin-bottom: 20px;">
+              <p style="margin: 0 0 8px 0; font-size: 12px; color: #333; font-weight:bold;">Scan untuk install di HP lain</p>
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + window.location.pathname)}" alt="QR Code Install" style="width: 140px; height: 140px;">
+            </div>
+
+            <button class="btn primary" id="dashboard-install-btn" style="width: 100%; padding: 14px; font-size: 16px; border-radius: 12px; margin-bottom: 15px; font-weight: 600;">INSTALL (Android/PC)</button>
+            
+            <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; font-size: 13px; color: #ccc; text-align: left; line-height: 1.4;">
+              <strong>🍏 Khusus iPhone/iPad:</strong><br>Buka web ini di browser Safari, tap ikon Share (Kirim <span style="font-size:16px;">⍐</span>) di bawah, lalu pilih <strong>'Add to Home Screen'</strong> atau <strong>'Tambah ke Layar Utama'</strong>.
+            </div>
           </div>
         </div>
       </div>
@@ -109,26 +130,29 @@
   };
 
   function getMenuItems() {
-    const adminItems = [
-      { id: 'barang', icon: '📦', label: 'Barang' },
-      { id: 'penjualan', icon: '💵', label: 'Penjualan' },
-      { id: 'supplier', icon: '🏭', label: 'Supplier' }
+    const adminMenus = [
+      ["dashboard", "🏠 Dashboard"],
+      ["barang", "📦 Barang"],
+      ["supplier", "🚚 Supplier"],
+      ["pembelian", "🛒 Pembelian"],
+      ["ngitung", "🧮 NGITUNG"],
+      ["penjualan", "💵 Penjualan"]
+    ];
+    
+    const superAdminMenus = [
+      ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"], ["supplier", "🚚 Supplier"],
+      ["pembelian", "🛒 Pembelian"], ["ngitung", "🧮 NGITUNG"], ["kalkulator", "📱 Kalkulator"], ["penjualan", "💵 Penjualan"], ["laporan", "📊 Laporan"],
+      ["statistik", "📈 Statistik"], ["audit", "🕵️‍♂️ Audit"], ["gaji", "💸 Gaji & Bon"], ["settings", "⚙️ Setting"]
     ];
 
-    const superAdminItems = [
-      { id: 'barang', icon: '📦', label: 'Barang' },
-      { id: 'penjualan', icon: '💵', label: 'Penjualan' },
-      { id: 'pembelian', icon: '🛒', label: 'Pembelian' },
-      { id: 'kalkulator', icon: '🧮', label: 'Kalkulator' },
-      { id: 'supplier', icon: '🏭', label: 'Supplier' },
-      { id: 'laporan', icon: '📈', label: 'Laporan' },
-      { id: 'statistik', icon: '📊', label: 'Statistik' },
-      { id: 'audit', icon: '📋', label: 'Audit' },
-      { id: 'users', icon: '👤', label: 'Users' },
-      { id: 'settings', icon: '⚙️', label: 'Setting' }
-    ];
-
-    return isSuperAdmin() ? superAdminItems : adminItems;
+    const menus = isSuperAdmin() ? superAdminMenus : adminMenus;
+    
+    return menus.map(([key, fullLabel]) => {
+      const firstSpaceIndex = fullLabel.indexOf(" ");
+      const icon = firstSpaceIndex !== -1 ? fullLabel.substring(0, firstSpaceIndex) : "🔹";
+      const label = firstSpaceIndex !== -1 ? fullLabel.substring(firstSpaceIndex + 1) : fullLabel;
+      return { id: key, icon: icon, label: label };
+    });
   }
 
   function setLogoAnimation(preset) {
@@ -223,6 +247,29 @@
         window.deferredInstallPrompt.prompt();
         await window.deferredInstallPrompt.userChoice;
         window.deferredInstallPrompt = null;
+      });
+    }
+
+    // PWA Modal Toggles
+    const showPwaBtn = document.getElementById('show-pwa-modal-btn');
+    const closePwaBtn = document.getElementById('close-pwa-modal-btn');
+    const pwaModal = document.getElementById('pwa-install-modal');
+    
+    if (showPwaBtn && pwaModal) {
+      showPwaBtn.addEventListener('click', () => {
+        pwaModal.style.display = 'flex';
+      });
+    }
+    if (closePwaBtn && pwaModal) {
+      closePwaBtn.addEventListener('click', () => {
+        pwaModal.style.display = 'none';
+      });
+    }
+    if (pwaModal) {
+      pwaModal.addEventListener('click', (e) => {
+        if (e.target === pwaModal) {
+          pwaModal.style.display = 'none';
+        }
       });
     }
 
@@ -593,6 +640,17 @@
         updateAnimationButtons();
       });
     });
+
+    const toggleBtn = document.getElementById('toggle-animation-btn');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        if (controls.style.display === 'none') {
+          controls.style.display = 'flex';
+        } else {
+          controls.style.display = 'none';
+        }
+      });
+    }
   }
 
   // Update animation button UI

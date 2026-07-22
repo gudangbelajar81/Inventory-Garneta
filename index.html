@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/assets/css/smart-search.css?v=4">
   <link rel="stylesheet" href="/assets/css/ai-input-center.css?v=3">
   <link rel="stylesheet" href="/assets/css/neural-hub-dashboard.css?v=3">
+  <link rel="stylesheet" href="/assets/css/neural-hub-core.css?v=1">
   <style>
     :root {
       --green: #00ffcc;
@@ -269,12 +270,12 @@
 </head>
 <body>
   <div class="app">
-    <aside class="sidebar">
+    <aside class="sidebar neural-sidebar">
       <div class="brand">
         <img class="brand-logo" id="brand-logo" src="/assets/images/garneta-basket-logo.svg" alt="Garneta basket logo">
-        <div><span class="brand-title">GARNETA<br>SYSTEM</span><span class="brand-subtitle">Move Forward</span></div>
+        <div><span class="brand-title">GARNETA<br>SYSTEM</span><span class="brand-subtitle" style="color: var(--garneta-cyan);">Neural Hub</span></div>
       </div>
-      <div class="nav" id="nav"></div>
+      <div class="nav" id="nav" style="display:flex; flex-direction:column; gap:8px; width:100%; padding:0 12px;"></div>
     </aside>
     <main class="main">
       <div class="page-watermark" id="page-watermark"><div class="page-watermark-text" id="page-watermark-text"></div></div>
@@ -425,10 +426,21 @@
     function payrolls() { return state.data.payrolls || []; }
 
     function renderShell() {
-      el("nav").innerHTML = menus.map(([key, label]) => `<button data-route="${key}" class="${state.route === key ? "active" : ""}">${label}</button>`).join("");
-      el("nav").querySelectorAll("button").forEach((button) => {
-        button.onclick = () => {
-          state.route = button.dataset.route;
+      el("nav").innerHTML = menus.map(([key, label]) => {
+        const isActive = state.route === key ? "active" : "";
+        const iconMatch = label.match(/([\uD800-\uDBFF][\uDC00-\uDFFF]|\S)/);
+        const icon = iconMatch ? iconMatch[0] : "📌";
+        const text = label.replace(icon, "").trim();
+        return `<div class="neural-node ${isActive}" data-route="${key}">
+          <div class="node-glow"></div>
+          <div class="node-icon">${icon}</div>
+          <div class="node-label">${text}</div>
+        </div>`;
+      }).join("");
+      
+      el("nav").querySelectorAll(".neural-node").forEach((node) => {
+        node.onclick = () => {
+          state.route = node.dataset.route;
           renderShell();
           render();
         };

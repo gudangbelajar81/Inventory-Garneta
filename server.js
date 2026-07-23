@@ -93,6 +93,10 @@ const apiLimiter = rateLimit({
 app.use("/api", apiLimiter);
 
 app.get("/", (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
@@ -105,6 +109,9 @@ app.get("/manifest.webmanifest", (req, res) => {
 });
 
 app.get("/service-worker.js", (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.type("application/javascript").sendFile(path.join(__dirname, "service-worker.js"));
 });
 
@@ -427,19 +434,17 @@ function actionNotFoundMessage(action) {
 }
 
 async function bootstrap() {
-  const [products, suppliers, purchases, sales, users, priceHistory, auditLogs, employees, cashAdvances, payrolls, ngitungSales, stats] = await Promise.all([
-    listRows("products"),
-    listRows("suppliers"),
-    listRows("purchases"),
-    listRows("sales"),
-    listRows("users"),
-    listRows("priceHistory"),
-    listRows("auditLogs"),
-    listRows("employees"),
-    listRows("cashAdvances"),
-    listRows("payrolls"),
-    listRows("ngitungSales"),
-    dashboard()
+  // BATCH 1: Core (4 queries)
+  const [products, suppliers, purchases, sales] = await Promise.all([
+    listRows("products"), listRows("suppliers"), listRows("purchases"), listRows("sales")
+  ]);
+  // BATCH 2: Analytics & Logs (4 queries)
+  const [users, priceHistory, auditLogs, stats] = await Promise.all([
+    listRows("users"), listRows("priceHistory"), listRows("auditLogs"), dashboard()
+  ]);
+  // BATCH 3: HR & Extra (4 queries)
+  const [employees, cashAdvances, payrolls, ngitungSales] = await Promise.all([
+    listRows("employees"), listRows("cashAdvances"), listRows("payrolls"), listRows("ngitungSales")
   ]);
 
   return { products, suppliers, purchases, sales, users, priceHistory, auditLogs, employees, cashAdvances, payrolls, ngitungSales, dashboard: stats };
@@ -2031,3 +2036,4 @@ async function verifyMagicLink(token) {
   const jwtToken = jwt.sign({ id: user.id, name: user.name, role: displayRole(user.role) }, JWT_SECRET);
   return { token: jwtToken, name: user.name, role: displayRole(user.role), isSuperAdmin: user.role === "Super Admin" };
 }
+

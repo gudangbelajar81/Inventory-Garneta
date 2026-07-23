@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "inventory-pwa-v39";
+const CACHE_NAME = "inventory-pwa-v40";
 const APP_SHELL = [
   "/?v=37",
   "/index.html?v=37",

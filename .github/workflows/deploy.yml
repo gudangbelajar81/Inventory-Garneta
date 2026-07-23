@@ -1,4 +1,4 @@
-﻿name: Deploy to VPS
+name: Deploy to VPS
 
 on:
   push:
@@ -29,9 +29,7 @@ jobs:
             git reset --hard origin/main
             git pull origin main
             npm install --production
-            x_schema.js || true
-            fi
-            
+
             pm2 restart inventory
 
 

@@ -2991,14 +2991,13 @@ Beras Premium 1"></textarea>
     }
 
     function settings() {
-      const tab = localStorage.getItem("settingsTab") || "api";
+      let tab = localStorage.getItem("settingsTab") || "api";
+      if (tab === "tema" || tab === "install") tab = "api";
       const titles = {
         api: ["Pusat API", "Kelola koneksi AI dari server Railway. Key tetap tersembunyi dan hanya dipakai backend."],
-        tema: ["Tema Dashboard", "Pilih tema Neural Hub, Cyber Dashboard, Dark Minimal, atau Ocean Deep."],
         warna: ["Warna Tampilan", "Racik warna dashboard, sidebar, topbar, dan halaman agar tidak membosankan."],
         logo: ["Logo & Watermark", "Atur logo, gambar transparan halaman, teks watermark, dan transparansinya."],
-        backup: ["Backup & Export", "Export Excel/PDF, backup database ke JSON, atau restore dari file backup."],
-        install: ["Install di HP", "Pasang GARNETA STORE ke layar utama HP seperti aplikasi native."]
+        backup: ["Backup & Export", "Export Excel/PDF, backup database ke JSON, atau restore dari file backup."]
       };
       const [title, description] = titles[tab] || titles.api;
       return `<section class="settings-page">
@@ -3012,26 +3011,13 @@ Beras Premium 1"></textarea>
         </div>
 
         <div class="settings-tabs">
-          ${settingsTabButton("tema", "TEMA", tab)}
           ${settingsTabButton("warna", "WARNA", tab)}
           ${settingsTabButton("api", "PUSAT API", tab)}
           ${settingsTabButton("logo", "LOGO & WATERMARK", tab)}
           ${settingsTabButton("backup", "BACKUP", tab)}
-          ${settingsTabButton("install", "INSTALL", tab)}
         </div>
 
-        ${tab === "tema" ? `
-        <div class="theme-panel">
-          <div class="api-section-title">🎨 Tema Dashboard</div>
-          <p class="muted">Pilih tema yang sesuai dengan preferensi Anda. Tema akan diterapkan ke seluruh aplikasi.</p>
-          <div class="theme-grid" style="grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
-            ${renderThemeOption('neural', 'Neural Hub', 'Tema default dengan aksen cyan', '#0b1f24', '#24f0c7', tab)}
-            ${renderThemeOption('cyber', 'Cyber Dashboard', 'Tema futuristik dengan aksen magenta', '#0a0a0f', '#ff00ff', tab)}
-            ${renderThemeOption('dark', 'Dark Minimal', 'Tema gelap minimalis', '#0d0d0d', '#60a5fa', tab)}
-            ${renderThemeOption('ocean', 'Ocean Deep', 'Tema biru laut yang tenang', '#0c1a2d', '#00d4ff', tab)}
-          </div>
-        </div>
-        ` : ""}
+
 
         ${tab === "api" ? `
         <div class="api-center-card" style="max-width: 100%;">
@@ -3174,13 +3160,7 @@ Beras Premium 1"></textarea>
           </div>
         </div>
         ` : ""}
-        ${tab === "install" ? `
-        <div class="theme-panel">
-          <div class="api-section-title">Install di HP</div>
-          <p class="muted">Aplikasi sudah disiapkan sebagai PWA. Buka dari browser HP, lalu pilih Add to Home Screen / Install App.</p>
-          <button class="btn soft" id="install-pwa" type="button">INSTALL APP</button>
-        </div>
-        ` : ""}
+
       </section>`;
     }
 

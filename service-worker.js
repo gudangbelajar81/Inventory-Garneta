@@ -1,13 +1,18 @@
-const CACHE_NAME = "inventory-pwa-v2";
+﻿const CACHE_NAME = "inventory-pwa-v38";
 const APP_SHELL = [
-  "/",
-  "/index.html",
-  "/manifest.webmanifest",
+  "/?v=37",
+  "/index.html?v=37",
+  "/manifest.webmanifest?v=37",
   "/assets/images/pwa-icon.svg"
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      // Force network fetch to bypass HTTP cache
+      return cache.addAll(APP_SHELL.map(url => new Request(url, { cache: 'reload' })));
+    })
+  );
   self.skipWaiting();
 });
 
@@ -29,3 +34,38 @@ self.addEventListener("fetch", (event) => {
     }))
   );
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

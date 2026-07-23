@@ -265,37 +265,316 @@
     .arrow.open { transform: rotate(180deg) !important; }
     .hidden { display: none !important; }
 
-    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
-  </style>
+          </style>
+<script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+  
+
+
+<style id="standar-mewah-override">
+      /* =========================================
+         DESKTOP-FIRST LAYOUT OVERRIDES (PC)
+         ========================================= */
+      @media (min-width: 901px) {
+        .sidebar .nav { display: flex !important; flex-direction: column !important; gap: 4px !important; }
+        .sidebar .nav .neural-node { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 12px !important; padding: 8px 12px !important; border: none !important; border-radius: 8px !important; background: transparent !important; color: var(--soft-text, #cbd5e1) !important; cursor: pointer !important; transition: all 0.2s ease !important; width: 100% !important; height: auto !important; min-height: unset !important; justify-content: flex-start !important; }
+        .sidebar .nav .neural-node:hover { background: rgba(255,255,255,0.06) !important; color: #fff !important; transform: translateX(4px) !important; }
+        .sidebar .nav .neural-node.active { background: linear-gradient(90deg, rgba(0,255,204,0.1), transparent) !important; color: var(--green, #00ffcc) !important; border-left: 3px solid var(--green, #00ffcc) !important; border-radius: 0 8px 8px 0 !important; }
+        .sidebar .nav .neural-node .node-icon { font-size: 1.1rem !important; margin: 0 !important; width: 24px !important; text-align: center !important; }
+        .sidebar .nav .neural-node .node-label { font-size: 0.85rem !important; font-weight: 600 !important; margin: 0 !important; letter-spacing: 0.5px !important; }
+        .sidebar .brand { margin-bottom: 24px !important; }
+      }
+
+      /* =========================================
+         MOBILE-FIRST LAYOUT OVERRIDES 
+         ========================================= */
+      @media (max-width: 900px) {
+        .app { display: flex !important; flex-direction: column !important; padding: 0 !important; height: 100vh !important; overflow: hidden !important; }
+        
+        .sidebar { position: static !important; width: 100% !important; height: 8vh !important; max-height: 8vh !important; border-radius: 0 !important; border: none !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important; padding: 0 16px !important; background: rgba(8,24,29,.95) !important; box-shadow: 0 4px 24px rgba(0,0,0,0.4) !important; display: flex !important; flex-direction: row !important; align-items: center !important; z-index: 100 !important; justify-content: space-between !important; flex: 0 0 auto !important; }
+        
+        .brand { display: flex !important; flex-direction: row !important; align-items: center !important; margin: 0 !important; padding: 0 !important; width: auto !important; gap: 12px !important; }
+        .brand-logo { width: 5vh !important; height: 5vh !important; max-width: 48px !important; max-height: 48px !important; margin: 0 !important; }
+        .brand-title { font-size: 2vh !important; line-height: 1 !important; display: inline-block !important; margin: 0 !important; }
+        .brand-subtitle { display: none !important; }
+
+        .nav { display: flex !important; flex-direction: row !important; gap: 2px !important; width: auto !important; padding: 0 !important; overflow: visible !important; align-items: center !important; justify-content: center !important; flex: 1 !important; }
+        .nav .neural-node { padding: 0 10px !important; width: auto !important; height: 6vh !important; min-height: 6vh !important; justify-content: center !important; gap: 4px !important; display: flex !important; flex-direction: row !important; align-items: center !important; border-radius: 0 !important; background: transparent !important; border: none !important; border-bottom: 2px solid transparent !important; transition: all 0.2s ease !important; flex: 0 0 auto !important; }
+        .nav .neural-node.active { border-bottom-color: var(--green, #00ffcc) !important; background: transparent !important; box-shadow: none !important; }
+        .nav .neural-node:hover { background: rgba(255,255,255,0.04) !important; transform: none !important; }
+        .nav .neural-node::before { display: none !important; }
+        .nav .neural-node .node-icon { font-size: 1.8vh !important; margin: 0 !important; line-height: 1 !important; filter: none !important; }
+        .nav .neural-node .node-label { font-size: 1.25vh !important; font-weight: 600 !important; letter-spacing: 0.3px !important; margin: 0 !important; opacity: 0.75 !important; text-align: center !important; line-height: 1 !important; }
+        .nav .neural-node.active .node-label { opacity: 1 !important; color: var(--green, #00ffcc) !important; }
+        .nav .neural-node.active .node-icon { filter: drop-shadow(0 0 4px rgba(0,255,204,0.5)) !important; }
+      }
+
+      
+      /* Main Content Area — bukan scroll container, hanya wrapper */
+      .main { position: relative !important; width: 100% !important; flex: 1 !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; padding: 0 !important; }
+      
+      /* Second Topbar — STICKY agar tidak bergeser saat keyboard muncul */
+      .topbar { position: sticky !important; top: 0 !important; z-index: 200 !important; border-radius: 0 0 12px 12px !important; display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; padding: 0 12px !important; height: 5.5vh !important; min-height: 38px !important; background: rgba(10,21,38,0.92) !important; backdrop-filter: blur(24px) !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important; margin: 0 12px !important; flex: 0 0 auto !important; gap: 6px !important; overflow: visible !important; }
+      /* Pastikan container search tidak terpotong oleh topbar */
+      .topbar #smart-search-container { overflow: visible !important; position: relative !important; z-index: 500 !important; }
+      .topbar #smart-search-container .smart-search-wrapper { max-width: none !important; margin: 0 !important; width: 100% !important; }
+      .topbar #smart-search-container .smart-search-dropdown { z-index: 9999 !important; position: absolute !important; }
+      .topbar > div:first-child { display: flex !important; align-items: center !important; flex: 0 0 auto !important; }
+      .topbar #page-title { font-size: 1.4rem !important; font-weight: 800 !important; margin: 0 !important; display: none !important; }
+      .topbar #page-title-icon { font-size: 1.3rem !important; }
+      .topbar #clock { display: none !important; }
+      .topbar input { height: 4vh !important; min-height: 30px !important; max-height: 36px !important; font-size: 12px !important; padding: 0 12px !important; border-radius: 8px !important; background: rgba(0,0,0,0.2) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #fff !important; transition: all 0.3s ease !important; width: 100% !important; }
+      .topbar input:focus { background: rgba(0,0,0,0.4) !important; border-color: rgba(0,255,204,0.5) !important; outline: none !important; }
+      
+      /* Admin Buttons */
+      .topbar #super-login { height: 4vh !important; min-height: 36px !important; font-size: 1.4vh !important; padding: 0 16px !important; border-radius: 12px !important; flex: 0 0 auto !important; margin: 0 !important; display: flex !important; align-items: center !important; font-weight: bold !important; background: linear-gradient(135deg, var(--primary) 0%, #0099ff 100%) !important; box-shadow: 0 4px 15px rgba(0,153,255,0.3) !important; border: none !important; }
+      .topbar #logout-super { background: transparent !important; border: none !important; font-size: 3.5vh !important; cursor: pointer !important; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6)) !important; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important; display: flex !important; align-items: center !important; justify-content: center !important; padding: 0 10px !important; }
+      .topbar #logout-super:active { transform: scale(0.85) !important; }
+      .topbar #logout-super.hidden, .topbar #super-login.hidden, .topbar .hidden { display: none !important; }
+
+      /* Content area — SATU-SATUNYA yang boleh scroll */
+      .content { flex: 1 !important; overflow-y: auto !important; overflow-x: hidden !important; height: 0 !important; min-height: 0 !important; padding-bottom: 24px !important; }
+
+      /* MOBILE OVERRIDES */
+      @media (max-width: 900px) {
+        .app { padding-bottom: 0 !important; }
+        .sidebar { position: static !important; width: 100% !important; height: 8vh !important; max-height: 8vh !important; border-radius: 0 0 24px 24px !important; border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important; padding: 0 6px !important; flex-direction: row !important; z-index: 100 !important; }
+        .brand { display: none !important; }
+        .nav { flex-direction: row !important; gap: 0px !important; height: 100% !important; padding: 0 !important; overflow-y: hidden !important; overflow-x: auto !important; justify-content: flex-start !important; }
+        .nav .neural-node { width: auto !important; min-width: 52px !important; height: 100% !important; padding: 0 8px !important; flex-direction: column !important; border-radius: 0 !important; border-bottom: 2px solid transparent !important; gap: 3px !important; }
+        .nav .neural-node .node-icon { font-size: 1.5vh !important; }
+        .nav .neural-node .node-label { font-size: 1.1vh !important; }
+        .topbar { margin: 0 !important; border-radius: 0 0 16px 16px !important; padding: 0 12px !important; }
+        .topbar #smart-search-container { flex: 1 !important; max-width: none !important; width: auto !important; min-width: 120px !important; }
+      }
+      
+
+
+      /* EXIT ICON ANIMATIONS */
+      @keyframes doorSwing3D {
+        0%   { transform: perspective(200px) rotateY(-55deg); }
+        40%  { transform: perspective(200px) rotateY(-70deg); }
+        60%  { transform: perspective(200px) rotateY(-70deg); }
+        100% { transform: perspective(200px) rotateY(-55deg); }
+      }
+      @keyframes personWalk {
+        0%   { transform: translateX(0px); }
+        40%  { transform: translateX(6px); }
+        60%  { transform: translateX(6px); }
+        100% { transform: translateX(0px); }
+      }
+      @keyframes armSwing {
+        0%,100% { transform-origin: 35px 44px; transform: rotate(0deg); }
+        50%     { transform-origin: 35px 44px; transform: rotate(15deg); }
+      }
+      @keyframes armSwingR {
+        0%,100% { transform-origin: 45px 44px; transform: rotate(0deg); }
+        50%     { transform-origin: 45px 44px; transform: rotate(-15deg); }
+      }
+      @keyframes legSwing {
+        0%,100% { transform-origin: 38px 61px; transform: rotate(-10deg); }
+        50%     { transform-origin: 38px 61px; transform: rotate(12deg); }
+      }
+      @keyframes legSwingR {
+        0%,100% { transform-origin: 42px 61px; transform: rotate(10deg); }
+        50%     { transform-origin: 42px 61px; transform: rotate(-12deg); }
+      }
+      @keyframes ambientPulse {
+        0%,100% { opacity: 0.08; rx: 32; }
+        50%     { opacity: 0.18; rx: 38; }
+      }
+      #logout-super:hover #exit-icon-svg { transform: scale(1.25); transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+      #exit-icon-svg { transition: transform 0.2s ease; }
+
+      
+      /* HIDE DATALIST ARROW */
+      /* .ngitung-container input::-webkit-calendar-picker-indicator { display: none !important; opacity: 0; } */
+      /* .ngitung-container input::-webkit-list-button { display: none !important; } */
+
+      .ngitung-sticky-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg, #1e293b); height: 74px; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; box-shadow: 0 -4px 20px rgba(0,0,0,0.3); z-index: 1000; border-top: 1px solid var(--line); }
+      .sticky-bar-left { display: flex; flex-direction: column; }
+      .total-label { font-size: 0.85rem; color: #aaa; font-weight: 600; }
+      .total-amount { font-size: 1.35rem; font-weight: 900; color: #ee4d2d; }
+      .btn-checkout { background: linear-gradient(135deg, #f53d2d, #ff6633); color: #fff; font-weight: 800; font-size: 1rem; border-radius: 8px; padding: 12px 24px; border: none; box-shadow: 0 4px 12px rgba(238,77,45,0.4); text-transform: uppercase; cursor: pointer; }
+      
+      .bottom-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; align-items: flex-end; opacity: 1; transition: opacity 0.3s ease; backdrop-filter: blur(2px); }
+      .bottom-sheet-overlay.hidden { opacity: 0; pointer-events: none; }
+      .bottom-sheet-content { background: var(--card-bg, #1e293b); width: 100%; border-radius: 24px 24px 0 0; padding: 24px 20px; transform: translateY(0); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); max-height: 92vh; overflow-y: auto; border-top: 1px solid rgba(255,255,255,0.1); }
+      .bottom-sheet-overlay.hidden .bottom-sheet-content { transform: translateY(100%); }
+      .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; }
+      .sheet-header h3 { margin: 0; font-size: 1.3rem; font-weight: 800; color: #fff; }
+      .btn-close { background: rgba(255,255,255,0.1); border: none; font-size: 1.2rem; color: #fff; width: 32px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+      
+      .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+      .form-group label { font-size: 0.85rem; font-weight: 600; color: #bbb; }
+      .form-group input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff; font-size: 1rem; font-weight: bold; }
+      .form-group input:focus { border-color: #00ffcc; outline: none; }
+      
+      .payment-tabs { display: flex; gap: 10px; margin-top: 16px; }
+      .pay-tab { flex: 1; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #aaa; font-weight: bold; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer; text-align: center; }
+      .pay-tab.active { background: rgba(0,255,204,0.15); border-color: #00ffcc; color: #00ffcc; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,255,204,0.1); }
+      
+      .grand-total-section { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 20px; border-top: 1px dashed rgba(255,255,255,0.15); font-size: 1.2rem; font-weight: 800; color: #fff; }
+      #ngitung-grand-total { color: #ee4d2d; font-size: 1.6rem; font-weight: 900; }
+      
+      .action-buttons { display: flex; gap: 8px; margin-top: 24px; flex-wrap: wrap; }
+      .action-buttons .btn { flex: 1; min-width: 100px; padding: 14px; border-radius: 12px; font-weight: 800; font-size: 1rem; display: flex; justify-content: center; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+      
+      @media (min-width: 901px) {
+        .ngitung-sticky-bar { left: 240px; } /* Adjust for desktop sidebar */
+        .bottom-sheet-content { max-width: 500px; margin: 0 auto; border-radius: 24px 24px 0 0; }
+      }
+
+      /* NGITUNG FULL WIDTH OVERRIDE */
+      @media (max-width: 900px) {
+        .ngitung-container {
+          width: 100vw !important;
+          position: relative;
+          left: 50%;
+          right: 50%;
+          margin-left: -50vw !important;
+          margin-right: -50vw !important;
+          padding: 0 4px !important;
+        }
+        .ngitung-container .table-wrap {
+          border: none !important;
+          border-radius: 0 !important;
+          max-height: 80vh;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+      }
+      /* ZEN MODE */
+      /* Dihapus: @media (max-height: 550px) yang menyembunyikan topbar saat keyboard HP muncul */
+      .hidden-on-mobile, #role-label { display: none !important; }
+</style>
 </head>
 <body>
   <div class="app">
     <aside class="sidebar neural-sidebar">
-      <div class="brand">
+      <div class="brand" onclick="if(window.toggleAppDrawer) window.toggleAppDrawer()" style="cursor: pointer;" title="Buka Menu">
         <img class="brand-logo" id="brand-logo" src="/assets/images/garneta-basket-logo.svg" alt="Garneta basket logo">
         <div><span class="brand-title">GARNETA<br>SYSTEM</span><span class="brand-subtitle" style="color: var(--garneta-cyan);">Neural Hub</span></div>
       </div>
-      <div class="nav" id="nav" style="display:flex; flex-direction:column; gap:8px; width:100%; padding:0 12px;"></div>
+      <div class="nav" id="nav" style="display:flex; gap:8px; width:100%; padding:0 12px;"></div>
     </aside>
     <main class="main">
       <div class="page-watermark" id="page-watermark"><div class="page-watermark-text" id="page-watermark-text"></div></div>
       <div class="topbar">
-        <div>
-          <strong id="page-title">Dashboard</strong>
-          <div class="muted" id="clock"></div>
+        <!-- Icon Halaman (kiri) - Tanpa teks -->
+        <div style="flex: 0 0 auto; display: flex; align-items: center;">
+          <span id="page-title-icon" style="font-size: 1.4rem; line-height: 1;"></span>
+          <strong id="page-title" style="display: none;">Dashboard</strong>
+          <div class="muted" id="clock" style="display:none;"></div>
         </div>
-        <div class="actions" style="display:flex;align-items:center;gap:12px;flex:1;justify-content:center;">
-          <!-- Smart Search di Topbar - INPUT PANJANG -->
-          <div id="smart-search-container" style="position:relative;flex:1;max-width:400px;min-width:200px;">
+        <!-- Smart Search - diperluas mengisi ruang -->
+        <div class="actions" style="display:flex; align-items:center; gap:8px; flex:1; padding: 0 8px;">
+          <div id="smart-search-container" style="position:relative; flex:1; min-width:0;">
             <!-- Smart Search akan di-render ke sini oleh smart-search.js -->
           </div>
-          <span id="role-label" class="muted">Admin</span>
-          <button class="btn soft" id="super-login">Super Admin</button>
-          <button class="btn danger hidden" id="logout-super">Keluar Super Admin</button>
+          <span id="role-label" class="muted" style="display:none;">Admin</span>
+          <button class="btn soft" id="super-login" style="flex: 0 0 auto;">👑 Super Admin</button>
         </div>
+        <!-- Pintu Keluar SVG Animasi 3D - di ujung kanan -->
+        <button class="btn danger hidden" id="logout-super" title="Keluar Mode Super Admin"
+          style="flex: 0 0 auto; background: transparent !important; border: none !important; padding: 0 2px; box-shadow: none !important; min-height: unset; cursor: pointer; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+          <svg id="exit-icon-svg" viewBox="0 0 100 100" width="32" height="32" style="display:block; overflow: visible;">
+            <defs>
+              <!-- Gradient neon untuk bingkai -->
+              <linearGradient id="frameGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00ffcc"/>
+                <stop offset="100%" stop-color="#0099ff"/>
+              </linearGradient>
+              <!-- Gradient neon untuk daun pintu -->
+              <linearGradient id="doorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ff007f"/>
+                <stop offset="100%" stop-color="#7c00ff"/>
+              </linearGradient>
+              <!-- Gradient untuk orang -->
+              <linearGradient id="personGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#00ffcc"/>
+                <stop offset="100%" stop-color="#00cfff"/>
+              </linearGradient>
+              <!-- Glow filter bingkai -->
+              <filter id="neonGlow" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <!-- Glow filter pintu -->
+              <filter id="doorGlow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <!-- Glow filter orang -->
+              <filter id="personGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <!-- Shadow 3D daun pintu -->
+              <filter id="door3dShadow">
+                <feDropShadow dx="4" dy="5" stdDeviation="3" flood-color="rgba(255,0,127,0.6)"/>
+              </filter>
+            </defs>
+
+            <!-- AMBIENT BACKGROUND GLOW -->
+            <ellipse cx="50" cy="90" rx="32" ry="6" fill="rgba(0,255,204,0.08)" style="animation: ambientPulse 2.5s ease-in-out infinite;"/>
+
+            <!-- BINGKAI PINTU — neon gradient + glow -->
+            <g filter="url(#neonGlow)">
+              <rect x="12" y="10" width="5" height="80" rx="2" fill="url(#frameGrad)"/>
+              <rect x="12" y="85" width="55" height="5" rx="2" fill="url(#frameGrad)"/>
+              <rect x="12" y="10" width="55" height="5" rx="2" fill="url(#frameGrad)"/>
+            </g>
+
+            <!-- DAUN PINTU — neon pink-purple + 3D sisi + animasi swing -->
+            <g filter="url(#door3dShadow)" style="transform-origin: 67px 47px; animation: doorSwing3D 2.5s ease-in-out infinite;">
+              <rect x="20" y="15" width="47" height="70" rx="2" fill="url(#doorGrad)" opacity="0.9"/>
+              <!-- Sisi 3D kanan (lebih gelap) -->
+              <polygon points="67,15 77,22 77,90 67,85" fill="rgba(100,0,80,0.55)"/>
+              <!-- Panel detail pintu -->
+              <rect x="26" y="22" width="35" height="26" rx="2" fill="rgba(255,255,255,0.06)" stroke="rgba(255,0,127,0.3)" stroke-width="0.8"/>
+              <rect x="26" y="54" width="35" height="24" rx="2" fill="rgba(255,255,255,0.06)" stroke="rgba(255,0,127,0.3)" stroke-width="0.8"/>
+              <!-- Gagang pintu — neon kuning emas -->
+              <circle cx="59" cy="50" r="3.5" fill="#ffd700" style="filter: drop-shadow(0 0 3px #ffd700);"/>
+            </g>
+
+            <!-- ORANG BERJALAN — neon cyan + glow -->
+            <g filter="url(#personGlow)" style="animation: personWalk 2.5s ease-in-out infinite;">
+              <!-- Kepala -->
+              <circle cx="40" cy="30" r="7.5" fill="url(#personGrad)"/>
+              <!-- Badan -->
+              <rect x="35" y="39" width="10" height="20" rx="3" fill="url(#personGrad)"/>
+              <!-- Lengan kiri (berayun) -->
+              <line x1="35" y1="44" x2="23" y2="55" stroke="#00ffcc" stroke-width="4" stroke-linecap="round" style="animation: armSwing 2.5s ease-in-out infinite;"/>
+              <!-- Lengan kanan -->
+              <line x1="45" y1="44" x2="55" y2="53" stroke="#00cfff" stroke-width="4" stroke-linecap="round" style="animation: armSwingR 2.5s ease-in-out infinite;"/>
+              <!-- Kaki kiri -->
+              <line x1="38" y1="59" x2="27" y2="77" stroke="#00ffcc" stroke-width="4" stroke-linecap="round" style="animation: legSwing 2.5s ease-in-out infinite;"/>
+              <!-- Kaki kanan -->
+              <line x1="42" y1="59" x2="51" y2="77" stroke="#00cfff" stroke-width="4" stroke-linecap="round" style="animation: legSwingR 2.5s ease-in-out infinite;"/>
+            </g>
+          </svg>
+        </button>
       </div>
       <div class="content" id="content">Memuat data...</div>
     </main>
+  </div>
+
+  <div class="modal hidden" id="app-drawer-modal" style="position: fixed; inset: 0; z-index: 99999; background: rgba(11,31,36,0.98); backdrop-filter: blur(12px); padding: 40px 20px; overflow-y: auto; text-align: center;">
+    
+    <!-- Top Logo (Click to close) -->
+    <div onclick="window.toggleAppDrawer()" style="cursor: pointer; margin: 0 auto 30px auto; display: flex; justify-content: center; align-items: center; width: 72px; height: 72px; border-radius: 50%; border: 1px solid rgba(0,255,204,0.3); background: radial-gradient(circle, rgba(0,255,204,0.1) 0%, transparent 70%); box-shadow: 0 0 30px rgba(0,255,204,0.2); transition: transform 0.3s ease;">
+      <img src="/assets/images/garneta-basket-logo.svg" style="width: 44px; height: 44px; filter: drop-shadow(0 0 10px rgba(0,255,204,0.5));" alt="Close Menu">
+    </div>
+
+    <!-- Grid Menu -->
+    <div id="app-drawer-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px 12px; width: 100%; max-width: 480px; margin: 0 auto 40px auto; text-align: center;">
+      <!-- Menus injected here -->
+    </div>
+
+    <!-- Bottom Text -->
+    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.4); text-align: center; margin-bottom: 40px;">
+      Klik logo untuk tutup
+    </div>
   </div>
 
   <div class="modal hidden" id="login-modal">
@@ -348,6 +627,17 @@
   <script src="/assets/js/ai-input-center.js?v=3"></script>
   <script src="/assets/js/neural-hub-dashboard.js?v=3"></script>
   <script>
+    // --- GLOBAL ERROR BOUNDARY ---
+    window.addEventListener('error', function(e) {
+      console.error("Global Error Caught:", e.error || e.message);
+      // Optional: Prevent default so it doesn't show in standard console (uncomment if desired)
+      // e.preventDefault(); 
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error("Unhandled Promise Rejection Caught:", e.reason);
+    });
+    // -----------------------------
+    
     const state = {
       route: "dashboard",
       role: localStorage.getItem("role") || "Admin",
@@ -426,10 +716,11 @@
     function payrolls() { return state.data.payrolls || []; }
 
     function renderShell() {
-      el("nav").innerHTML = menus.map(([key, label]) => {
+      const currentMenus = isSuperAdmin() ? superAdminMenus : adminMenus;
+      el("nav").innerHTML = currentMenus.map(([key, label]) => {
         const isActive = state.route === key ? "active" : "";
         const iconMatch = label.match(/([\uD800-\uDBFF][\uDC00-\uDFFF]|\S)/);
-        const icon = iconMatch ? iconMatch[0] : "📌";
+        const icon = iconMatch ? iconMatch[0] : "📦";
         const text = label.replace(icon, "").trim();
         return `<div class="neural-node ${isActive}" data-route="${key}">
           <div class="node-glow"></div>
@@ -451,6 +742,32 @@
       el("logout-super").classList.toggle("hidden", !superMode);
       applyBrandAssets();
     }
+
+    window.toggleAppDrawer = function() {
+      const modal = document.getElementById('app-drawer-modal');
+      if (!modal) return;
+      if (modal.classList.contains('hidden')) {
+        const currentMenus = isSuperAdmin() ? superAdminMenus : adminMenus;
+        const grid = document.getElementById('app-drawer-grid');
+        grid.innerHTML = currentMenus.map(([key, label]) => {
+          const iconMatch = label.match(/([\uD800-\uDBFF][\uDC00-\uDFFF]|\S)/);
+          const icon = iconMatch ? iconMatch[0] : "📦";
+          const text = label.replace(icon, "").trim();
+          return `
+            <div onclick="document.getElementById('app-drawer-modal').classList.add('hidden'); state.route='${key}'; renderShell(); render();" 
+                 style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px; transition: transform 0.2s ease;"
+                 onmouseover="this.style.transform='scale(1.1)'" 
+                 onmouseout="this.style.transform='scale(1)'">
+              <div style="font-size: 2rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6));">${icon}</div>
+              <div style="font-size: 0.65rem; font-weight: 600; color: rgba(255,255,255,0.85); text-align: center; line-height: 1.2;">${text}</div>
+            </div>
+          `;
+        }).join('');
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+      }
+    };
 
     
       // Workspace state for Gaji page
@@ -904,12 +1221,36 @@ function bindGajiEvents() {
         function render() {
       const label = menus.find(([key]) => key === state.route)?.[1] || "Dashboard";
       el("page-title").textContent = label;
+      // Set ikon topbar sesuai halaman aktif
+      const routeIcons = {
+        dashboard: "🏠", barang: "📦", supplier: "🏭", pembelian: "🛒",
+        ngitung: "🧮", riwayat: "📋", hutang: "📒", kalkulator: "🔢",
+        penjualan: "💰", laporan: "📊", statistik: "📈", audit: "🔍",
+        users: "👥", gaji: "💸", settings: "⚙️", "neural-hub": "🤖"
+      };
+      const iconEl = document.getElementById("page-title-icon");
+      if (iconEl) iconEl.textContent = routeIcons[state.route] || "📌";
       if (["laporan", "statistik", "audit", "users"].includes(state.route) && state.role !== "Super Admin") {
         el("content").innerHTML = `<div class="card"><h2>Akses dibatasi</h2><p class="muted">Menu ini hanya bisa diakses Super Admin.</p></div>`;
         return;
       }
-      const views = { dashboard, "neural-hub": neuralHub, barang, supplier, pembelian, ngitung, kalkulator, penjualan, laporan, statistik, audit, users, gaji, settings };
-      el("content").innerHTML = views[state.route] ? views[state.route]() : `<div class="card"><h2>Menu tidak ditemukan</h2><p class="muted">Route: ${state.route}</p></div>`;
+      const views = { dashboard, "neural-hub": neuralHub, barang, supplier, pembelian, ngitung, riwayat, hutang, kalkulator, penjualan, laporan, statistik, audit, users, gaji, settings };
+      
+      try {
+        el("content").innerHTML = views[state.route] ? views[state.route]() : `<div class="card"><h2>Menu tidak ditemukan</h2><p class="muted">Route: ${state.route}</p></div>`;
+      } catch (err) {
+        console.error("Render Error:", err);
+        el("content").innerHTML = `
+          <div class="card error-boundary" style="text-align: center; padding: 40px 20px; border: 1px solid rgba(255, 71, 87, 0.3); background: rgba(255, 71, 87, 0.05); border-radius: 16px;">
+            <div style="font-size: 3rem; margin-bottom: 16px;">🔥</div>
+            <h2 style="color: #ff4757; margin-bottom: 12px;">Oops! Menu ini mengalami kendala.</h2>
+            <p style="color: #aaa; margin-bottom: 24px; font-family: monospace; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px;">${err.message}</p>
+            <p style="margin-bottom: 24px; color: #ccc;">Sistem berhasil mengisolasi kerusakan ini sehingga aplikasi utama tidak mati.</p>
+            <button class="btn" onclick="navigate('dashboard')" style="background: var(--garneta-cyan); color: #000; font-weight: bold; padding: 10px 24px; border-radius: 8px;">← Kembali ke Dashboard</button>
+          </div>
+        `;
+      }
+      
       bindForms();
     }
 
@@ -1278,6 +1619,26 @@ Minyak Goreng 3 45000"></textarea>
       });
     }
 
+    window.ngitungPopulateDatalist = function() {
+      const datalist = document.getElementById("ngitung-history-list");
+      if (!datalist) return;
+      let options = "";
+      if (window.state && window.state.data && window.state.data.products) {
+          options += window.state.data.products.map(p => {
+              const harga = p.salePriceEcer || p.salePrice || p.basePrice || 0;
+              const isSayur = (p.category || "").toLowerCase().includes("sayur");
+              
+              if (isSayur) {
+                  return `<option value="${escapeAttr(p.name)}">`;
+              } else {
+                  return `<option value="${escapeAttr(p.name)} ${harga}">`;
+              }
+          }).join("");
+      }
+      options += window.ngitungHistory.map(name => `<option value="${escapeAttr(name)}">`).join("");
+      datalist.innerHTML = options;
+    };
+
     window.ngitungRenderTable = function() {
       const tbody = document.getElementById('ngitung-tbody');
       if (!tbody) return;
@@ -1288,32 +1649,29 @@ Minyak Goreng 3 45000"></textarea>
       window.ngitungRows.forEach((row, index) => {
         const qty = Number(String(row.qty).replace(/[^0-9-.]/g, '')) || 1;
         const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
-        const amount = row.price ? price * qty : 0;
-        total += amount;
+        let amount = row.price ? price * qty : 0;
+          if (amount > 0) amount = Math.ceil(amount / 500) * 500;
+          total += amount;
         
         const val = escapeAttr(row.rawInput !== undefined ? row.rawInput : (row.name ? `${row.name} ${row.price || ''} ${row.qty !== 1 ? row.qty : ''}`.trim() : ''));
         
         html += `
-          <tr>
-            <td colspan="3">
-              <div style="display:flex; gap:8px;">
-                <input type="text" value="${val}" oninput="ngitungParseAndUpdate(this, ${row.id})" onchange="ngitungFocusNext(this, ${row.id})" list="ngitung-history-list" placeholder="Cth: terong 3000 5 (Nama Harga Banyak)" style="flex:1; font-size: 1.1rem; padding: 12px; border-radius: 8px;">
-                <button class="btn info" onclick="ngitungStartVoice(this, ${row.id})" style="padding: 0 15px; font-size: 1.2rem; border-radius: 8px;" title="Input via Suara">🎤</button>
-              </div>
-            </td>
-            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 140px; font-size: 1.1rem;">${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount)}</td>
-            <td style="width: 50px;"><button class="btn danger" onclick="ngitungRemoveRow(${row.id})" ${window.ngitungRows.length === 1 ? 'disabled' : ''}>X</button></td>
-          </tr>
+            <tr>
+              <td colspan="3" style="width: 60%; padding: 0px 4px;">
+                <div style="display:flex;">
+                  <input type="text" list="ngitung-history-list" value="${val}" onfocus="if(window.ngitungPopulateDatalist) window.ngitungPopulateDatalist()" oninput="ngitungParseAndUpdate(this, ${row.id})" onchange="ngitungFocusNext(this, ${row.id})" placeholder="Cth: terong 3000 5 (Nama Harga Banyak)" style="width: 100%; font-size: 0.75rem; font-weight: 700; padding: 4px; border: none; border-bottom: none; border-radius: 0; background: transparent; color: #fff; text-transform: capitalize; box-shadow: none; outline: none;">
+                </div>
+              </td>
+              <td class="row-amount" style="vertical-align: middle; font-weight: 800; width: 25%; font-size: 0.8rem; padding: 0px 10px 0px 4px; text-align: right;">${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount)}</td>
+              <td style="width: 15%; text-align: right; vertical-align: middle; padding: 0px 0 0px 4px;"><button class="btn danger" onclick="ngitungRemoveRow(${row.id})" ${window.ngitungRows.length === 1 ? 'disabled' : ''} style="background: transparent; border: none; font-size: 1.05rem; color: rgba(255,71,87,0.7); padding: 0; box-shadow: none;">🗑️</button></td>
+            </tr>
         `;
       });
       
       tbody.innerHTML = html;
       document.getElementById('ngitung-total').innerText = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(total);
       
-      const datalist = document.getElementById('ngitung-history-list');
-      if (datalist) {
-        datalist.innerHTML = window.ngitungHistory.map(name => `<option value="${escapeAttr(name)}">`).join('');
-      }
+      if (window.ngitungPopulateDatalist) window.ngitungPopulateDatalist();
     };
 
     window.ngitungParseAndUpdate = function(el, id) {
@@ -1322,23 +1680,65 @@ Minyak Goreng 3 45000"></textarea>
       if (!row) return;
       row.rawInput = val;
       
+      // AUTO-ADD ROW (Smart POS)
+      if (!row.hasTriggeredAutoAdd && val.trim().length === 1 && window.ngitungRows[window.ngitungRows.length - 1].id === id) { window.ngitungAddRow(); row.hasTriggeredAutoAdd = true; }
+      
       const cleanVal = val.trim();
       let name = cleanVal;
       let price = 0;
       let qty = 1;
       
-      const match2 = cleanVal.match(/^(.*?)\s+(\d+)\s+([\d.,]+)$/);
-      if (match2) {
-        name = match2[1].trim();
-        price = Number(match2[2]);
-        qty = parseFloat(match2[3].replace(',', '.'));
+      let prod = null;
+      if (window.state && window.state.data && window.state.data.products) {
+         const findProd = (n) => window.state.data.products.find(p => p.name.toLowerCase() === n.toLowerCase());
+         
+         const match2 = cleanVal.match(/^(.*?)\s+(\d+)\s+([\d.,]+)$/);
+         if (match2) {
+           name = match2[1].trim();
+           price = Number(match2[2]);
+           qty = parseFloat(match2[3].replace(',', '.'));
+         } else {
+           const match1 = cleanVal.match(/^(.*?)\s+([\d.,]+)$/);
+           if (match1) {
+             let parsedName = match1[1].trim();
+             let numVal = parseFloat(match1[2].replace(',', '.'));
+             prod = findProd(parsedName);
+             
+             // If product found and number is small (e.g. < 1000), it's likely a Qty
+             if (prod && numVal < 1000) {
+                name = parsedName;
+                price = prod.salePriceEcer || prod.salePrice || prod.basePrice || 0;
+                qty = numVal;
+             } else {
+                // Otherwise treat as Price override
+                name = parsedName;
+                price = Number(match1[2]);
+                qty = 1;
+             }
+           } else {
+             // Only Name is provided
+             name = cleanVal;
+             prod = findProd(name);
+             if (prod) {
+                price = prod.salePriceEcer || prod.salePrice || prod.basePrice || 0;
+             }
+           }
+         }
       } else {
-        const match1 = cleanVal.match(/^(.*?)\s+(\d+)$/);
-        if (match1) {
-          name = match1[1].trim();
-          price = Number(match1[2]);
-          qty = 1;
-        }
+         // Fallback legacy parser
+         const match2 = cleanVal.match(/^(.*?)\s+(\d+)\s+([\d.,]+)$/);
+         if (match2) {
+           name = match2[1].trim();
+           price = Number(match2[2]);
+           qty = parseFloat(match2[3].replace(',', '.'));
+         } else {
+           const match1 = cleanVal.match(/^(.*?)\s+(\d+)$/);
+           if (match1) {
+             name = match1[1].trim();
+             price = Number(match1[2]);
+             qty = 1;
+           }
+         }
       }
       
       name = name.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
@@ -1346,7 +1746,8 @@ Minyak Goreng 3 45000"></textarea>
       row.price = price;
       row.qty = qty;
       
-      const amount = (price || 0) * (qty || 1);
+      let amount = (price || 0) * (qty || 1);
+        if (amount > 0) amount = Math.ceil(amount / 500) * 500;
       const tr = el.closest('tr');
       if (tr) {
         tr.querySelector('.row-amount').innerText = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount);
@@ -1363,10 +1764,15 @@ Minyak Goreng 3 45000"></textarea>
       
       let sum = 0;
       window.ngitungRows.forEach(r => {
-         sum += (r.price || 0) * (r.qty || 1);
+         let rAmt = (r.price || 0) * (r.qty || 1);
+         if (rAmt > 0) rAmt = Math.ceil(rAmt / 500) * 500;
+         sum += rAmt;
       });
+      window.ngitungTotalRaw = sum;
+      if (window.ngitungUpdateInlineTotal) window.ngitungUpdateInlineTotal();
       const totalEl = document.getElementById('ngitung-total');
       if (totalEl) totalEl.innerText = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(sum);
+      if (window.ngitungUpdateGrandTotal) window.ngitungUpdateGrandTotal();
     };
 
     window.ngitungFocusNext = function(el, id) {
@@ -1378,8 +1784,7 @@ Minyak Goreng 3 45000"></textarea>
            window.ngitungHistory.push(row.name);
            if (window.ngitungHistory.length > 100) window.ngitungHistory.shift();
            gas('setSetting', { key: 'ngitungHistory', value: JSON.stringify(window.ngitungHistory) });
-           const datalist = document.getElementById('ngitung-history-list');
-           if (datalist) datalist.innerHTML = window.ngitungHistory.map(n => `<option value="${escapeAttr(n)}">`).join('');
+           if (window.ngitungPopulateDatalist) window.ngitungPopulateDatalist();
          }
       }
       
@@ -1391,80 +1796,7 @@ Minyak Goreng 3 45000"></textarea>
       }
     };
 
-    window.ngitungVoiceToText = function(text) {
-        let t = text.toLowerCase();
-        
-        t = t.replace(/setengah/gi, '0.5');
-        t = t.replace(/seperempat/gi, '0.25');
-        
-        const map = {
-            'nol': 0, 'satu': 1, 'dua': 2, 'tiga': 3, 'empat': 4, 'lima': 5,
-            'enam': 6, 'tujuh': 7, 'delapan': 8, 'sembilan': 9, 'sepuluh': 10, 'sebelas': 11
-        };
-        
-        for (let k in map) {
-            if(k!=='nol'&&k!=='sepuluh'&&k!=='sebelas') {
-                t = t.replace(new RegExp('\\b' + k + '\\s+belas\\b', 'gi'), (10 + map[k]));
-                t = t.replace(new RegExp('\\b' + k + '\\s+puluh\\b', 'gi'), (map[k] * 10));
-            }
-        }
-        
-        for (let k in map) {
-            t = t.replace(new RegExp('\\b' + k + '\\b', 'gi'), map[k]);
-        }
-        
-        t = t.replace(/(\d+)\s+0\.(\d+)/g, '$1.$2');
-        
-        t = t.replace(/(\d+)\s*ribu/gi, (m, p1) => parseInt(p1) * 1000);
-        t = t.replace(/(\d+)\s*ratus/gi, (m, p1) => parseInt(p1) * 100);
-        t = t.replace(/(\d+)\s*juta/gi, (m, p1) => parseInt(p1) * 1000000);
-        
-        t = t.replace(/\b(kilo|kg|rupiah|perak)\b/gi, '');
-        
-        return t.replace(/\s+/g, ' ').trim();
-    };
 
-    window.ngitungStartVoice = function(btn, id) {
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert("Browser ini tidak mendukung sensor suara. Harap gunakan Google Chrome Android/PC.");
-        return;
-      }
-      
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'id-ID';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-      
-      const originalHtml = btn.innerHTML;
-      btn.innerHTML = '🔴'; // recording indicator
-      
-      recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        const parsed = window.ngitungVoiceToText(transcript);
-        
-        const tr = btn.closest('tr');
-        if (tr) {
-          const inputEl = tr.querySelector('input[type="text"]');
-          if (inputEl) {
-            inputEl.value = parsed;
-            window.ngitungParseAndUpdate(inputEl, id);
-            window.ngitungFocusNext(inputEl, id);
-          }
-        }
-      };
-      
-      recognition.onerror = function(e) {
-        console.error("Speech error", e);
-        btn.innerHTML = originalHtml;
-      };
-      
-      recognition.onend = function() {
-        btn.innerHTML = originalHtml;
-      };
-      
-      recognition.start();
-    };
 
     window.ngitungAddRow = function() {
       const newId = Date.now();
@@ -1473,16 +1805,25 @@ Minyak Goreng 3 45000"></textarea>
       if (tbody) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td colspan="3">
-              <div style="display:flex; gap:8px;">
-                <input type="text" value="" oninput="ngitungParseAndUpdate(this, ${newId})" onchange="ngitungFocusNext(this, ${newId})" list="ngitung-history-list" placeholder="Cth: terong 3000 5 (Nama Harga Banyak)" style="flex:1; font-size: 1.1rem; padding: 12px; border-radius: 8px;">
-                <button class="btn info" onclick="ngitungStartVoice(this, ${newId})" style="padding: 0 15px; font-size: 1.2rem; border-radius: 8px;" title="Input via Suara">🎤</button>
+            <td colspan="3" style="width: 60%; padding: 0px 4px;">
+              <div style="display:flex;">
+                <input type="text" list="ngitung-history-list" value="" onfocus="if(window.ngitungPopulateDatalist) window.ngitungPopulateDatalist()" oninput="ngitungParseAndUpdate(this, ${newId})" onchange="ngitungFocusNext(this, ${newId})" placeholder="Cth: terong 3000 5 (Nama Harga Banyak)" style="width: 100%; font-size: 0.75rem; font-weight: 700; padding: 4px; border: none; border-bottom: none; border-radius: 0; background: transparent; color: #fff; text-transform: capitalize; box-shadow: none; outline: none;">
               </div>
             </td>
-            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 140px; font-size: 1.1rem;">Rp 0</td>
-            <td style="width: 50px;"><button class="btn danger" onclick="ngitungRemoveRow(${newId})">X</button></td>
+            <td class="row-amount" style="vertical-align: middle; font-weight: 800; width: 25%; font-size: 0.8rem; padding: 0px 10px 0px 4px; text-align: right;">Rp 0</td>
+            <td style="width: 15%; text-align: right; vertical-align: middle; padding: 0px 0 0px 4px;"><button class="btn danger" onclick="ngitungRemoveRow(${newId})" style="background: transparent; border: none; font-size: 1.05rem; color: rgba(255,71,87,0.7); padding: 0; box-shadow: none;" title="Hapus">🗑️</button></td>
         `;
         tbody.appendChild(tr);
+        setTimeout(() => {
+          if (window.ngitungRows.length >= 6) {
+             const tw = document.querySelector(".ngitung-container .table-wrap");
+             if (tw) {
+                 tw.scrollTo({ top: tw.scrollHeight, behavior: "smooth" });
+             } else {
+                 window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+             }
+          }
+        }, 250);
       }
     };
 
@@ -1549,8 +1890,9 @@ Minyak Goreng 3 45000"></textarea>
             if (!row.name && !row.price) return;
             const qty = Number(String(row.qty).replace(/[^0-9-.]/g, '')) || 1;
             const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
-            const amount = row.price ? price * qty : 0;
-            total += amount;
+            let amount = row.price ? price * qty : 0;
+          if (amount > 0) amount = Math.ceil(amount / 500) * 500;
+          total += amount;
             
             data.push(...encoder.encode(row.name + '\n'));
             data.push(...encoder.encode(formatLine(qty + " x " + formatRibuan(price), amount)));
@@ -1592,7 +1934,8 @@ Minyak Goreng 3 45000"></textarea>
           if (!row.name && !row.price) return '';
           const qty = Number(String(row.qty).replace(/[^0-9-.]/g, '')) || 1;
           const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
-          const amount = row.price ? price * qty : 0;
+          let amount = row.price ? price * qty : 0;
+          if (amount > 0) amount = Math.ceil(amount / 500) * 500;
           total += amount;
           return `
             <div class="item-row">
@@ -1633,8 +1976,10 @@ Minyak Goreng 3 45000"></textarea>
                 .total-section { display: flex; justify-content: space-between; font-weight: 900; font-size: 16px; margin-top: 10px; color: #000000 !important; }
                 .footer { text-align: center; margin-top: 20px; font-size: 12px; font-weight: bold; color: #000000 !important; }
                 * { color: #000000 !important; } /* Paksa semua elemen menjadi hitam pekat */
-              </style>
-            </head>
+                    </style>
+              
+
+</head>
             <body>
               <div class="header">
                 <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 2px;">Toko GARNETA</h2>
@@ -1666,7 +2011,260 @@ Minyak Goreng 3 45000"></textarea>
         printWindow.document.close();
       };
 
-      window.ngitungClearAll = function() {
+      
+      // INLINE POS CHECKOUT LOGIC
+      window.ngitungPaymentType = "tunai";
+      
+      window.ngitungHandleBayarInput = function() {
+         const bayarEl = document.getElementById("ngitung-inline-bayar");
+         const statusCont = document.getElementById("ngitung-inline-status-container");
+         const statusLabel = document.getElementById("ngitung-inline-status-label");
+         const statusVal = document.getElementById("ngitung-inline-status-value");
+         const customerCont = document.getElementById("ngitung-inline-customer-container");
+         
+         if (!bayarEl || bayarEl.value === "") {
+            statusCont.classList.add("hidden");
+            customerCont.classList.add("hidden");
+            window.ngitungPaymentType = "tunai";
+            return;
+         }
+         
+         statusCont.classList.remove("hidden");
+         
+         const bayar = Number(bayarEl.value);
+         const total = window.ngitungTotalRaw || 0;
+         
+         if (bayar >= total) {
+            window.ngitungPaymentType = "tunai";
+            customerCont.classList.add("hidden");
+            statusCont.style.background = "rgba(46, 204, 113, 0.15)";
+            statusCont.style.border = "1px solid rgba(46, 204, 113, 0.3)";
+            
+            const kembali = bayar - total;
+            if (kembali === 0) {
+               statusLabel.innerText = "Status";
+               statusLabel.style.color = "#2ecc71";
+               statusVal.innerText = "PAS / LUNAS";
+               statusVal.style.color = "#2ecc71";
+            } else {
+               statusLabel.innerText = "Kembalian";
+               statusLabel.style.color = "#2ecc71";
+               statusVal.innerText = "Rp " + new Intl.NumberFormat("id-ID").format(kembali);
+               statusVal.style.color = "#2ecc71";
+            }
+         } else {
+            window.ngitungPaymentType = "kasbon";
+            customerCont.classList.remove("hidden");
+            statusCont.style.background = "rgba(255, 71, 87, 0.15)";
+            statusCont.style.border = "1px solid rgba(255, 71, 87, 0.3)";
+            
+            const hutang = total - bayar;
+            statusLabel.innerText = "Sisa Hutang";
+            statusLabel.style.color = "#ff4757";
+            statusVal.innerText = "Rp " + new Intl.NumberFormat("id-ID").format(hutang);
+            statusVal.style.color = "#ff4757";
+         }
+      };
+      
+      window.ngitungProcessCheckout = function(actionType) {
+        let validRows = window.ngitungRows.filter(r => r.name.trim().length > 0 && r.qty > 0 && r.price >= 0);
+        if (validRows.length === 0) {
+           showToast("Barang tidak valid!", "error");
+           return;
+        }
+        
+        const customerEl = document.getElementById("ngitung-inline-customer");
+        const phoneEl = document.getElementById("ngitung-inline-phone");
+        let customerNameRaw = customerEl ? customerEl.value.trim() : "";
+        const phoneRaw = phoneEl ? phoneEl.value.trim() : "";
+        
+        if (window.ngitungPaymentType === "kasbon" && !customerNameRaw && !phoneRaw) {
+           showToast("Nama pelanggan/No Tlp wajib diisi untuk Kasbon!", "error");
+           if(customerEl) customerEl.focus();
+           return;
+        }
+        
+        let customer = customerNameRaw;
+        if (customerNameRaw && phoneRaw) {
+           customer += " (" + phoneRaw + ")";
+        } else if (!customerNameRaw && phoneRaw) {
+           customer = phoneRaw;
+        }
+        
+        const bayarEl = document.getElementById("ngitung-inline-bayar");
+        const dp = bayarEl && bayarEl.value ? Number(bayarEl.value) : 0;
+        
+        const total = window.ngitungTotalRaw || 0;
+        let sisaTagihan = 0;
+        if (window.ngitungPaymentType === "kasbon") {
+           sisaTagihan = total - dp;
+        }
+        
+        let receiptData = {
+           id: "TRX-" + Date.now(),
+           customer: customer || "Umum",
+           date: new Date().toLocaleString("id-ID"),
+           paymentType: window.ngitungPaymentType,
+           items: validRows,
+           subtotal: total,
+           discount: 0,
+           dp: dp,
+           grandTotal: total,
+           sisaTagihan: sisaTagihan
+        };
+        
+        // Save to localStorage
+        let txs = JSON.parse(localStorage.getItem("transactions") || "[]");
+        txs.unshift(receiptData);
+        localStorage.setItem("transactions", JSON.stringify(txs));
+        
+        if (window.ngitungPaymentType === "kasbon") {
+           let hutangs = JSON.parse(localStorage.getItem("hutang") || "[]");
+           hutangs.unshift(receiptData);
+           localStorage.setItem("hutang", JSON.stringify(hutangs));
+        }
+        
+        if (actionType === "save") {
+           showToast("Transaksi Berhasil Disimpan!", "success");
+           window.ngitungClearAll();
+           if(bayarEl) bayarEl.value = "";
+           window.ngitungHandleBayarInput();
+        } else if (actionType === "pdf") {
+           window.ngitungPrintPDF(receiptData);
+           showToast("Transaksi Disimpan & PDF Dicetak", "success");
+           window.ngitungClearAll();
+           if(bayarEl) bayarEl.value = "";
+           window.ngitungHandleBayarInput();
+        } else if (actionType === "bluetooth") {
+           showToast("Transaksi Disimpan. Fitur BT Checkout coming soon!", "info");
+           window.ngitungClearAll();
+        } else if (actionType === "wa") {
+           window.ngitungPrintWhatsApp(receiptData);
+           showToast("Transaksi Disimpan & Dialihkan ke WA", "success");
+           window.ngitungClearAll();
+        }
+      };
+      
+      window.ngitungUpdateInlineTotal = function() {
+         const totalEl = document.getElementById("ngitung-inline-total");
+         if (totalEl) {
+            totalEl.innerText = "Rp " + new Intl.NumberFormat("id-ID").format(window.ngitungTotalRaw || 0);
+         }
+         window.ngitungHandleBayarInput();
+      };
+      
+      window.ngitungPrintWhatsApp = function(data) {
+         let msg = "*STRUK PEMBELIAN - " + data.date + "*\n";
+         msg += "Pelanggan: " + data.customer + "\n";
+         msg += "Status: " + (data.paymentType === "tunai" ? "LUNAS" : "KASBON") + "\n";
+         msg += "------------------------\n";
+         
+         data.items.forEach(r => {
+            let amount = r.price * r.qty;
+            if (amount > 0) amount = Math.ceil(amount / 500) * 500;
+            msg += r.name + "\n" + r.qty + " x " + new Intl.NumberFormat("id-ID").format(r.price) + " = " + new Intl.NumberFormat("id-ID").format(amount) + "\n";
+         });
+         
+         msg += "------------------------\n";
+         msg += "*Total: Rp " + new Intl.NumberFormat("id-ID").format(data.grandTotal) + "*\n";
+         
+         if (data.paymentType === "kasbon") {
+            msg += "\nDP/Bayar: Rp " + new Intl.NumberFormat("id-ID").format(data.dp) + "\n";
+            msg += "*Sisa Hutang: Rp " + new Intl.NumberFormat("id-ID").format(data.sisaTagihan) + "*\n";
+         }
+         
+         const wa_url = "https://wa.me/?text=" + encodeURIComponent(msg);
+         window.open(wa_url, "_blank");
+      };
+      
+      window.ngitungPrintPDF = function(data) {
+         let itemsHtml = data.items.map(r => {
+            let amount = r.price * r.qty;
+            if (amount > 0) amount = Math.ceil(amount / 500) * 500;
+            return `
+              <div class="item-row">
+                <div class="item-name">${r.name}</div>
+                <div class="item-details">
+                  <span>${r.qty} x ${new Intl.NumberFormat("id-ID").format(r.price)}</span>
+                  <span>${new Intl.NumberFormat("id-ID").format(amount)}</span>
+                </div>
+              </div>
+            `;
+         }).join("");
+         
+         let rupiah = (num) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num);
+         
+         let receiptHtml = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Struk - ${data.customer}</title>
+              <style>
+                @page { margin: 0; }
+                body {
+                  font-family: Arial, Helvetica, sans-serif;
+                  width: 44mm;
+                  margin: 0;
+                  padding: 0 4mm 0 0;
+                  box-sizing: border-box;
+                  font-size: 13px;
+                  font-weight: 600;
+                  color: #000000 !important;
+                  background: #fff;
+                  line-height: 1.3;
+                }
+                .header { text-align: center; margin-bottom: 15px; }
+                .header h2 { margin: 0 0 5px 0; font-size: 18px; font-weight: 900; }
+                .header div { font-weight: bold; font-size: 12px; }
+                .divider { border-top: 2px dashed #000000; margin: 10px 0; }
+                .item-row { margin-bottom: 6px; }
+                .item-name { font-weight: 900; font-size: 14px; }
+                .item-details { display: flex; justify-content: space-between; font-weight: bold; }
+                .total-section { display: flex; justify-content: space-between; font-weight: 900; font-size: 16px; margin-top: 5px; }
+                .sub-section { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; }
+                .footer { text-align: center; margin-top: 20px; font-size: 12px; font-weight: bold; }
+                * { color: #000000 !important; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h2 style="font-size: 22px; margin-bottom: 2px;">Toko GARNETA</h2>
+                <div>085123871118</div>
+                <div>${data.date}</div>
+                <div>Pelanggan: ${data.customer}</div>
+                <div>Status: ${data.paymentType === "tunai" ? "LUNAS" : "KASBON"}</div>
+              </div>
+              <div class="divider"></div>
+              ${itemsHtml}
+              <div class="divider"></div>
+              <div class="total-section">
+                <span>TOTAL</span><span>${rupiah(data.grandTotal)}</span>
+              </div>
+              ${data.paymentType === "kasbon" ? `
+              <div class="divider"></div>
+              <div class="sub-section"><span>DP/Bayar</span><span>${rupiah(data.dp)}</span></div>
+              <div class="total-section" style="font-size:14px;"><span>Sisa Hutang</span><span>${rupiah(data.sisaTagihan)}</span></div>
+              ` : ""}
+              <div class="footer">Terima kasih atas<br>kunjungan Anda!</div>
+              <script>
+                window.onload = function() {
+                  window.print();
+                  setTimeout(() => window.close(), 500);
+                };
+              <\/script>
+            </body>
+          </html>
+         `;
+         const printWindow = window.open("", "_blank", "width=300,height=500");
+         printWindow.document.write(receiptHtml);
+         printWindow.document.close();
+      };
+      
+      window.ngitungPrintBluetoothCheckout = async function(data) {
+          showToast("Bluetooth Kasbon print coming soon!", "info");
+      };
+
+window.ngitungClearAll = function() {
         window.ngitungRows = [{ id: Date.now(), name: '', price: '', qty: '' }];
         window.ngitungRenderTable();
       };
@@ -1674,44 +2272,437 @@ Minyak Goreng 3 45000"></textarea>
       function ngitung() {
       setTimeout(() => window.ngitungRenderTable(), 50);
       return `
-        <div class="card" style="max-width: 800px; margin: 2rem auto;">
-          <h2>🧮 NGITUNG (Kasir Cepat)</h2>
-          <p class="muted">Ketik nama barang (otomatis tersimpan). Isi harga, baris baru otomatis bertambah.</p>
+        <div class="ngitung-container" style="max-width: 800px; margin: 1rem auto; padding-bottom: 50vh;">
+          <h2 class="hidden-on-mobile">🧮 NGITUNG (Kasir Cepat)</h2>
+          
           <div class="table-wrap">
-            <table class="data-table">
+            <table class="data-table" id="ngitung-table" style="min-width: 0 !important; width: 100% !important; table-layout: fixed;">
               <thead>
-                <tr>
-                  <th colspan="3">Data Barang</th>
-                  <th>Jumlah</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
+                  <tr>
+                    <th colspan="3" style="width: 60%; font-size: 0.65rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">Barang</th>
+                    <th style="width: 25%; font-size: 0.65rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 12px 4px 4px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.05);">Total</th>
+                    <th style="width: 15%; font-size: 0.65rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 0 4px 4px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.05);">Aksi</th>
+                  </tr>
+                </thead>
               <tbody id="ngitung-tbody">
               </tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="3" style="text-align: right; font-weight: bold; padding: 15px;">TOTAL:</td>
-                  <td id="ngitung-total" style="font-weight: bold; font-size: 1.2rem; color: var(--primary);">Rp 0</td>
-                  <td></td>
-                </tr>
-              </tfoot>
             </table>
           </div>
-          
-            <div class="actions" style="margin-top: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-              <button class="btn soft" onclick="ngitungAddRow()">➕ Tambah Baris</button>
-              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn danger" onclick="ngitungClearAll()" style="background: var(--red);">🗑 Hapus Semua</button>
-                <button class="btn primary" onclick="ngitungPrintUSB()" style="background: var(--primary);">🖨️ Cetak USB</button>
-                <button class="btn soft" onclick="ngitungPrintBluetooth()">📡 Cetak Bluetooth</button>
+          <datalist id="ngitung-history-list"></datalist>
+
+          <!-- INLINE POS CHECKOUT — PREMIUM REDESIGN -->
+          <div class="ngitung-inline-checkout" style="
+              margin-top: 10px;
+              background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+              border: 1px solid rgba(255,255,255,0.08);
+              border-radius: 16px;
+              padding: 14px 12px 12px;
+              backdrop-filter: blur(8px);
+          ">
+            <!-- TOTAL HEADLINE -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
+              <div>
+                <div style="color: rgba(255,255,255,0.4); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">Total Belanja</div>
+                <div id="ngitung-inline-total" style="font-size: 1.35rem; font-weight: 900; color: #ff6b6b; letter-spacing: -0.5px;">Rp 0</div>
+              </div>
+              <div style="width: 36px; height: 36px; background: rgba(238,77,45,0.12); border: 1px solid rgba(238,77,45,0.25); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem;">🛒</div>
+            </div>
+
+            <!-- DIVIDER -->
+            <div style="height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent); margin-bottom: 10px;"></div>
+
+            <!-- BAYAR & STATUS ROW -->
+            <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: stretch;">
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+                <span style="color: rgba(255,255,255,0.4); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.8px;">Jumlah Bayar</span>
+                <input type="number" id="ngitung-inline-bayar" inputmode="numeric" placeholder="0"
+                  oninput="ngitungHandleBayarInput()"
+                  style="
+                    width: 100%; height: 34px; text-align: right;
+                    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12);
+                    color: #fff; padding: 0 10px; border-radius: 8px;
+                    font-weight: 900; font-size: 0.95rem; box-sizing: border-box;
+                    transition: border-color 0.2s;
+                  ">
+              </div>
+
+              <div id="ngitung-inline-status-container" class="hidden" style="
+                  flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+                  padding: 6px 10px; border-radius: 8px; border: 1px solid transparent;
+                  transition: all 0.3s;
+              ">
+                <span id="ngitung-inline-status-label" style="font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;">Status</span>
+                <span id="ngitung-inline-status-value" style="font-size: 0.9rem; font-weight: 900;">-</span>
               </div>
             </div>
-          <datalist id="ngitung-history-list"></datalist>
-        </div>
-      `;
-    }
 
-    function kalkulator() {
+            <!-- CUSTOMER & PHONE ROW -->
+            <div id="ngitung-inline-customer-container" class="hidden" style="display: flex; gap: 6px; margin-bottom: 10px;">
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+                <span style="color: rgba(255,255,255,0.4); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.8px;">Nama Pelanggan</span>
+                <input type="text" id="ngitung-inline-customer" placeholder="Masukkan nama..."
+                  style="
+                    width: 100%; height: 32px;
+                    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12);
+                    color: #fff; padding: 0 8px; border-radius: 8px; font-size: 0.78rem;
+                    box-sizing: border-box;
+                  ">
+              </div>
+              <div style="width: 135px; display: flex; flex-direction: column; gap: 3px;">
+                <span style="color: rgba(255,255,255,0.4); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.8px;">No. Telepon</span>
+                <input type="text" id="ngitung-inline-phone" inputmode="numeric" placeholder="08xx..."
+                  style="
+                    width: 100%; height: 32px;
+                    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12);
+                    color: #fff; padding: 0 8px; border-radius: 8px; font-size: 0.78rem;
+                    box-sizing: border-box;
+                  ">
+              </div>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button onclick="ngitungProcessCheckout('save')" style="
+                  flex: 1; height: 36px; border: none; border-radius: 10px;
+                  background: linear-gradient(135deg, #e84118, #ff6b35);
+                  color: #fff; font-weight: 800; font-size: 0.82rem;
+                  text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+                  box-shadow: 0 4px 14px rgba(232,65,24,0.4);
+                  transition: all 0.2s;
+              ">💾 SIMPAN</button>
+
+              <button onclick="ngitungProcessCheckout('pdf')" title="Cetak PDF" style="
+                  width: 36px; height: 36px; border: 1px solid rgba(0,168,255,0.4); border-radius: 10px;
+                  background: rgba(0,168,255,0.15); color: #00a8ff; font-size: 1rem; cursor: pointer;
+                  display: flex; align-items: center; justify-content: center;
+                  transition: all 0.2s;
+              ">📄</button>
+
+              <button onclick="ngitungProcessCheckout('bluetooth')" title="Cetak Bluetooth" style="
+                  width: 36px; height: 36px; border: 1px solid rgba(0,229,229,0.3); border-radius: 10px;
+                  background: rgba(0,229,229,0.1); color: #00e5e5; font-size: 1rem; cursor: pointer;
+                  display: flex; align-items: center; justify-content: center;
+                  transition: all 0.2s;
+              ">🖨️</button>
+
+              <button onclick="ngitungProcessCheckout('wa')" title="Kirim via WhatsApp" style="
+                  width: 36px; height: 36px; border: 1px solid rgba(37,211,102,0.35); border-radius: 10px;
+                  background: rgba(37,211,102,0.12); color: #25D366; font-size: 1rem; cursor: pointer;
+                  display: flex; align-items: center; justify-content: center;
+                  transition: all 0.2s;
+              ">💬</button>
+            </div>
+          </div>
+            
+          </div>
+          </div>
+        `;
+      }
+      
+      function riwayat() {
+        setTimeout(() => window.renderRiwayatTable(), 50);
+        return `
+          <div class="card" style="padding-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h2 id="riwayat-title">🧾 Riwayat Transaksi</h2>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn soft" id="btn-toggle-trash" onclick="window.toggleTrashView()" style="padding: 6px 12px; font-size: 0.8rem;">🗑️ Tempat Sampah</button>
+                <button class="btn danger" id="btn-reset-riwayat" onclick="window.clearRiwayat()" style="padding: 6px 12px; font-size: 0.8rem;">Reset</button>
+              </div>
+            </div>
+            <div id="riwayat-filter-container" style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <label for="riwayat-date-filter" style="font-size: 0.85rem; font-weight: 600;">Pilih Tanggal:</label>
+              <input type="date" id="riwayat-date-filter" class="input" style="padding: 6px 10px; border-radius: 8px; width: 140px; font-size: 0.85rem;" onchange="window.renderRiwayatTable()">
+              <button class="btn soft" onclick="document.getElementById('riwayat-date-filter').value=''; window.renderRiwayatTable()" style="padding: 6px 10px; font-size: 0.8rem;" title="Reset Filter">Semua</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Waktu</th>
+                    <th>Pelanggan</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="riwayat-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+      
+      window.isTrashView = false;
+
+      window.toggleTrashView = function() {
+        window.isTrashView = !window.isTrashView;
+        const title = document.getElementById('riwayat-title');
+        const btnToggle = document.getElementById('btn-toggle-trash');
+        const btnReset = document.getElementById('btn-reset-riwayat');
+        
+        if (window.isTrashView) {
+           title.innerHTML = '🗑️ Tempat Sampah (Riwayat)';
+           btnToggle.innerHTML = '⬅️ Kembali';
+           btnReset.style.display = 'none';
+           window.renderTrashTable();
+        } else {
+           title.innerHTML = '🧾 Riwayat Transaksi';
+           btnToggle.innerHTML = '🗑️ Tempat Sampah';
+           btnReset.style.display = 'inline-block';
+           window.renderRiwayatTable();
+        }
+      };
+
+      window.renderTrashTable = function() {
+        const tbody = document.getElementById('riwayat-tbody');
+        if (!tbody) return;
+        const bin = JSON.parse(localStorage.getItem('transactions_bin') || '[]');
+        if (bin.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color:#888;">Tempat sampah kosong.</td></tr>';
+          return;
+        }
+        
+        tbody.innerHTML = bin.map((tx, idx) => {
+          let sisaHari = 30;
+          if (tx.deletedAt) {
+             const diffTime = Math.abs(new Date() - new Date(tx.deletedAt));
+             sisaHari = 30 - Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          }
+          return `
+          <tr style="opacity: 0.8; background: rgba(255,0,0,0.02);">
+            <td style="font-size: 0.75rem;">${tx.date}<br><span style="color:#ff4757; font-size:0.65rem;">Sisa: ${Math.max(0, sisaHari)} hari</span></td>
+            <td style="font-weight: 800;">${tx.customer}</td>
+            <td style="color: #ee4d2d; font-weight: bold;">Rp ${new Intl.NumberFormat('id-ID').format(tx.grandTotal)}</td>
+            <td>
+              <span style="padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: rgba(100,100,100,0.2); color: #888;">
+                DIHAPUS
+              </span>
+            </td>
+            <td style="display: flex; gap: 4px;">
+               <button class="btn success" onclick="window.restoreRiwayatItem(${idx})" style="background: rgba(46,204,113,0.2); border: none; padding: 4px 8px; font-size: 0.8rem; color: #2ecc71; border-radius: 4px;" title="Kembalikan Transaksi">🔄 Restore</button>
+            </td>
+          </tr>
+        `}).join('');
+      };
+
+      window.restoreRiwayatItem = function(idx) {
+        if(confirm("Kembalikan transaksi ini ke riwayat aktif?")) {
+           let bin = JSON.parse(localStorage.getItem('transactions_bin') || '[]');
+           let txs = JSON.parse(localStorage.getItem('transactions') || '[]');
+           
+           if (!bin[idx]) return;
+           const toRestore = bin[idx];
+           delete toRestore.deletedAt; // Hapus flag deleted
+           
+           txs.push(toRestore);
+           bin.splice(idx, 1);
+           
+           localStorage.setItem('transactions', JSON.stringify(txs));
+           localStorage.setItem('transactions_bin', JSON.stringify(bin));
+           
+           window.renderTrashTable();
+           if (typeof showToast === 'function') showToast("Transaksi berhasil dikembalikan!", "success");
+        }
+      };
+
+
+      window.renderRiwayatTable = function() {
+        const tbody = document.getElementById('riwayat-tbody');
+        const filterDateEl = document.getElementById('riwayat-date-filter');
+        if (!tbody) return;
+        
+        let txs = JSON.parse(localStorage.getItem('transactions') || '[]');
+        
+        // Filter by Date if selected
+        if (filterDateEl && filterDateEl.value) {
+           const selectedDate = filterDateEl.value; // format YYYY-MM-DD
+           txs = txs.filter(tx => {
+             if (!tx.date) return false;
+             // tx.date usually "23/7/2026, 09:30:15" (toLocaleString('id-ID'))
+             // We need to parse it or match it. The format from ID locale is DD/MM/YYYY.
+             const parts = tx.date.split(',')[0].split('/'); 
+             if (parts.length === 3) {
+               // Pad with zero
+               const d = parts[0].padStart(2, '0');
+               const m = parts[1].padStart(2, '0');
+               const y = parts[2];
+               const txDateStr = `${y}-${m}-${d}`;
+               return txDateStr === selectedDate;
+             }
+             return tx.date.includes(selectedDate);
+           });
+        }
+        
+        if (txs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color:#888;">Belum ada riwayat transaksi.</td></tr>';
+          return;
+        }
+        
+        tbody.innerHTML = txs.map((tx, idx) => `
+          <tr>
+            <td style="font-size: 0.75rem;">${tx.date}</td>
+            <td style="font-weight: 800;">${tx.customer}</td>
+            <td style="color: #ee4d2d; font-weight: bold;">Rp ${new Intl.NumberFormat('id-ID').format(tx.grandTotal)}</td>
+            <td>
+              <span style="padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;
+              background: ${tx.paymentType === 'tunai' ? 'rgba(46,204,113,0.2)' : 'rgba(255,71,87,0.2)'};
+              color: ${tx.paymentType === 'tunai' ? '#2ecc71' : '#ff4757'};">
+                ${tx.paymentType ? tx.paymentType.toUpperCase() : '-'}
+              </span>
+            </td>
+            <td style="display: flex; gap: 4px;">
+               <button class="btn" onclick="window.reprintRiwayat(${idx})" style="background: transparent; border: none; padding: 4px; font-size: 1.1rem;" title="Cetak Ulang">🖨️</button>
+               <button class="btn danger" onclick="window.deleteRiwayatItem(${idx})" style="background: transparent; border: none; padding: 4px; font-size: 1.1rem; filter: none; box-shadow: none;" title="Hapus Transaksi">🗑️</button>
+            </td>
+          </tr>
+        `).join('');
+      };
+      
+      window.deleteRiwayatItem = function(idx) {
+        if(confirm("Yakin ingin menghapus transaksi ini? (Data akan dipindahkan ke Trash selama 30 hari)")) {
+           const txs = JSON.parse(localStorage.getItem('transactions') || '[]');
+           if (!txs[idx]) return;
+           
+           // Protocol Soft Delete
+           let bin = JSON.parse(localStorage.getItem('transactions_bin') || '[]');
+           const now = new Date().toISOString();
+           const toDelete = { ...txs[idx], deletedAt: now };
+           bin.push(toDelete);
+           
+           localStorage.setItem('transactions_bin', JSON.stringify(bin));
+           
+           // Remove from active
+           txs.splice(idx, 1);
+           localStorage.setItem('transactions', JSON.stringify(txs));
+           
+           window.renderRiwayatTable();
+           if (typeof showToast === 'function') showToast("Transaksi dipindahkan ke tempat sampah.", "success");
+        }
+      };
+
+      window.clearRiwayat = function() {
+        if(confirm("Yakin ingin menghapus seluruh riwayat transaksi? (Sesuai protokol, data akan dipindahkan ke Trash (Soft Delete) selama 30 hari sebelum dihapus permanen)")) {
+           const txs = JSON.parse(localStorage.getItem('transactions') || '[]');
+           if (txs.length === 0) {
+             if (typeof showToast === 'function') showToast("Riwayat sudah kosong!", "info");
+             return;
+           }
+           
+           // Protocol [DATA] Soft Delete & 30-Day Garbage Collection
+           let bin = JSON.parse(localStorage.getItem('transactions_bin') || '[]');
+           const now = new Date().toISOString();
+           const toDelete = txs.map(t => ({ ...t, deletedAt: now }));
+           bin = bin.concat(toDelete);
+           
+           localStorage.setItem('transactions_bin', JSON.stringify(bin));
+           localStorage.setItem('transactions', '[]'); // Clear active transactions
+           
+           window.renderRiwayatTable();
+           if (typeof showToast === 'function') showToast("Riwayat dipindahkan ke tempat sampah (Aman 30 Hari).", "success");
+        }
+      };
+      
+      // Auto-run 30-Day Garbage Collection (Pembersih Sampah)
+      setTimeout(() => {
+        try {
+          let bin = JSON.parse(localStorage.getItem('transactions_bin') || '[]');
+          if (bin.length > 0) {
+            const now = new Date();
+            const filtered = bin.filter(t => {
+               if (!t.deletedAt) return false;
+               const diffTime = Math.abs(now - new Date(t.deletedAt));
+               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+               return diffDays <= 30; // Pertahankan yang umurnya 30 hari atau kurang
+            });
+            if (filtered.length !== bin.length) {
+               localStorage.setItem('transactions_bin', JSON.stringify(filtered));
+               console.log(`[ALVES GC] Membuang ${bin.length - filtered.length} data riwayat permanen karena sudah melewati masa retensi 30 hari.`);
+            }
+          }
+        } catch (e) {
+          console.error("Garbage collection error:", e);
+        }
+      }, 5000);
+      
+      window.reprintRiwayat = function(idx, method) {
+         const txs = JSON.parse(localStorage.getItem('transactions') || '[]');
+         const tx = txs[idx];
+         if (tx) {
+            window.ngitungPrintPDF(tx);
+         }
+      };
+      
+      function hutang() {
+        setTimeout(() => window.renderHutangTable(), 50);
+        return `
+          <div class="card" style="padding-bottom: 24px;">
+            <h2>💰 Riwayat Hutang (Kasbon)</h2>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Pelanggan</th>
+                    <th>Sisa Hutang</th>
+                    <th>Tanggal</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="hutang-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+      
+      window.renderHutangTable = function() {
+        const tbody = document.getElementById('hutang-tbody');
+        if (!tbody) return;
+        const hutangs = JSON.parse(localStorage.getItem('hutang') || '[]');
+        const aktifHutangs = hutangs.filter(h => h.sisaTagihan > 0);
+        
+        if (aktifHutangs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color:#888;">Tidak ada kasbon aktif. Luar biasa! 🎉</td></tr>';
+          return;
+        }
+        
+        tbody.innerHTML = aktifHutangs.map((h, idx) => `
+          <tr>
+            <td style="font-weight: 800;">${h.customer}</td>
+            <td style="color: #ff4757; font-weight: bold;">Rp ${new Intl.NumberFormat('id-ID').format(h.sisaTagihan)}</td>
+            <td style="font-size: 0.75rem;">${h.date}</td>
+            <td style="display: flex; gap: 4px; align-items:center;">
+               <button class="btn" onclick="window.bayarHutang('${h.id}')" style="background: var(--garneta-cyan); color: #000; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; font-weight: bold;">LUNAS</button>
+               <button class="btn" onclick="window.cicilHutang('${h.id}')" style="background: rgba(255,165,0,0.2); border: 1px solid rgba(255,165,0,0.5); color: #ffa502; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; font-weight: bold;">CICIL</button>
+               <button class="btn" onclick="window.reprintHutang('${h.id}')" style="background: transparent; border: none; padding: 4px; font-size: 1.1rem;" title="Cetak Ulang">🖨️</button>
+            </td>
+          </tr>
+        `).join('');
+      };
+      
+      window.bayarHutang = function(id) {
+         let hutangs = JSON.parse(localStorage.getItem('hutang') || '[]');
+         const index = hutangs.findIndex(h => h.id === id);
+         if (index !== -1) {
+            if(confirm('Yakin ingin melunasi sisa hutang Rp ' + new Intl.NumberFormat('id-ID').format(hutangs[index].sisaTagihan) + ' atas nama ' + hutangs[index].customer + '?')) {
+               hutangs[index].sisaTagihan = 0;
+               localStorage.setItem('hutang', JSON.stringify(hutangs));
+               window.renderHutangTable();
+               showToast("Hutang berhasil dilunasi!", "success");
+            }
+         }
+      };
+      
+      window.reprintHutang = function(id) {
+         let hutangs = JSON.parse(localStorage.getItem('hutang') || '[]');
+         const h = hutangs.find(x => x.id === id);
+         if (h) {
+            window.ngitungPrintPDF(h);
+         }
+      };
+
+      function kalkulator() {
+
       const rows = shoppingRows();
       const total = rows.reduce((sum, row) => sum + shoppingSubtotal(row), 0);
       
@@ -2894,13 +3885,16 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       ["supplier", "🚚 Supplier"],
       ["pembelian", "🛒 Pembelian"],
       ["ngitung", "🧮 NGITUNG"],
-      ["penjualan", "💵 Penjualan"]
+      ["penjualan", "💵 Penjualan"],
+      ["riwayat", "🧾 Riwayat"],
+      ["hutang", "📒 Kasbon"]
     ];
     
     // Menu untuk Super Admin (semua menu)
     const superAdminMenus = [
       ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"], ["supplier", "🚚 Supplier"],
-      ["pembelian", "🛒 Pembelian"], ["ngitung", "🧮 NGITUNG"], ["kalkulator", "📱 Kalkulator"], ["penjualan", "💵 Penjualan"], ["laporan", "📊 Laporan"],
+      ["pembelian", "🛒 Pembelian"], ["ngitung", "🧮 NGITUNG"], ["kalkulator", "📱 Kalkulator"], 
+      ["penjualan", "💵 Penjualan"], ["riwayat", "🧾 Riwayat"], ["hutang", "📒 Kasbon"], ["laporan", "📊 Laporan"],
       ["statistik", "📈 Statistik"], ["audit", "🕵️‍♂️ Audit"], ["users", "👥 Users"], ["gaji", "💸 Gaji & Bon"], ["settings", "⚙️ Setting"]
     ];
     
@@ -3575,7 +4569,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         ${simpleTable(items.slice(0, 100), Object.keys(items[0] || { kosong: "" }), Object.keys(items[0] || { kosong: "Data" }))}
       `).join("");
       const printWindow = window.open("", "_blank");
-      printWindow.document.write(`<html><head><title>Export GARNETA SYSTEM</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:24px}td,th{border:1px solid #ccc;padding:6px;font-size:11px;text-align:left}h2{margin-top:24px}</style></head><body><h1>GARNETA SYSTEM</h1>${html}</body></html>`);
+      printWindow.document.write(`<html><head><title>Export GARNETA SYSTEM</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:24px}td,th{border:1px solid #ccc;padding:6px;font-size:11px;text-align:left}h2{margin-top:24px}      </style>  
+
+</head><body><h1>GARNETA SYSTEM</h1>${html}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
       printWindow.print();
@@ -4740,3 +5736,39 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

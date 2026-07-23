@@ -567,7 +567,7 @@
     </div>
 
     <!-- Grid Menu -->
-    <div id="app-drawer-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px 12px; width: 100%; max-width: 480px; margin: 0 auto 40px auto; text-align: center;">
+    <div id="app-drawer-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 8px; width: 100%; max-width: 480px; margin: 0 auto 40px auto; text-align: center;">
       <!-- Menus injected here -->
     </div>
 
@@ -755,10 +755,10 @@
           const text = label.replace(icon, "").trim();
           return `
             <div onclick="document.getElementById('app-drawer-modal').classList.add('hidden'); state.route='${key}'; renderShell(); render();" 
-                 style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px; transition: transform 0.2s ease;"
+                 style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; transition: transform 0.2s ease;"
                  onmouseover="this.style.transform='scale(1.1)'" 
                  onmouseout="this.style.transform='scale(1)'">
-              <div style="font-size: 2rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6));">${icon}</div>
+              <div style="font-size: 1.3rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));">${icon}</div>
               <div style="font-size: 0.65rem; font-weight: 600; color: rgba(255,255,255,0.85); text-align: center; line-height: 1.2;">${text}</div>
             </div>
           `;

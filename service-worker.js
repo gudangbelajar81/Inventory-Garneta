@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "inventory-pwa-v38";
+﻿const CACHE_NAME = "inventory-pwa-v39";
 const APP_SHELL = [
   "/?v=37",
   "/index.html?v=37",
@@ -34,6 +34,7 @@ self.addEventListener("fetch", (event) => {
     }))
   );
 });
+
 
 
 

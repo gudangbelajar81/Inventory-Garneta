@@ -2401,10 +2401,41 @@ window.ngitungClearAll = function() {
         `;
       }
       
+      window.activeRiwayatTab = 'transaksi';
+      window.switchRiwayatTab = function(tab) {
+        window.activeRiwayatTab = tab;
+        const btnTrans = document.getElementById('btn-tab-transaksi');
+        const btnHutang = document.getElementById('btn-tab-hutang');
+        if (!btnTrans || !btnHutang) return;
+
+        if (tab === 'transaksi') {
+          document.getElementById('tab-transaksi-content').style.display = 'block';
+          document.getElementById('tab-hutang-content').style.display = 'none';
+          btnTrans.style.background = 'var(--garneta-cyan)';
+          btnTrans.style.color = '#000';
+          btnHutang.style.background = 'transparent';
+          btnHutang.style.color = 'var(--neural-text)';
+          window.renderRiwayatTable();
+        } else {
+          document.getElementById('tab-transaksi-content').style.display = 'none';
+          document.getElementById('tab-hutang-content').style.display = 'block';
+          btnHutang.style.background = 'var(--garneta-cyan)';
+          btnHutang.style.color = '#000';
+          btnTrans.style.background = 'transparent';
+          btnTrans.style.color = 'var(--neural-text)';
+          window.renderHutangTable();
+        }
+      };
+
       function riwayat() {
-        setTimeout(() => window.renderRiwayatTable(), 50);
+        setTimeout(() => window.switchRiwayatTab(window.activeRiwayatTab || 'transaksi'), 50);
         return `
-          <div class="card" style="padding-bottom: 24px;">
+          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <button id="btn-tab-transaksi" onclick="window.switchRiwayatTab('transaksi')" style="padding: 6px 16px; font-size: 0.85rem; border-radius: 20px; font-weight: 600; cursor: pointer; border: 1px solid var(--garneta-cyan); background: var(--garneta-cyan); color: #000; transition: all 0.3s;">🧾 Riwayat Transaksi</button>
+            <button id="btn-tab-hutang" onclick="window.switchRiwayatTab('hutang')" style="padding: 6px 16px; font-size: 0.85rem; border-radius: 20px; font-weight: 600; cursor: pointer; border: 1px solid var(--garneta-cyan); background: transparent; color: var(--neural-text); transition: all 0.3s;">💰 Bon (Kasbon)</button>
+          </div>
+
+          <div id="tab-transaksi-content" class="card" style="padding-bottom: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <h2 id="riwayat-title">🧾 Riwayat Transaksi</h2>
               <div style="display: flex; gap: 8px;">
@@ -2429,6 +2460,23 @@ window.ngitungClearAll = function() {
                   </tr>
                 </thead>
                 <tbody id="riwayat-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="tab-hutang-content" class="card" style="padding-bottom: 24px; display: none;">
+            <h2>💰 Riwayat Hutang (Kasbon)</h2>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Pelanggan</th>
+                    <th>Sisa Hutang</th>
+                    <th>Tanggal</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="hutang-tbody"></tbody>
               </table>
             </div>
           </div>
@@ -2635,28 +2683,7 @@ window.ngitungClearAll = function() {
          }
       };
       
-      function hutang() {
-        setTimeout(() => window.renderHutangTable(), 50);
-        return `
-          <div class="card" style="padding-bottom: 24px;">
-            <h2>💰 Riwayat Hutang (Kasbon)</h2>
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Pelanggan</th>
-                    <th>Sisa Hutang</th>
-                    <th>Tanggal</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody id="hutang-tbody"></tbody>
-              </table>
-            </div>
-          </div>
-        `;
-      }
-      
+
       window.renderHutangTable = function() {
         const tbody = document.getElementById('hutang-tbody');
         if (!tbody) return;
@@ -3868,15 +3895,14 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       ["pembelian", "🛒 Pembelian"],
       ["ngitung", "🧮 NGITUNG"],
       ["penjualan", "💵 Penjualan"],
-      ["riwayat", "🧾 Riwayat"],
-      ["hutang", "📒 Kasbon"]
+      ["riwayat", "🧾 Riwayat & Bon"]
     ];
     
     // Menu untuk Super Admin (semua menu)
     const superAdminMenus = [
       ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"], ["supplier", "🚚 Supplier"],
       ["pembelian", "🛒 Pembelian"], ["ngitung", "🧮 NGITUNG"], ["kalkulator", "📱 Kalkulator"], 
-      ["penjualan", "💵 Penjualan"], ["riwayat", "🧾 Riwayat"], ["hutang", "📒 Kasbon"], ["laporan", "📊 Laporan"],
+      ["penjualan", "💵 Penjualan"], ["riwayat", "🧾 Riwayat & Bon"], ["laporan", "📊 Laporan"],
       ["statistik", "📈 Statistik"], ["audit", "🕵️‍♂️ Audit"], ["users", "👥 Users"], ["gaji", "💸 Gaji & Bon"], ["settings", "⚙️ Setting"]
     ];
     

@@ -1,7 +1,7 @@
 const STORE_KEY = "retail_inventory_data";
 const API_BASE_URL_KEY = "retail_inventory_api_base_url";
 
-export const API_BASE_URL = localStorage.getItem(API_BASE_URL_KEY) || "http://localhost:3000/api";
+export const API_BASE_URL = localStorage.getItem(API_BASE_URL_KEY) || (window.API_BASE_URL ? window.API_BASE_URL + "/api" : "http://localhost:3000/api");
 
 const endpoints = {
   products: "products",

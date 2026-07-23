@@ -7,6 +7,7 @@ const rateLimit = require("express-rate-limit");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
 const helmet = require("helmet");
+const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
@@ -70,6 +71,7 @@ const featureModules = loadFeatureModules();
 const tableColumnCache = new Map();
 
 // [SECURITY] Helmet — pasang semua security headers sekaligus
+app.use(cors());
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {

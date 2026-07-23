@@ -1,5 +1,5 @@
 /**
- * GARNETA AI INPUT CENTER
+ * GARNETA STORE AI INPUT CENTER
  * One AI Engine - Many Input Methods
  * Modular AI input system for Barang, Kalkulator, Penjualan
  */

@@ -1,5 +1,5 @@
 /**
- * GARNETA PROGRESSIVE UI
+ * GARNETA STORE PROGRESSIVE UI
  * Progressive Disclosure - Collapse/Accordion/Modal
  * Tidak mengubah sistem yang sudah ada, hanya menambahkan layer
  */

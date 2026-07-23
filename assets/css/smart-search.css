@@ -1,5 +1,5 @@
 /**
- * GARNETA SMART SEARCH + QUICK ACTION STYLES
+ * GARNETA STORE SMART SEARCH + QUICK ACTION STYLES
  * Compact First, Expand When Needed
  */
 
@@ -7,8 +7,7 @@
 .smart-search-wrapper {
   position: relative;
   width: 100%;
-  max-width: 700px;
-  margin: 0 auto;
+  /* max-width & margin dihandle oleh parent container */
 }
 
 /* Input Box - Compact */
@@ -17,10 +16,12 @@
   align-items: center;
   background: var(--card-bg);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 10px 14px;
+  border-radius: 10px;
+  padding: 5px 12px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.15);
   transition: all 0.2s ease;
+  height: 32px;
+  box-sizing: border-box;
 }
 
 .smart-search-input-box:focus-within {
@@ -80,12 +81,12 @@
 
 /* Results Container */
 .smart-search-results {
-  padding: 10px;
+  padding: 6px;
 }
 
 /* Section */
 .smart-search-section {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .smart-search-section:last-child {
@@ -93,14 +94,14 @@
 }
 
 .smart-search-section-title {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--soft-text);
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  padding: 6px 10px;
+  padding: 4px 6px;
   border-bottom: 1px solid var(--line);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 /* Quick Action Card - Compact */

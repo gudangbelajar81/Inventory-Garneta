@@ -261,3 +261,16 @@ CREATE TABLE ngitung_sales (
   installments JSON NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Struktur untuk tabel ngitung_sales
+CREATE TABLE IF NOT EXISTS ngitung_sales (
+  id VARCHAR(50) PRIMARY KEY,
+  date VARCHAR(20) NOT NULL,
+  customer_name VARCHAR(100),
+  total_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+  paid_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+  status VARCHAR(50),
+  items TEXT,
+  installments TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

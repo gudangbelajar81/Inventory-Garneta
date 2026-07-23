@@ -10,9 +10,9 @@
     let scannerStream = null;
     let scannerActive = false;
     let invoiceStream = null;
-    let deferredInstallPrompt = null;
+    window.deferredInstallPrompt = null;
 
-    const rupiah = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value || 0));
+    const rupiah = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(String(value || 0).replace(/[^0-9-]/g, "")));
     const today = () => new Date().toISOString().slice(0, 10);
     const el = (id) => document.getElementById(id);
     const API_URL = window.location.protocol === "file:" ? "http://127.0.0.1:3000/api" : "/api";
@@ -54,17 +54,44 @@
       return result?.data !== undefined ? result.data : result;
     }
 
+    async function clearAuditLogs() {
+      if (!confirm("Yakin ingin menghapus semua log aktivitas?")) return;
+      try {
+        await gas("clearAuditLogs");
+        await load();
+        alert("Semua log aktivitas berhasil dihapus!");
+      } catch (err) {
+        alert("Gagal menghapus log: " + err.message);
+      }
+    }
+    window.clearAuditLogs = clearAuditLogs;
+
     async function load() {
       state.data = await gas("bootstrap");
       renderShell();
       render();
     }
 
+    function employees() { return state.data.employees || []; }
+    function cashAdvances() { return state.data.cashAdvances || []; }
+    function payrolls() { return state.data.payrolls || []; }
+
     function renderShell() {
-      el("nav").innerHTML = menus.map(([key, label]) => `<button data-route="${key}" class="${state.route === key ? "active" : ""}">${label}</button>`).join("");
-      el("nav").querySelectorAll("button").forEach((button) => {
-        button.onclick = () => {
-          state.route = button.dataset.route;
+      el("nav").innerHTML = menus.map(([key, label]) => {
+        const isActive = state.route === key ? "active" : "";
+        const iconMatch = label.match(/([\uD800-\uDBFF][\uDC00-\uDFFF]|\S)/);
+        const icon = iconMatch ? iconMatch[0] : "📌";
+        const text = label.replace(icon, "").trim();
+        return `<div class="neural-node ${isActive}" data-route="${key}">
+          <div class="node-glow"></div>
+          <div class="node-icon">${icon}</div>
+          <div class="node-label">${text}</div>
+        </div>`;
+      }).join("");
+      
+      el("nav").querySelectorAll(".neural-node").forEach((node) => {
+        node.onclick = () => {
+          state.route = node.dataset.route;
           renderShell();
           render();
         };
@@ -76,19 +103,468 @@
       applyBrandAssets();
     }
 
-    function render() {
+    
+      // Workspace state for Gaji page
+      window.gajiWorkspace = localStorage.getItem('gajiWorkspace') || 'karyawan';
+      
+      function switchGajiWorkspace(workspace) {
+        window.gajiWorkspace = workspace;
+        localStorage.setItem('gajiWorkspace', workspace);
+        render();
+      }
+      
+      function gaji() {
+  const activeEmpId = window.gajiActiveEmpId || null;
+  
+  if (!activeEmpId) {
+    // List Karyawan View
+    return `
+    <section class="workspace">
+      <div class="workspace-header">
+        <h2 class="workspace-title">👥 Data Karyawan & Gaji</h2>
+        <p class="subtitle">Pilih karyawan untuk mengelola profil, kasbon, dan penggajiannya.</p>
+        <button class="btn primary" onclick="editEmployee('')" style="margin-top:1rem;">+ Karyawan Baru</button>
+      </div>
+      <div class="workspace-content">
+        <div class="card">
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Nama</th><th>Tipe</th><th>Gaji Pokok</th><th>Total Kasbon Aktif</th></tr></thead>
+              <tbody>
+                ${employees().map(e => {
+                  const unpaidBons = cashAdvances().filter(c => c.employeeId == e.id && c.status === 'Belum Lunas');
+                  const totalBon = unpaidBons.reduce((sum, c) => sum + Number(c.amount), 0);
+                  return `<tr onclick="openEmployeeDashboard('${e.id}')" style="cursor:pointer; transition:all 0.3s ease;" onmouseover="this.style.background='rgba(0,255,204,0.05)'" onmouseout="this.style.background='transparent'">
+                    <td><strong style="color:var(--mint); text-decoration:underline; text-underline-offset:3px;">${escapeHtml(e.name)}</strong></td>
+                    <td>${e.salaryType}</td>
+                    <td>${rupiah(e.baseSalary)}</td>
+                    <td style="color: #f43f5e;">${totalBon > 0 ? rupiah(totalBon) : '-'}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>`;
+  }
+  
+  // Detail Karyawan View
+  const emp = employees().find(e => e.id == activeEmpId);
+  if (!emp) {
+    window.gajiActiveEmpId = null;
+    return gaji();
+  }
+  
+  const unpaidBons = cashAdvances().filter(c => c.employeeId == emp.id && c.status === 'Belum Lunas');
+  const totalBon = unpaidBons.reduce((sum, c) => sum + Number(c.amount), 0);
+  
+  setTimeout(bindGajiEvents, 100);
+  
+  return `
+  <section class="workspace">
+    <div class="workspace-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <button class="btn soft" onclick="openEmployeeDashboard(null)" style="margin-bottom:1rem;">&larr; Kembali ke Daftar Karyawan</button>
+        <h2 class="workspace-title">Dashboard: ${emp.name}</h2>
+        <p class="subtitle">Kelola profil, riwayat kasbon, dan proses penggajian.</p>
+      </div>
+    </div>
+    
+    <div class="workspace-content">
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); align-items: start;">
+        
+        <!-- Panel Kiri: Profil & Kasbon -->
+        <div>
+          <div class="card">
+            <h3>Profil Karyawan</h3>
+            <form id="form-employee" class="grid forms" style="grid-template-columns: 1fr;">
+              <input type="hidden" name="id" value="${emp.id}">
+              ${input("name", "Nama Karyawan", true, "text", emp.name)}
+              ${input("phone", "Nomor HP", false, "text", emp.phone || "")}
+              ${input("joinDate", "Tanggal Masuk", true, "date", emp.joinDate ? emp.joinDate.slice(0,10) : '')}
+              ${select("salaryType", "Tipe Gaji", ["Bulanan", "Harian"], emp.salaryType)}
+              ${input("baseSalary", "Gaji Pokok (Rp)", true, "text", "")}
+              <div class="form-actions" style="margin-top:1rem;">
+                <button type="submit" class="btn primary">Update Profil</button>
+                <button type="button" class="btn danger" onclick="hapusKaryawan('${emp.id}')">Hapus</button>
+              </div>
+            </form>
+          </div>
+          
+          <div class="card" style="margin-top:1rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3>Riwayat Kasbon</h3>
+              <button class="btn soft" onclick="tambahKasbon('${emp.id}')">+ Kasbon Baru</button>
+            </div>
+            
+            <form id="form-bon" class="grid forms" style="display:none; grid-template-columns: 1fr; background:var(--bg); padding:1rem; border-radius:8px; margin-top:1rem;">
+              <input type="hidden" name="id" value="">
+              <input type="hidden" name="employeeId" value="${emp.id}">
+              ${input("date", "Tanggal", true, "date", today())}
+              ${input("amount", "Nominal Kasbon (Rp)", true, "text")}
+              ${input("notes", "Keterangan", false, "text", "")}
+              <div class="form-actions">
+                <button type="submit" class="btn primary">Simpan Bon</button>
+                <button type="button" class="btn soft" onclick="document.getElementById('form-bon').style.display='none'">Batal</button>
+              </div>
+            </form>
+            
+            <div class="table-wrap" style="margin-top:1rem;">
+              <table class="table" style="font-size:0.9rem;">
+                <thead><tr><th>Tgl</th><th>Nominal</th><th>Ket</th><th style="text-align:right;">Aksi</th></tr></thead>
+                <tbody>
+                  ${unpaidBons.length === 0 ? '<tr><td colspan="4" class="text-center muted">Tidak ada utang kasbon</td></tr>' : ''}
+                  ${unpaidBons.map(c => `<tr>
+                    <td>${c.date ? escapeHtml(c.date.slice(0,10)) : ''}</td>
+                    <td style="color:#f43f5e;">${rupiah(c.amount)}</td>
+                    <td>${c.notes || '-'}</td>
+                    <td style="text-align:right;">
+                      <button class="btn soft" style="padding:4px 8px;font-size:0.8rem;margin-right:4px;" onclick="editBon('${c.id}')">✏️</button>
+                      <button class="btn soft" style="padding:4px 8px;font-size:0.8rem;" onclick="hapusBon('${c.id}')">❌</button>
+                    </td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+              <div style="margin-top:1rem; text-align:right; font-weight:bold; font-size:1.1rem;">
+                Total Kasbon: <span style="color:#f43f5e;">${rupiah(totalBon)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Panel Kanan: Hitung Gaji -->
+        <div>
+          <div class="card" style="border: 1px solid var(--primary); background: rgba(0, 240, 255, 0.02);">
+            <h3>💰 Hitung & Bayar Gaji</h3>
+            <form id="form-payroll" class="grid forms" style="grid-template-columns: 1fr;">
+              <input type="hidden" name="employeeId" value="${emp.id}">
+              <input type="hidden" name="totalBon" value="${totalBon}">
+              
+              <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                ${input("periodStart", "Periode Mulai (Tgl Masuk)", false, "date")}
+                ${input("periodEnd", "Periode Akhir (Hari Ini)", false, "date")}
+              </div>
+              <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                ${input("leaveDays", "Potong Libur (Hari)", false, "number", 0)}
+                <label>Hari Kerja Aktual<input name="attendanceDays" type="text" readonly style="background:var(--bg);font-weight:bold;"></label>
+              </div>
+              
+              <div style="background: var(--bg); padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                  <span>Gaji Pokok / Hitungan: <br><span id="payroll-basic-breakdown" style="font-size:0.8rem;opacity:0.7;"></span></span>
+                  <strong id="payroll-basic-salary" style="font-size:1.1rem;">Rp 0</strong>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items:center;">
+                  <span style="color: #f43f5e;">Bayar / Cicil Kasbon:</span>
+                  <div style="text-align:right; width: 50%;">
+                    <input type="text" name="cicilKasbon" id="payroll-cicil" class="number-format" oninput="formatNumberInput(this)" style="text-align:right; color:#f43f5e; font-weight:bold; width:100%;" placeholder="0">
+                    <div style="font-size:0.8rem; opacity:0.7; margin-top:4px;">Total Utang: ${rupiah(totalBon)}</div>
+                  </div>
+                </div>
+                
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 1rem 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 1.25rem;">
+                  <span>Gaji Bersih Diterima:</span>
+                  <strong id="payroll-net" style="color: #10b981;">Rp 0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-top:0.5rem;">
+                  <span>Sisa Bon Bulan Depan:</span>
+                  <strong id="payroll-sisa-bon" style="color: #f43f5e;">Rp 0</strong>
+                </div>
+              </div>
+              
+              ${input("notes", "Keterangan (Opsional)")}
+              
+              <label style="display:flex;align-items:center;gap:8px;margin-top:0.5rem;font-size:0.9rem;">
+                <input type="checkbox" name="resetJoinDate" checked style="width:auto;margin:0;"> 
+                Set "Tanggal Masuk" ke besok (Centang jika lanjut kerja)
+              </label>
+              
+              <div class="form-actions" style="margin-top: 1rem;">
+                <button type="submit" class="btn success" style="width:100%; font-size: 1.1rem; padding: 1rem;">Cairkan Gaji</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+
+window.openEmployeeDashboard = function(id) {
+  window.gajiActiveEmpId = id || null;
+  render();
+};
+
+window.tambahKasbon = function(empId) {
+  const f = document.getElementById('form-bon');
+  if(f) {
+    f.style.display = 'grid';
+    f.elements.id.value = '';
+    f.elements.amount.value = '';
+    f.elements.notes.value = '';
+    f.elements.date.value = today();
+    f.scrollIntoView();
+  }
+};
+
+window.editEmployee = function(id) {
+  if (!id) {
+     const name = prompt("Masukkan Nama Karyawan Baru:");
+     if (name) {
+        gas("add", { collection: "employees", id: null, item: { name: name, phone: "", joinDate: today(), salaryType: "Harian", baseSalary: 0, status: "Aktif" }})
+        .then(() => { alert("Berhasil ditambahkan. Silakan klik Kelola untuk melengkapi profil."); load(); })
+        .catch(e => alert(e.message));
+     }
+  }
+};
+
+window.hapusKaryawan = async function(id) {
+  if (!confirm("Yakin ingin menghapus data karyawan ini?")) return;
+  window.gajiActiveEmpId = null;
+  render();
+  try {
+    await gas("remove", { collection: "employees", id });
+    await load();
+  } catch(err) {
+    alert("Gagal menghapus karyawan: " + err.message);
+  }
+};
+
+window.editBon = function(id) {
+  const bon = cashAdvances().find(c => c.id == id);
+  if (bon) {
+    const f = document.getElementById('form-bon');
+    if (f) {
+      f.style.display = 'grid';
+      f.elements.id.value = bon.id;
+      f.elements.employeeId.value = bon.employeeId;
+      f.elements.date.value = bon.date ? bon.date.slice(0,10) : '';
+      f.elements.amount.value = formatInitialNumber(bon.amount);
+      f.elements.notes.value = bon.notes;
+      f.scrollIntoView();
+    }
+  }
+};
+
+window.hapusBon = async function(id) {
+  const removed = (state.data.cashAdvances || []).find(r => String(r.id) === String(id));
+  state.data.cashAdvances = (state.data.cashAdvances || []).filter(r => String(r.id) !== String(id));
+  render();
+  try {
+    await gas("remove", { collection: "cashAdvances", id });
+  } catch(err) {
+    if (removed) state.data.cashAdvances.push(removed);
+    render();
+    alert(err.message);
+  }
+};
+
+function bindGajiEvents() {
+  if (!window.gajiActiveEmpId) return;
+  const empId = window.gajiActiveEmpId;
+  const emp = employees().find(e => e.id == empId);
+  if (!emp) return;
+  
+  // Format initial values
+  const formEmp = document.getElementById("form-employee");
+  if (formEmp && formEmp.elements.baseSalary) {
+    formEmp.elements.baseSalary.value = formatInitialNumber(emp.baseSalary);
+    formEmp.elements.baseSalary.addEventListener("input", function() { formatNumberInput(this); });
+  }
+  
+  const formBon = document.getElementById("form-bon");
+  if (formBon && formBon.elements.amount) {
+    formBon.elements.amount.addEventListener("input", function() { formatNumberInput(this); });
+  }
+
+  // Employee Submit
+  if (formEmp) {
+    formEmp.onsubmit = async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const payload = {
+        name: form.elements.name.value,
+        phone: form.elements.phone.value,
+        joinDate: form.elements.joinDate.value,
+        salaryType: form.elements.salaryType.value,
+        baseSalary: plainNumber(form.elements.baseSalary.value),
+        status: 'Aktif'
+      };
+      const id = form.elements.id.value;
+      try {
+        await gas(id ? "update" : "add", { collection: "employees", id, item: payload });
+        alert("Profil Karyawan berhasil diperbarui");
+        await load();
+      } catch(err) { alert(err.message); }
+    };
+  }
+  
+  // Kasbon Submit
+  if (formBon) {
+    formBon.onsubmit = async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const payload = {
+        employeeId: form.elements.employeeId.value,
+        date: form.elements.date.value,
+        amount: plainNumber(form.elements.amount.value),
+        notes: form.elements.notes.value,
+        status: "Belum Lunas"
+      };
+      const id = form.elements.id.value;
+      try {
+        await gas(id ? "update" : "add", { collection: "cashAdvances", id, item: payload });
+        alert("Bon berhasil dicatat");
+        await load();
+      } catch(err) { alert(err.message); }
+    };
+  }
+  
+  // Payroll Logic
+  const pStart = document.getElementsByName("periodStart")[0];
+  const pEnd = document.getElementsByName("periodEnd")[0];
+  const pLeave = document.getElementsByName("leaveDays")[0];
+  const payrollDays = document.getElementsByName("attendanceDays")[0];
+  const cicilInput = document.getElementById("payroll-cicil");
+  
+  const unpaidBons = cashAdvances().filter(c => c.employeeId == empId && c.status === 'Belum Lunas');
+  const totalBon = unpaidBons.reduce((sum, c) => sum + Number(c.amount), 0);
+  
+  // Initialize start/end dates
+  if (pStart && !pStart.value && emp.joinDate) pStart.value = emp.joinDate.split('T')[0];
+  if (pEnd && !pEnd.value) pEnd.value = today();
+  
+  const calcPayroll = () => {
+      const fEmp = document.getElementById("form-employee");
+      let currentSalaryType = emp.salaryType;
+      let currentBaseSalary = emp.baseSalary;
+      if (fEmp) {
+         currentSalaryType = fEmp.elements.salaryType.value;
+         currentBaseSalary = plainNumber(fEmp.elements.baseSalary.value);
+      }
+
+      let actualDays = 0;
+      if (currentSalaryType === 'Harian') {
+        if (pStart && pEnd && pStart.value && pEnd.value) {
+          const d1 = new Date(pStart.value);
+          const d2 = new Date(pEnd.value);
+          const diffTime = d2 - d1;
+          const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24))) + 1;
+          const leave = Number(pLeave ? pLeave.value : 0) || 0;
+          actualDays = Math.max(0, diffDays - leave);
+        }
+        if(payrollDays) payrollDays.value = actualDays;
+      } else {
+        if(payrollDays) payrollDays.value = 1;
+        actualDays = 1;
+      }
+      
+      let basicCalc = 0;
+      let breakdownText = "";
+      if (currentSalaryType === 'Harian') {
+        const dailyRate = Math.round(currentBaseSalary / 30);
+        basicCalc = dailyRate * actualDays;
+        breakdownText = `(${rupiah(dailyRate)}/hr x ${actualDays}hr)`;
+      } else {
+        basicCalc = currentBaseSalary;
+        breakdownText = "(1 Bulan)";
+      }
+      
+      const cicil = plainNumber(cicilInput ? cicilInput.value : 0) || 0;
+      const net = basicCalc - cicil;
+      const sisaBon = Math.max(0, totalBon - cicil);
+      
+      const brkElement = document.getElementById("payroll-basic-breakdown");
+      if (brkElement) brkElement.innerText = breakdownText;
+      const basicEl = document.getElementById("payroll-basic-salary");
+      if (basicEl) basicEl.innerText = rupiah(basicCalc);
+      const netEl = document.getElementById("payroll-net");
+      if (netEl) netEl.innerText = rupiah(net);
+      const sisaEl = document.getElementById("payroll-sisa-bon");
+      if (sisaEl) sisaEl.innerText = rupiah(sisaBon);
+      
+      return basicCalc;
+    };
+    
+    // Auto-fill cicilan
+    if (cicilInput && !cicilInput.value) {
+       let basicCalc = calcPayroll();
+       let defaultCicil = Math.min(totalBon, basicCalc);
+       cicilInput.value = formatInitialNumber(defaultCicil);
+    }
+    
+    if (pStart) pStart.addEventListener("input", calcPayroll);
+    if (pEnd) pEnd.addEventListener("input", calcPayroll);
+    if (pLeave) pLeave.addEventListener("input", calcPayroll);
+    if (cicilInput) cicilInput.addEventListener("input", calcPayroll);
+    if (formEmp) {
+      formEmp.elements.salaryType.addEventListener("change", calcPayroll);
+      formEmp.elements.baseSalary.addEventListener("input", calcPayroll);
+    }
+  
+  calcPayroll(); // Run once
+  
+  // Submit Payroll
+  const formPayroll = document.getElementById("form-payroll");
+  if (formPayroll) {
+    formPayroll.onsubmit = async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      
+      let actualDays = Number(form.elements.attendanceDays.value || 0);
+      let basicCalc = emp.salaryType === 'Harian' ? (Math.round(emp.baseSalary / 30) * actualDays) : emp.baseSalary;
+      
+      const cicil = plainNumber(form.elements.cicilKasbon.value || 0);
+      if (cicil > totalBon) {
+        alert("Nominal cicilan tidak boleh lebih besar dari total utang kasbon!");
+        return;
+      }
+      
+      const net = basicCalc - cicil;
+      const bonIds = unpaidBons.map(c => c.id);
+      
+      if (!confirm(`Yakin bayar gaji ${emp.name} sejumlah ${rupiah(net)}?\nPotong Kasbon: ${rupiah(cicil)}`)) return;
+      
+      const payload = {
+        employeeId: empId,
+        periodStart: form.elements.periodStart.value,
+        periodEnd: form.elements.periodEnd.value,
+        attendanceDays: actualDays,
+        basicSalaryCalculated: basicCalc,
+        totalDeductionBon: cicil, // the actual deduction amount
+        netSalary: net,
+        notes: form.elements.notes.value,
+        resetJoinDate: form.elements.resetJoinDate.checked,
+        bonIds: bonIds, // we pass all active bon IDs to be cleared
+        sisaBonBaru: Math.max(0, totalBon - cicil) // tell server to create new bon
+      };
+      
+      try {
+        await gas("add", { collection: "payrolls", id: null, item: payload });
+        alert("Gaji berhasil dibayarkan!");
+        await load();
+      } catch(err) { alert(err.message); }
+    };
+  }
+}
+
+
+        function render() {
       const label = menus.find(([key]) => key === state.route)?.[1] || "Dashboard";
       el("page-title").textContent = label;
       if (["laporan", "statistik", "audit", "users"].includes(state.route) && state.role !== "Super Admin") {
         el("content").innerHTML = `<div class="card"><h2>Akses dibatasi</h2><p class="muted">Menu ini hanya bisa diakses Super Admin.</p></div>`;
         return;
       }
-      const views = { dashboard, "neural-hub": neuralHub, barang, pembelian, ngitung, kalkulator, penjualan, laporan, statistik, audit, users, settings };
-      el("content").innerHTML = views[state.route]();
+      const views = { dashboard, "neural-hub": GARNETA STORE, barang, supplier, pembelian, ngitung, kalkulator, penjualan, laporan, statistik, audit, users, gaji, settings };
+      el("content").innerHTML = views[state.route] ? views[state.route]() : `<div class="card"><h2>Menu tidak ditemukan</h2><p class="muted">Route: ${state.route}</p></div>`;
       bindForms();
     }
 
-    function neuralHub() {
+    function GARNETA STORE() {
     // Modul untuk Admin (hanya 4 + pembelian)
     const adminModules = [
       { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
@@ -141,8 +617,8 @@
     function dashboard() {
       // Initialize Neural Hub Dashboard
       setTimeout(function() {
-        if (window.NeuralHub) {
-          window.NeuralHub.init();
+        if (window.GARNETA STORE) {
+          window.GARNETA STORE.init();
         }
       }, 100);
       
@@ -204,7 +680,8 @@
       // Admin: hanya search & form. Super Admin: semua tab
       const adminWorkspaces = [
         { id: 'search', icon: '🔍', label: 'Cari' },
-        { id: 'form', icon: '➕', label: 'Form' }
+        { id: 'form', icon: '➕', label: 'Form' },
+        { id: 'list', icon: '📋', label: 'Daftar' }
       ];
 
       const superAdminWorkspaces = [
@@ -460,24 +937,29 @@ Minyak Goreng 3 45000"></textarea>
       let total = 0;
       
       window.ngitungRows.forEach((row, index) => {
-        const qty = Number(row.qty) || 1;
-        const price = Number(row.price) || 0;
+        const qty = Number(String(row.qty).replace(/[^0-9-.]/g, '')) || 1;
+        const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
         const amount = row.price ? price * qty : 0;
         total += amount;
         
+        const val = escapeAttr(row.rawInput !== undefined ? row.rawInput : (row.name ? `${row.name} ${row.price || ''} ${row.qty !== 1 ? row.qty : ''}`.trim() : ''));
+        
         html += `
           <tr>
-            <td><input type="text" value="${escapeAttr(row.name)}" onchange="ngitungUpdateRow(this, ${row.id}, 'name')" list="ngitung-history-list" placeholder="Ketik nama..." style="width: 100%;"></td>
-            <td><input type="number" value="${row.price}" onchange="ngitungUpdateRow(this, ${row.id}, 'price')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="Harga" style="width: 100px;"></td>
-            <td><input type="number" value="${row.qty}" onchange="ngitungUpdateRow(this, ${row.id}, 'qty')" oninput="ngitungCalcRow(this, ${row.id})" placeholder="1" style="width: 60px;"></td>
-            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 120px;">${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount)}</td>
+            <td colspan="3">
+              <div style="display:flex; gap:8px;">
+                <input type="text" value="${val}" oninput="ngitungParseAndUpdate(this, ${row.id})" onchange="ngitungFocusNext(this, ${row.id})" placeholder="Cth: terong 3000 5 (Nama Harga Banyak)" style="flex:1; font-size: 1.4rem; font-weight: bold; padding: 16px; border-radius: 12px; border: 2px solid rgba(0,255,204,0.3); background: rgba(0,0,0,0.4); text-transform: uppercase;">
+                
+              </div>
+            </td>
+            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 140px; font-size: 1.1rem;">${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount)}</td>
             <td style="width: 50px;"><button class="btn danger" onclick="ngitungRemoveRow(${row.id})" ${window.ngitungRows.length === 1 ? 'disabled' : ''}>X</button></td>
           </tr>
         `;
       });
       
       tbody.innerHTML = html;
-      document.getElementById('ngitung-total').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(total);
+      document.getElementById('ngitung-total').innerText = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(total);
       
       const datalist = document.getElementById('ngitung-history-list');
       if (datalist) {
@@ -485,65 +967,104 @@ Minyak Goreng 3 45000"></textarea>
       }
     };
 
-    window.ngitungCalcRow = function(inputEl, id) {
+    window.ngitungParseAndUpdate = function(el, id) {
+      const val = el.value;
       const row = window.ngitungRows.find(r => r.id === id);
       if (!row) return;
-      const tr = inputEl.closest('tr');
-      const priceInput = tr.querySelector('td:nth-child(2) input');
-      const qtyInput = tr.querySelector('td:nth-child(3) input');
+      row.rawInput = val;
       
-      const p = Number(priceInput.value) || 0;
-      const q = Number(qtyInput.value) || 1;
-      const amt = priceInput.value ? p * q : 0;
+      // AUTO-ADD ROW (Smart POS)
+      if (!row.hasTriggeredAutoAdd && val.trim().length === 1 && window.ngitungRows[window.ngitungRows.length - 1].id === id) { window.ngitungAddRow(); row.hasTriggeredAutoAdd = true; }
       
-      tr.querySelector('.row-amount').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amt);
+      const cleanVal = val.trim();
+      let name = cleanVal;
+      let price = 0;
+      let qty = 1;
       
-      let sum = 0;
-      document.querySelectorAll('#ngitung-tbody tr').forEach(tr => {
-         const p2 = Number(tr.querySelector('td:nth-child(2) input').value) || 0;
-         const q2 = Number(tr.querySelector('td:nth-child(3) input').value) || 1;
-         sum += (tr.querySelector('td:nth-child(2) input').value ? p2 * q2 : 0);
-      });
-      document.getElementById('ngitung-total').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(sum);
-    };
-
-    window.ngitungUpdateRow = function(inputEl, id, field) {
-      const row = window.ngitungRows.find(r => r.id === id);
-      if (!row) return;
-      
-      if (field === 'name') {
-        const titleCased = inputEl.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-        inputEl.value = titleCased;
-        row[field] = titleCased;
+      const match2 = cleanVal.match(/^(.*?)\s+(\d+)\s+([\d.,]+)$/);
+      if (match2) {
+        name = match2[1].trim();
+        price = Number(match2[2]);
+        qty = parseFloat(match2[3].replace(',', '.'));
       } else {
-        row[field] = inputEl.value;
+        const match1 = cleanVal.match(/^(.*?)\s+(\d+)$/);
+        if (match1) {
+          name = match1[1].trim();
+          price = Number(match1[2]);
+          qty = 1;
+        }
       }
       
-      if (field === 'name' && inputEl.value.trim().length > 1) {
-         const cleanVal = inputEl.value.trim();
-         if (!window.ngitungHistory.includes(cleanVal)) {
-           window.ngitungHistory.push(cleanVal);
-           if (window.ngitungHistory.length > 100) window.ngitungHistory.shift();
-           gas('setSetting', { key: 'ngitungHistory', value: JSON.stringify(window.ngitungHistory) });
-           
-           const datalist = document.getElementById('ngitung-history-list');
-           if (datalist) {
-             datalist.innerHTML = window.ngitungHistory.map(name => `<option value="${escapeAttr(name)}">`).join('');
-           }
-         }
+      name = name.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+      row.name = name;
+      row.price = price;
+      row.qty = qty;
+      
+      const amount = (price || 0) * (qty || 1);
+      const tr = el.closest('tr');
+      if (tr) {
+        tr.querySelector('.row-amount').innerText = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount);
       }
       
       const isLastRow = window.ngitungRows[window.ngitungRows.length - 1].id === id;
-      if (isLastRow && row.name && row.price) {
+      if (isLastRow && cleanVal.length > 0) {
         window.ngitungAddRow();
-      } else {
-        window.ngitungRenderTable();
+        if (tr) {
+           const btn = tr.querySelector('.btn.danger');
+           if (btn) btn.disabled = false;
+        }
+      }
+      
+      let sum = 0;
+      window.ngitungRows.forEach(r => {
+         sum += (r.price || 0) * (r.qty || 1);
+      });
+      const totalEl = document.getElementById('ngitung-total');
+      if (totalEl) totalEl.innerText = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(sum);
+    };
+
+    window.ngitungFocusNext = function(el, id) {
+      const row = window.ngitungRows.find(r => r.id === id);
+      if (!row || !row.name || !row.price) return;
+      
+      if (row.name.trim().length > 1) {
+         if (!window.ngitungHistory.includes(row.name)) {
+           window.ngitungHistory.push(row.name);
+           if (window.ngitungHistory.length > 100) window.ngitungHistory.shift();
+           gas('setSetting', { key: 'ngitungHistory', value: JSON.stringify(window.ngitungHistory) });
+           const datalist = document.getElementById('ngitung-history-list');
+           if (datalist) datalist.innerHTML = window.ngitungHistory.map(n => `<option value="${escapeAttr(n)}">`).join('');
+         }
+      }
+      
+      // Focus the next row's input
+      const tr = el.closest('tr');
+      if (tr && tr.nextElementSibling) {
+         const nextInput = tr.nextElementSibling.querySelector('input[type="text"]');
+         if (nextInput) nextInput.focus();
       }
     };
 
+
+
     window.ngitungAddRow = function() {
-      window.ngitungRows.push({ id: Date.now(), name: '', price: '', qty: '' });
-      window.ngitungRenderTable();
+      const newId = Date.now();
+      window.ngitungRows.push({ id: newId, name: '', price: '', qty: '' });
+      const tbody = document.getElementById('ngitung-tbody');
+      if (tbody) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td colspan="3">
+              <div style="display:flex; gap:8px;">
+                <input type="text" value="" oninput="ngitungParseAndUpdate(this, ${newId})" onchange="ngitungFocusNext(this, ${newId})" placeholder="Cth: terong 3000 5 (Nama Harga Banyak)" style="flex:1; font-size: 1.4rem; font-weight: bold; padding: 16px; border-radius: 12px; border: 2px solid rgba(0,255,204,0.3); background: rgba(0,0,0,0.4); text-transform: uppercase;">
+                
+              </div>
+            </td>
+            <td class="row-amount" style="vertical-align: middle; font-weight: bold; width: 140px; font-size: 1.1rem;">Rp 0</td>
+            <td style="width: 50px;"><button class="btn danger" onclick="ngitungRemoveRow(${newId})">X</button></td>
+        `;
+        tbody.appendChild(tr);
+      }
     };
 
     window.ngitungRemoveRow = function(id) {
@@ -553,47 +1074,84 @@ Minyak Goreng 3 45000"></textarea>
     };
 
     window.ngitungPrintBluetooth = async function() {
-      try {
-        const device = await navigator.bluetooth.requestDevice({
-          filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
-          optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
-        }).catch(e => {
-          return navigator.bluetooth.requestDevice({
+        try {
+          const device = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
-            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+            optionalServices: [
+              '000018f0-0000-1000-8000-00805f9b34fb',
+              'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+              '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+              '000018f0-0000-1000-8000-00805f9b34fb'.replace('18f0', '18f0') // standard
+            ]
           });
-        });
-
-        const server = await device.gatt.connect();
-        const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-        const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
-
-        let encoder = new TextEncoder();
-        let data = [
-          0x1b, 0x40, // init
-          ...encoder.encode('=== AVELZA GROUP ===\\n'),
-          ...encoder.encode('Tgl: ' + new Date().toLocaleString('id-ID') + '\\n'),
-          ...encoder.encode('--------------------------------\\n')
-        ];
-        
-        let total = 0;
-        window.ngitungRows.forEach(row => {
-          if (!row.name && !row.price) return;
-          const qty = Number(row.qty) || 1;
-          const price = Number(row.price) || 0;
-          const amount = row.price ? price * qty : 0;
-          total += amount;
+  
+          const server = await device.gatt.connect();
           
-          data.push(...encoder.encode(row.name + '\\n'));
-          data.push(...encoder.encode(qty + ' x ' + price + ' = ' + amount + '\\n'));
-        });
-        
-        data.push(...encoder.encode('--------------------------------\\n'));
-        data.push(...encoder.encode('TOTAL: ' + total + '\\n\\n\\n\\n'));
+          let service, characteristic;
+          const serviceUUIDs = [
+              { svc: '000018f0-0000-1000-8000-00805f9b34fb', char: '00002af1-0000-1000-8000-00805f9b34fb' }, // Standard
+              { svc: '49535343-fe7d-4ae5-8fa9-9fafd205e455', char: '49535343-8841-43f4-a8d4-ecbe34729bb3' }, // Printer China generic
+              { svc: 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', char: 'bef8d6c9-9c21-4c9e-b632-bd58c1009f9f' }  // Epson/Star
+          ];
+
+          for (const s of serviceUUIDs) {
+              try {
+                  service = await server.getPrimaryService(s.svc);
+                  characteristic = await service.getCharacteristic(s.char);
+                  if (characteristic) break;
+              } catch(e) { }
+          }
+          
+          if (!characteristic) throw new Error("Sistem mengenali perangkat Bluetooth, tapi tidak menemukan service Print. Pastikan ini adalah Printer Thermal.");
+          let encoder = new TextEncoder();
+        const formatRibuan = (num) => new Intl.NumberFormat('id-ID').format(Number(String(num).replace(/[^0-9-]/g, '')) || 0);
+          const formatLine = (left, right) => {
+            const leftStr = String(left);
+            const rightStr = formatRibuan(right);
+            let spaceCount = 32 - leftStr.length - rightStr.length;
+            if (spaceCount < 1) spaceCount = 1;
+            return leftStr + ' '.repeat(spaceCount) + rightStr + '\n';
+          };
+
+          let data = [
+            0x1b, 0x40, // init
+            0x1b, 0x61, 0x01, // Center align
+            0x1d, 0x21, 0x11, // Double size
+            ...encoder.encode('Toko GARNETA STORE\n'),
+            0x1d, 0x21, 0x00, // Normal size
+            ...encoder.encode('085123871118\n\n'),
+            0x1b, 0x61, 0x00, // Left align
+            ...encoder.encode('Tgl: ' + new Date().toLocaleString('id-ID') + '\n'),
+            ...encoder.encode('--------------------------------\n')
+          ];
+          
+          let total = 0;
+          window.ngitungRows.forEach(row => {
+            if (!row.name && !row.price) return;
+            const qty = Number(String(row.qty).replace(/[^0-9-.]/g, '')) || 1;
+            const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
+            const amount = row.price ? price * qty : 0;
+            total += amount;
+            
+            data.push(...encoder.encode(row.name + '\n'));
+            data.push(...encoder.encode(formatLine(qty + " x " + formatRibuan(price), amount)));
+          });
+          
+          data.push(...encoder.encode('--------------------------------\n'));
+          data.push(...encoder.encode(formatLine('TOTAL:', total) + '\n'));
+          data.push(0x1b, 0x61, 0x01); // Center align
+          data.push(...encoder.encode('\nTerima kasih atas\n'));
+          data.push(...encoder.encode('kunjungan Anda!\n\n\n'));
+          data.push(0x1b, 0x61, 0x00); // Left align
         
         let buffer = new Uint8Array(data);
         for (let i = 0; i < buffer.length; i += 512) {
           await characteristic.writeValue(buffer.slice(i, i + 512));
+        }
+        
+        // Putuskan koneksi agar HP lain bisa gantian ngeprint
+        if (device.gatt.connected) {
+          device.gatt.disconnect();
         }
         
         alert("Berhasil mencetak!");
@@ -603,19 +1161,110 @@ Minyak Goreng 3 45000"></textarea>
       }
     };
 
-    function ngitung() {
+    
+      window.ngitungPrintUSB = function() {
+        if (window.ngitungRows.length <= 1) {
+            alert("Belum ada data belanjaan!");
+            return;
+        }
+
+        let total = 0;
+        let itemsHtml = window.ngitungRows.map(row => {
+          if (!row.name && !row.price) return '';
+          const qty = Number(String(row.qty).replace(/[^0-9-.]/g, '')) || 1;
+          const price = Number(String(row.price).replace(/[^0-9-]/g, '')) || 0;
+          const amount = row.price ? price * qty : 0;
+          total += amount;
+          return `
+            <div class="item-row">
+              <div class="item-name">${row.name}</div>
+              <div class="item-details">
+                <span>${qty} x ${rupiah(price)}</span>
+                <span>${rupiah(amount)}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        const receiptHtml = `
+          <html>
+            <head>
+              <title>Cetak Struk</title>
+              <style>
+                @page { margin: 0; }
+                body {
+                  font-family: Arial, Helvetica, sans-serif; /* Font sans-serif jauh lebih jelas untuk printer thermal */
+                  width: 44mm; /* Dipersempit agar tidak terpotong di margin kanan kertas 57mm */
+                  margin: 0; /* Rata kiri */
+                  padding: 0 4mm 0 0; /* Tarik teks dari kanan sedikit */
+                  box-sizing: border-box;
+                  font-size: 13px;
+                  font-weight: 600; /* Ditebalkan agar tidak putus-putus */
+                  color: #000000 !important; /* Wajib hitam pekat */
+                  background: #fff;
+                  line-height: 1.3;
+                }
+                .header { text-align: center; margin-bottom: 15px; }
+                .header h2 { margin: 0 0 5px 0; font-size: 18px; font-weight: 900; color: #000000 !important; }
+                .header div { font-weight: bold; color: #000000 !important; font-size: 12px; }
+                .divider { border-top: 2px dashed #000000; margin: 10px 0; }
+                .item-row { margin-bottom: 6px; }
+                .item-name { font-weight: 900; font-size: 14px; color: #000000 !important; }
+                .item-details { display: flex; justify-content: space-between; font-weight: bold; color: #000000 !important; }
+                .total-section { display: flex; justify-content: space-between; font-weight: 900; font-size: 16px; margin-top: 10px; color: #000000 !important; }
+                .footer { text-align: center; margin-top: 20px; font-size: 12px; font-weight: bold; color: #000000 !important; }
+                * { color: #000000 !important; } /* Paksa semua elemen menjadi hitam pekat */
+                    </style>
+              
+
+</head>
+            <body>
+              <div class="header">
+                <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 2px;">Toko GARNETA STORE</h2>
+                <div style="font-size: 14px; margin-bottom: 5px;">085123871118</div>
+                <div>${new Date().toLocaleString('id-ID')}</div>
+              </div>
+              <div class="divider"></div>
+              ${itemsHtml}
+              <div class="divider"></div>
+              <div class="total-section">
+                <span>TOTAL</span>
+                <span>${rupiah(total)}</span>
+              </div>
+              <div class="footer">
+                Terima kasih atas<br>kunjungan Anda!
+              </div>
+              <script>
+                window.onload = function() {
+                  window.print();
+                  setTimeout(() => window.close(), 500);
+                };
+              <\/script>
+            </body>
+          </html>
+        `;
+
+        const printWindow = window.open("", "_blank", "width=300,height=500");
+        printWindow.document.write(receiptHtml);
+        printWindow.document.close();
+      };
+
+      window.ngitungClearAll = function() {
+        window.ngitungRows = [{ id: Date.now(), name: '', price: '', qty: '' }];
+        window.ngitungRenderTable();
+      };
+
+      function ngitung() {
       setTimeout(() => window.ngitungRenderTable(), 50);
       return `
         <div class="card" style="max-width: 800px; margin: 2rem auto;">
-          <h2>🧮 NGITUNG (Kasir Cepat)</h2>
+          <h2 class="hidden-on-mobile">🧮 NGITUNG (Kasir Cepat)</h2>
           <p class="muted">Ketik nama barang (otomatis tersimpan). Isi harga, baris baru otomatis bertambah.</p>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Nama Barang</th>
-                  <th>Harga</th>
-                  <th>Banyak</th>
+                  <th colspan="3">Data Barang</th>
                   <th>Jumlah</th>
                   <th>Aksi</th>
                 </tr>
@@ -631,10 +1280,14 @@ Minyak Goreng 3 45000"></textarea>
               </tfoot>
             </table>
           </div>
-          <div class="actions" style="margin-top: 20px; display: flex; justify-content: space-between;">
-            <button class="btn soft" onclick="ngitungAddRow()">➕ Tambah Baris</button>
-            <button class="btn primary" onclick="ngitungPrintBluetooth()">🖨️ Cetak Bluetooth</button>
-          </div>
+          
+            <div class="actions" style="margin-top: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn danger" onclick="ngitungClearAll()" style="background: var(--red);">🗑️ Hapus Semua</button>
+                <button class="btn soft" onclick="ngitungPrintBluetooth()" style="background: var(--GARNETA STORE-cyan); color: #000; font-weight: bold;">🖨️ Cetak Bluetooth</button>
+              </div>
+            </div>
           <datalist id="ngitung-history-list"></datalist>
         </div>
       `;
@@ -733,11 +1386,11 @@ Beras Premium 1"></textarea>
     
     function penjualan() {
       const workspaces = [
-        { id: 'form', icon: '➕', label: 'Form' },
-        { id: 'list', icon: '📋', label: 'Daftar' }
+        { id: 'pos', icon: '🛒', label: 'Mesin Kasir (POS)' },
+        { id: 'list', icon: '📅', label: 'Riwayat Transaksi' }
       ];
       
-      const activeWorkspace = window.penjualanWorkspace || 'list';
+      const activeWorkspace = window.penjualanWorkspace || 'pos';
       
       const toolbar = `<div class="workspace-toolbar">
         ${workspaces.map(ws => `
@@ -750,23 +1403,29 @@ Beras Premium 1"></textarea>
       </div>`;
       
       let workspaceContent = '';
-      switch(activeWorkspace) {
-        case 'form':
-          workspaceContent = `<div class="workspace-content">
-            <div class="card">
-              <h3>📝 Form Penjualan</h3>
-              ${saleForm()}
+      if (activeWorkspace === 'pos') {
+        const rows = posRows();
+        const totalCuan = rows.reduce((acc, row) => acc + Number(row.cuan || 0), 0);
+        workspaceContent = `<div class="workspace-content">
+          <div class="card">
+            <h3>🛒 Mesin Kasir (POS)</h3>
+            ${saleForm()}
+          </div>
+          <div class="card">
+            <h3>Keranjang Penjualan${isSuperAdmin() ? ` - Total Cuan: <span style="color:#10b981;">${rupiah(totalCuan)}</span>` : ''}</h3>
+            ${posTable(rows)}
+            <div class="actions" style="margin-top: 1rem;">
+              <button class="btn success" id="save-pos" style="width:100%; padding: 1rem; font-size: 1.1rem; font-weight: bold;">Simpan Semua Transaksi</button>
             </div>
-          </div>`;
-          break;
-        case 'list':
-        default:
-          workspaceContent = `<div class="workspace-content">
-            <div class="card">
-              <h3>📋 Daftar Penjualan (${state.data.sales?.length || 0})</h3>
-              ${saleRows()}
-            </div>
-          </div>`;
+          </div>
+        </div>`;
+      } else {
+        workspaceContent = `<div class="workspace-content">
+          <div class="card">
+            <h3>Riwayat Penjualan</h3>
+            ${saleRows()}
+          </div>
+        </div>`;
       }
       
       return `<section class="barang-workspace">
@@ -777,11 +1436,101 @@ Beras Premium 1"></textarea>
 
     function laporan() {
       const rows = dailySales();
+      
+      // Hitung total bulan ini
+      const now = new Date();
+      const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM
+      const monthlyProfit = rows
+        .filter(row => row.date.startsWith(currentMonth))
+        .reduce((sum, row) => sum + row.profit, 0);
+
+      // Render Expandable Table
+      const tableHTML = `<div class="table-wrap">
+        <table class="expandable-table">
+          <thead>
+            <tr>
+              <th style="width:50px"></th>
+              <th>TANGGAL</th>
+              <th style="text-align:right">KEUNTUNGAN</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((row, i) => `
+              <tr class="expandable-row" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.arrow').classList.toggle('open');">
+                <td style="text-align:center"><span class="arrow" style="display:inline-block; transition:transform 0.2s;">▼</span></td>
+                <td style="font-weight:bold">${row.date}</td>
+                <td style="text-align:right; font-weight:bold; color:${row.profit >= 0 ? '#10b981' : '#f43f5e'}">${rupiah(row.profit)}</td>
+              </tr>
+              <tr class="details-row hidden" style="background:var(--bg); border-bottom:2px solid var(--border);">
+                <td colspan="3" style="padding:1rem;">
+                  <table style="width:100%; margin:0; background:var(--card); box-shadow:none; border:1px solid var(--border);">
+                    <thead>
+                      <tr>
+                        <th style="font-size:0.8rem; padding:0.5rem">Jam</th>
+                        <th style="font-size:0.8rem; padding:0.5rem">Barang</th>
+                        <th style="font-size:0.8rem; padding:0.5rem">Unit</th>
+                        ${isSuperAdmin() ? '<th style="font-size:0.8rem; padding:0.5rem; text-align:right">Cuan</th>' : ''}
+                        <th style="font-size:0.8rem; padding:0.5rem; text-align:center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${row.items.map(item => `
+                        <tr>
+                          <td style="font-size:0.9rem; padding:0.5rem">${new Date(item.date).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}</td>
+                          <td style="font-size:0.9rem; padding:0.5rem">${escapeAttr(item.productName)}</td>
+                          <td style="font-size:0.9rem; padding:0.5rem">${item.unitSold}</td>
+                          ${isSuperAdmin() ? `<td style="font-size:0.9rem; padding:0.5rem; text-align:right; color:${item.cuan >= 0 ? '#10b981' : '#f43f5e'}">${rupiah(item.cuan)}</td>` : ''}
+                          <td style="font-size:0.9rem; padding:0.5rem; text-align:center">
+                            <button class="btn danger small" onclick="deleteSale('${item.id}')" style="padding:0.25rem 0.5rem; font-size:0.8rem">Hapus</button>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
       return `<section class="grid">
-        <div class="card"><h2>Laporan Penjualan Harian</h2>${simpleTable(rows, ["date", "profit"], ["Tanggal", "Keuntungan"])}</div>
-        <div class="card"><h2>Grafik Keuntungan</h2>${barChart(rows.map((row) => row.profit))}</div>
+        <div class="card" style="grid-column: 1 / -1; background: linear-gradient(135deg, #1e293b, #0f172a); border-left: 4px solid #10b981;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <h3 style="margin:0; color:var(--text-muted); font-size:1rem;">Total Keuntungan Bulan Ini</h3>
+              <p style="margin:0; font-size:0.9rem; color:var(--text-muted);">Periode: ${new Date().toLocaleDateString('id-ID', {month:'long', year:'numeric'})}</p>
+            </div>
+            <h2 style="margin:0; color:#10b981; font-size:2rem;">${rupiah(monthlyProfit)}</h2>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h2>Laporan Penjualan Harian</h2>
+          ${tableHTML}
+        </div>
+        
+        <div class="card">
+          <h2>Grafik Keuntungan (30 Hari Terakhir)</h2>
+          ${barChart(rows.slice(0, 30).reverse().map((row) => row.profit))}
+        </div>
       </section>`;
     }
+    
+    // Attach global delete function for sale
+    window.deleteSale = async function(id) {
+      const removed = (state.data.sales || []).find(r => String(r.id) === String(id));
+      state.data.sales = (state.data.sales || []).filter(r => String(r.id) !== String(id));
+      render();
+      try {
+        await gas("remove", { collection: "sales", id });
+      } catch (err) {
+        if (removed) state.data.sales.push(removed);
+        render();
+        alert("Gagal menghapus: " + err.message);
+      }
+    };
+    
 
     function statistik() {
       const productId = localStorage.getItem("statsProductId") || "";
@@ -815,7 +1564,13 @@ Beras Premium 1"></textarea>
 
     function audit() {
       return `<section class="grid">
-        <div class="card"><h2>Audit Log</h2><p class="muted">Riwayat tambah, edit, hapus, backup, dan restore.</p></div>
+        <div class="card">
+          <h2 style="display:flex; justify-content:space-between; align-items:center;">
+            Audit Log
+            <button class="btn danger" onclick="clearAuditLogs()">🗑 Hapus Log</button>
+          </h2>
+          <p class="muted">Riwayat tambah, edit, hapus, backup, dan restore.</p>
+        </div>
         <div class="card">${simpleTable(state.data.auditLogs || [], ["createdAt", "user", "message"], ["Tanggal", "User", "Aktivitas"])}</div>
       </section>`;
     }
@@ -832,7 +1587,7 @@ Beras Premium 1"></textarea>
         warna: ["Warna Tampilan", "Racik warna dashboard, sidebar, topbar, dan halaman agar tidak membosankan."],
         logo: ["Logo & Watermark", "Atur logo, gambar transparan halaman, teks watermark, dan transparansinya."],
         backup: ["Backup & Export", "Export Excel/PDF, backup database ke JSON, atau restore dari file backup."],
-        install: ["Install di HP", "Pasang GARNETA SYSTEM ke layar utama HP seperti aplikasi native."]
+        install: ["Install di HP", "Pasang GARNETA STORE ke layar utama HP seperti aplikasi native."]
       };
       const [title, description] = titles[tab] || titles.api;
       return `<section class="settings-page">
@@ -881,11 +1636,13 @@ Beras Premium 1"></textarea>
             <form id="api-key-form" class="grid forms" onsubmit="event.preventDefault(); window.saveOmniApiKey && window.saveOmniApiKey()">
               <input type="hidden" id="api-key-id">
               <label>Provider AI
-                <select id="api-key-provider" required onchange="document.getElementById('api-key-url').value = this.value === 'OpenAI' ? 'https://api.openai.com/v1' : (this.value === 'Gemini' ? 'https://generativelanguage.googleapis.com' : (this.value === 'Groq' ? 'https://api.groq.com/openai/v1' : ''))">
+                <select id="api-key-provider" required onchange="document.getElementById('api-key-url').value = this.value === 'OpenAI' ? 'https://api.openai.com/v1' : (this.value === 'Gemini' ? 'https://generativelanguage.googleapis.com' : (this.value === 'Groq' ? 'https://api.groq.com/openai/v1' : (this.value === 'DeepSeek' ? 'https://api.deepseek.com' : (this.value === 'Kie' ? 'https://api.kie.ai/codex/v1/responses' : ''))))">
                   <option value="">-- Pilih Provider --</option>
                   <option value="OpenAI">OpenAI</option>
                   <option value="Gemini">Gemini</option>
                   <option value="Groq">Groq</option>
+                  <option value="DeepSeek">DeepSeek</option>
+                  <option value="Kie">Kie AI (OpenAI Compatible)</option>
                   <option value="GoAPI">GoAPI</option>
                   <option value="Custom">Custom / Lainnya</option>
                 </select>
@@ -970,7 +1727,7 @@ Beras Premium 1"></textarea>
             </div>
           </label>
           <label>Teks Watermark Manual
-            <input id="watermark-text" placeholder="Contoh: GARNETA SYSTEM">
+            <input id="watermark-text" placeholder="Contoh: GARNETA STORE">
           </label>
           <label>Ukuran Teks Watermark
             <div class="range-row">
@@ -1128,22 +1885,66 @@ Beras Premium 1"></textarea>
       return `<div class="card"><div class="muted">${label}</div><h2>${value ?? 0}</h2></div>`;
     }
 
+    function supplier() {
+      return crudView("suppliers", "Data Supplier", supplierForm(), supplierRows());
+    }
+
+    function supplierForm() {
+      return `<form data-form="suppliers" class="grid forms">
+        ${hiddenId()}
+        ${input("name", "Nama Supplier", true)}
+        ${input("phone", "No Telepon / WhatsApp", false, "text", "", "Contoh: 0812... (Otomatis dapat link WA)")}
+        ${input("address", "Alamat (Opsional)")}
+        ${input("notes", "Keterangan (Opsional)")}
+        ${formButtons()}
+      </form>`;
+    }
+
+    function supplierRows() {
+      const keys = ["name", "phone", "address", "notes"];
+      const labels = ["Nama Supplier", "No Telepon / WhatsApp", "Alamat", "Keterangan"];
+      const formatter = (key, val) => {
+        if (key === "phone" && val) {
+          const waLink = `https://wa.me/${String(val).replace(/^0/, '62').replace(/\\D/g, '')}`;
+          return `${escapeHtml(val)} <br> <a href="${waLink}" target="_blank" class="btn soft" style="padding:4px 8px;font-size:12px;background:#10b981;color:#fff;margin-top:4px;display:inline-block;">WhatsApp</a>`;
+        }
+        return escapeHtml(val || "-");
+      };
+      return actionTable("suppliers", state.data.suppliers || [], keys, labels, formatter);
+    }
+
     function productForm() {
       const cats = [...new Set((state?.data?.products || []).map(p => p.category).filter(Boolean))];
       return `<form data-form="products" class="grid forms">
         ${hiddenId()}
-        <label>Kategori Barang<input name="category" type="text" list="category-list">
-          <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
-        </label>
-        ${input("name", "Nama Barang", true)}
-        ${select("unit", "Unit Grosir (Karton/Dus)", ["sak", "karton/dus", "jligen", "kg", "ball", "pcs", "pack"])}
-        ${select("unitEcer", "Unit Eceran", ["pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol"])}
-        ${input("unitContent", "Isi/Unit", false, "number")}
-        ${input("basePrice", "Harga Dasar", false, "number")}
-        ${input("basePriceEcer", "Harga Dasar/Pcs", false, "number")}
-        ${input("salePrice", "Harga Jual/Unit", false, "number")}
-        ${input("stock", "Stok", false, "number")}
-        ${input("barcode", "Barcode / Kode Scanner")}
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+          <label>Kategori Barang<input name="category" type="text" list="category-list">
+            <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
+          </label>
+          ${input("name", "Nama Barang", true)}
+        </div>
+        
+        <div style="display:grid; grid-template-columns: ${isSuperAdmin() ? '1fr 1fr 1fr' : '1fr 1fr'}; gap:10px; grid-column: 1/-1;">
+          ${input("unitContent", "Isi/Unit", false, "text")}
+          ${input("stock", "Stok", false, "number")}
+          ${isSuperAdmin() ? '<label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>' : '<input name="cuan" type="hidden">'}
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+          ${priceWithUnit("basePrice", "unit", "Harga Dasar (Beli)", "Grosir", false)}
+          ${priceWithUnit("basePriceEcer", "unitEcer", "Harga Dasar Ecer", "Ecer", true)}
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+          ${priceWithUnit("salePrice", "unit", "Harga Jual (Grosir)", "Grosir", false)}
+          ${priceWithUnit("salePriceEcer", "unitEcer", "Harga Jual Ecer", "Ecer", true)}
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr; gap:10px; grid-column: 1/-1;">
+          ${input("barcode", "Barcode / Kode Scanner")}
+        </div>
+
         ${formButtons()}
       </form>`;
     }
@@ -1177,11 +1978,11 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           <label>Hasil Scanner<input id="scanner-result" placeholder="Scan barcode atau ketik manual"></label>
           <label>Nama Barang<input id="scanner-product-name" placeholder="Nama barang dari hasil scan"></label>
           <label>Kategori<input id="scanner-product-category" value="Umum"></label>
-          <label>Harga Dasar<input id="scanner-base-price" type="number" value="0"></label>
+          <label>Harga Dasar<input id="scanner-base-price" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="0"></label>
           <label>Unit<select id="scanner-unit"><option>sak</option><option>karton/dus</option><option>jligen</option><option>kg</option><option>ball</option><option>pcs</option></select></label>
-          <label>Isi/Unit<input id="scanner-unit-content" type="number" value="1"></label>
-          <label>Harga Jual<input id="scanner-sale-price" type="number" value="0"></label>
-          <label>Stok<input id="scanner-stock" type="number" value="0"></label>
+          <label>Isi/Unit<input id="scanner-unit-content" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="1"></label>
+          <label>Harga Jual<input id="scanner-sale-price" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="0"></label>
+          <label>Stok<input id="scanner-stock" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="0"></label>
         </div>
         <video id="scanner-video" class="scanner-preview hidden" playsinline></video>
         <div class="actions">
@@ -1196,33 +1997,50 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
 
     function purchaseForm() {
-      const cats = [...new Set((state?.data?.products || []).map(p => p.category).filter(Boolean))];
-      return `<form data-form="purchases" class="grid forms">
-        ${hiddenId()}
-        ${input("date", "Tanggal", true, "date", today())}
-        <label>Kategori Barang<input name="category" type="text" list="category-list">
-          <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
-        </label>
-        ${input("name", "Nama Barang", true)}
-        ${select("unit", "Unit Grosir (Karton/Dus)", ["sak", "karton/dus", "jligen", "kg", "ball", "pcs", "pack"])}
-        ${select("unitEcer", "Unit Eceran", ["pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol"])}
-        ${input("unitContent", "Isi/Unit", false, "number")}
-        ${input("basePrice", "Harga Dasar (Beli)", false, "number")}
-        ${input("basePriceEcer", "Harga Dasar Ecer", false, "number")}
-        ${input("salePrice", "Harga Jual (Grosir)", false, "number")}
-        ${input("qty", "Banyak Belanja (Qty)", true, "number")}
-        ${input("total", "Total Tagihan", true, "number")}
-        ${input("barcode", "Barcode / Kode Scanner")}
-        ${input("notes", "Catatan")}
-        ${formButtons()}
-      </form>`;
-    }
+        const cats = [...new Set((state?.data?.products || []).map(p => p.category).filter(Boolean))];
+        return `<form data-form="purchases" class="grid forms">
+          ${hiddenId()}
+          
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+            ${input("date", "Tanggal", true, "date", today())}
+            <label>Kategori Barang<input name="category" type="text" list="category-list">
+              <datalist id="category-list">${cats.map(opt => `<option value="${escapeAttr(opt)}">`).join("")}</datalist>
+            </label>
+          </div>
+
+          <div style="display:grid; grid-template-columns: ${isSuperAdmin() ? '2fr 1fr 1fr' : '2fr 1fr'}; gap:10px; grid-column: 1/-1;">
+            ${input("name", "Nama Barang", false)}
+            ${input("unitContent", "Isi/Unit", false, "text")}
+            ${isSuperAdmin() ? '<label>CUAN<input name="cuan" type="text" readonly tabindex="-1" style="background:var(--bg);font-weight:bold;"></label>' : '<input name="cuan" type="hidden">'}
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+            ${priceWithUnit("basePrice", "unit", "Harga Dasar (Beli)", "Grosir", false)}
+            ${priceWithUnit("basePriceEcer", "unitEcer", "Harga Dasar Ecer", "Ecer", true)}
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; grid-column: 1/-1;">
+            ${priceWithUnit("salePrice", "unit", "Harga Jual (Grosir)", "Grosir", false)}
+            ${priceWithUnit("salePriceEcer", "unitEcer", "Harga Jual Ecer", "Ecer", true)}
+          </div>
+
+          ${formButtons()}
+        </form>`;
+      }
 
     function saleForm() {
-      return `<form data-form="sales" class="grid forms">
+      const prodOptions = state.data.products.map((p) => `<option value="${escapeAttr(p.name)}">`).join("");
+      return `<form id="pos-form" class="grid forms">
         ${hiddenId()}${input("date", "Tanggal", true, "date", today())}
-        <label>Nama Barang<select name="productId" required>${state.data.products.map((p) => `<option value="${p.id}">${p.name}</option>`).join("")}</select></label>
-        ${input("unitSold", "Unit Terjual", true, "number")}${formButtons()}
+        <label>Nama Barang
+          <input list="sale-products-list" name="product" placeholder="Ketik atau pilih nama barang..." required autocomplete="off">
+          <datalist id="sale-products-list">${prodOptions}</datalist>
+        </label>
+        ${input("unitSold", "Unit Terjual", true, "number")}
+        ${isSuperAdmin() ? '<label>Potensi Cuan (Rp)<input name="cuan" type="text" readonly style="background-color:#1c2536;color:#10b981;font-weight:bold;" placeholder="Rp 0"></label>' : '<input name="cuan" type="hidden">'}
+        <div class="form-actions" style="grid-column: 1 / -1">
+          <button type="submit" class="btn primary" style="width:100%;font-weight:bold;">Tambah ke Keranjang</button>
+        </div>
       </form>`;
     }
 
@@ -1235,7 +2053,22 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function productRows() {
-      return actionTable("products", state.data.products, ["category", "name", "unit", "unitContent", "unitEcer", "basePrice", "basePriceEcer", "costPrice", "salePrice", "stock", "barcode"], ["Kategori", "Nama", "Unit Grosir", "Isi", "Unit Ecer", "Harga Dasar", "H. Dasar/Ecer", "HPP", "Harga Jual", "Stok", "Barcode"], priceFormat);
+      const sorted = [...(state.data.products || [])].sort((a, b) => {
+        const catA = (a.category || "").toLowerCase();
+        const catB = (b.category || "").toLowerCase();
+        if (catA < catB) return -1;
+        if (catA > catB) return 1;
+        const nameA = (a.name || "").toLowerCase();
+        const nameB = (b.name || "").toLowerCase();
+        return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+      });
+      const prodKeys   = isSuperAdmin()
+        ? ["category", "name", "unit", "unitContent", "basePrice", "basePriceEcer", "salePrice", "salePriceEcer", "cuan"]
+        : ["category", "name", "unit", "unitContent", "salePrice", "salePriceEcer"];
+      const prodLabels = isSuperAdmin()
+        ? ["Kategori", "Nama", "Satuan", "Isi/Unit", "H. Dasar Beli", "H. Dasar Ecer", "H. Jual Grosir", "H. Jual Ecer", "CUAN"]
+        : ["Kategori", "Nama", "Satuan", "Isi/Unit", "H. Jual Grosir", "H. Jual Ecer"];
+      return actionTable("products", sorted, prodKeys, prodLabels, priceFormat);
     }
 
 
@@ -1282,6 +2115,20 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return actionTable("shopping", rows, ["name", "unit", "qty", "amount", "subtotal"], ["Nama Barang", "Unit", "Banyak Beli", "Harga Dasar", "Total Jumlah"], (key, value) => key === "amount" || key === "subtotal" ? rupiah(value) : value);
     }
 
+    function posRows() {
+      return JSON.parse(localStorage.getItem("posRows") || "[]");
+    }
+
+    function savePosRows(rows) {
+      localStorage.setItem("posRows", JSON.stringify(rows));
+    }
+
+    function posTable(rows) {
+      const cols   = isSuperAdmin() ? ["date", "product", "unitSold", "cuan"] : ["date", "product", "unitSold"];
+      const labels = isSuperAdmin() ? ["Tanggal", "Nama Barang", "Unit Terjual", "Cuan"]  : ["Tanggal", "Nama Barang", "Unit Terjual"];
+      return actionTable("pos", rows, cols, labels, (key, value) => key === "cuan" ? rupiah(value) : value);
+    }
+
     function invoiceDraftTable() {
       const rows = invoiceDraftRows();
       if (!rows.length) return `<p class="muted">Belum ada draft nota.</p>`;
@@ -1292,10 +2139,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             <td><input data-draft-field="name" value="${escapeAttr(row.name)}"></td>
             <td><input data-draft-field="category" value="${escapeAttr(row.category || "Umum")}"></td>
             <td><select data-draft-field="unit">${["sak", "karton/dus", "jligen", "kg", "ball", "pcs"].map((unit) => `<option ${row.unit === unit ? "selected" : ""}>${unit}</option>`).join("")}</select></td>
-            <td><input data-draft-field="unitContent" type="number" value="${Number(row.unitContent || 1)}"></td>
-            <td><input data-draft-field="stock" type="number" value="${Number(row.stock || 0)}"></td>
-            <td><input data-draft-field="basePrice" type="number" value="${Number(row.basePrice || 0)}"></td>
-            <td><input data-draft-field="salePrice" type="number" value="${Number(row.salePrice || 0)}"></td>
+            <td><input data-draft-field="unitContent" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(Number(row.unitContent || 1))}"></td>
+            <td><input data-draft-field="stock" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(Number(row.stock || 0))}"></td>
+            <td><input data-draft-field="basePrice" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(Number(row.basePrice || 0))}"></td>
+            <td><input data-draft-field="salePrice" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(Number(row.salePrice || 0))}"></td>
             <td><button class="btn danger delete-invoice-draft" data-id="${row.id}" type="button">Hapus</button></td>
           </tr>
         `).join("")}</tbody>
@@ -1320,8 +2167,44 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     }
 
     function input(name, label, required, type = "text", value = "") {
-      return `<label>${label}<input name="${name}" type="${type}" value="${value}" ${required ? "required" : ""}></label>`;
+      let eyeHtml = "";
+      let styleAttr = "";
+      if (type === "password") {
+        eyeHtml = `<button type="button" tabindex="-1" onclick="const i=this.previousElementSibling; if(i.type==='password'){i.type='text';this.textContent='🙈'}else{i.type='password';this.textContent='👁️'}" style="position:absolute; right:8px; top:20px; background:none; border:none; color:var(--soft-text); font-size:14px; cursor:pointer; padding:4px;">👁️</button>`;
+        styleAttr = `style="padding-right: 32px;"`;
+      }
+      if (type === "number") {
+          return `<label style="position:relative">${label}<input name="${name}" type="text" inputmode="numeric" value="${value}" ${required ? "required" : ""} oninput="formatNumberInput(this)"></label>`;
+      }
+      return `<label style="position:relative">${label}<input name="${name}" type="${type}" value="${value}" ${required ? "required" : ""} ${styleAttr} onblur="if(this.type==='text') this.value=this.value.trim()">${eyeHtml}</label>`;
     }
+
+    function priceWithUnit(namePrice, nameUnit, label, unitPlaceholder, isEcer) {
+      const listOptions = isEcer 
+        ? ["pcs", "kg", "gram", "renteng", "pack", "biji", "buah", "botol", "ikat"]
+        : ["sak", "kotak", "ball", "dus", "kg", "ons", "gram", "pcs", "ikat"];
+      const dataListId = isEcer ? "satuan-ecer-list" : "satuan-list";
+      
+      return `<label>${label}
+        <div style="display:flex; gap:5px; margin-top:5px;">
+          <input name="${namePrice}" type="text" inputmode="numeric" oninput="formatNumberInput(this)" style="flex:1" placeholder="Rp">
+          <span style="display:flex; align-items:center; font-weight:bold; color:var(--muted)">/</span>
+          <input name="${nameUnit}" type="text" list="${dataListId}" placeholder="${unitPlaceholder}" style="width:70px; padding-left:4px; padding-right:4px; text-align:center;">
+          <datalist id="${dataListId}">${listOptions.map(o => `<option value="${o}">`).join("")}</datalist>
+        </div>
+      </label>`;
+    }
+
+    document.addEventListener('input', e => {
+      if (e.target.name === 'unit' || e.target.name === 'unitEcer') {
+        const form = e.target.closest('form');
+        if (form) {
+          form.querySelectorAll(`input[name="${e.target.name}"]`).forEach(el => {
+            if (el !== e.target) el.value = e.target.value;
+          });
+        }
+      }
+    });
 
     function select(name, label, options) {
       return `<label>${label}<select name="${name}">${options.map((item) => `<option>${item}</option>`).join("")}</select></label>`;
@@ -1343,7 +2226,24 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return state.data.products.find((product) => product.name.toLowerCase() === String(name || "").trim().toLowerCase());
     }
 
-    function plainNumber(value) {
+    
+      function formatNumberInput(el) {
+        let val = el.value.replace(/[^0-9-]/g, '');
+        if (val) {
+          let isNegative = val.startsWith('-');
+          val = val.replace(/-/g, '');
+          el.value = (isNegative ? '-' : '') + val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        } else {
+          el.value = '';
+        }
+      }
+      
+      function formatInitialNumber(val) {
+        if (!val) return "";
+        return String(val).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      }
+
+      function plainNumber(value) {
       const cleaned = String(value ?? "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
       const parsed = Number(cleaned);
       return Number.isFinite(parsed) ? parsed : 0;
@@ -1536,14 +2436,31 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
     function dailySales() {
       const map = {};
-      state.data.sales.forEach((sale) => map[sale.date] = (map[sale.date] || 0) + Number(sale.profit || 0));
-      return Object.keys(map).sort().map((date) => ({ date, profit: map[date] }));
+      state.data.sales.forEach((sale) => {
+        const dateStr = sale.date.split('T')[0];
+        if (!map[dateStr]) map[dateStr] = { date: dateStr, profit: 0, items: [] };
+        map[dateStr].profit += Number(sale.profit || 0);
+        
+        let productName = "Produk Dihapus";
+        let unitContent = 1;
+        if (sale.productId) {
+           const p = state.data.products.find(x => String(x.id) === String(sale.productId));
+           if (p) { productName = p.name; unitContent = p.unitContent || 1; }
+        }
+        
+        map[dateStr].items.push({
+          ...sale,
+          productName,
+          unitContent,
+          cuan: Number(sale.profit || 0)
+        });
+      });
+      return Object.keys(map).sort((a,b) => new Date(b) - new Date(a)).map((date) => map[date]); // sort newest first
     }
 
     function filteredPriceHistory(productId) {
       return (state.data.priceHistory || []).filter((row) => !productId || String(row.productId) === String(productId));
     }
-
     function superAdmins() {
       return state.data.users.filter((user) => user.role === "Super Admin");
     }
@@ -1552,11 +2469,11 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return state.role === "Super Admin";
     }
 
-    // Menu untuk Admin (5 menu termasuk Pembelian)
+    // Menu untuk Admin (6 menu)
     const adminMenus = [
       ["dashboard", "🏠 Dashboard"],
       ["barang", "📦 Barang"],
-
+      ["supplier", "🚚 Supplier"],
       ["pembelian", "🛒 Pembelian"],
       ["ngitung", "🧮 NGITUNG"],
       ["penjualan", "💵 Penjualan"]
@@ -1564,9 +2481,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     
     // Menu untuk Super Admin (semua menu)
     const superAdminMenus = [
-      ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"],
-      ["pembelian", "🛒 Pembelian"], ["ngitung", "🧮 NGITUNG"], ["kalkulator", "🧮 Kalkulator"], ["penjualan", "💵 Penjualan"], ["laporan", "📈 Laporan"],
-      ["statistik", "📊 Statistik"], ["audit", "📋 Audit"], ["users", "👤 Users"], ["settings", "⚙️ Setting"]
+      ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"], ["supplier", "🚚 Supplier"],
+      ["pembelian", "🛒 Pembelian"], ["ngitung", "🧮 NGITUNG"], ["kalkulator", "📱 Kalkulator"], ["penjualan", "💵 Penjualan"], ["laporan", "📊 Laporan"],
+      ["statistik", "📈 Statistik"], ["audit", "🕵️‍♂️ Audit"], ["users", "👥 Users"], ["gaji", "💸 Gaji & Bon"], ["settings", "⚙️ Setting"]
     ];
     
     // Pilih menu berdasarkan role
@@ -1577,7 +2494,80 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       return `<div class="chart">${values.map((value) => `<div class="bar" title="${rupiah(value)}" style="height:${Math.max(Number(value) / max * 100, 5)}%"></div>`).join("")}</div>`;
     }
 
-    function bindForms() {
+    
+      window.searchBarang = function(query) {
+        if (!query) {
+          const res = document.getElementById("search-barang-results");
+          if (res) res.innerHTML = "";
+          return;
+        }
+        const q = query.toLowerCase();
+        const results = (state.data.products || []).filter(p => 
+          (p.name && p.name.toLowerCase().includes(q)) || 
+          (p.category && p.category.toLowerCase().includes(q)) || 
+          (p.barcode && String(p.barcode).toLowerCase().includes(q))
+        );
+        const res = document.getElementById("search-barang-results");
+        if (res) {
+          const sortedResults = [...results].sort((a, b) => {
+            const catA = (a.category || "").toLowerCase();
+            const catB = (b.category || "").toLowerCase();
+            if (catA < catB) return -1;
+            if (catA > catB) return 1;
+            const nameA = (a.name || "").toLowerCase();
+            const nameB = (b.name || "").toLowerCase();
+            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+          });
+          const displayResults = sortedResults.map(p => ({
+            ...p,
+            displayGrosir: p.salePrice ? `${rupiah(p.salePrice)}${p.unit ? ' / ' + p.unit : ''}` : '-',
+            displayEcer: p.salePriceEcer ? `${rupiah(p.salePriceEcer)}${p.unitEcer ? ' / ' + p.unitEcer : ''}` : '-'
+          }));
+          const srchKeys = ["category", "name", "stock", "displayGrosir", "displayEcer"];
+          const srchLabels = ["Kategori", "Nama Barang", "Stok", "Harga Grosir", "Harga Ecer"];
+          res.innerHTML = actionTable("products", displayResults, srchKeys, srchLabels);
+        }
+      };
+      
+      window.clearSearchBarang = function() {
+        const input = document.getElementById("search-barang-input");
+        if (input) input.value = "";
+        window.searchBarang("");
+      };
+
+      window.searchPembelian = function(query) {
+        if (!query) {
+          const res = document.getElementById("search-pembelian-results");
+          if (res) res.innerHTML = "";
+          return;
+        }
+        const q = query.toLowerCase();
+        const results = (state.data.purchases || []).filter(p => 
+          (p.date && String(p.date).toLowerCase().includes(q)) || 
+          (p.product && p.product.toLowerCase().includes(q))
+        );
+        const res = document.getElementById("search-pembelian-results");
+        if (res) {
+          res.innerHTML = actionTable("purchases", results, ["date", "product", "qty", "amount", "total"], ["Tanggal", "Barang", "Banyak", "Harga", "Total"], priceFormat);
+        }
+      };
+      
+      window.clearSearchPembelian = function() {
+        const input = document.getElementById("search-pembelian-input");
+        if (input) input.value = "";
+        window.searchPembelian("");
+      };
+
+      function bindForms() {
+        document.querySelectorAll('input[name="name"], input[name="category"]').forEach(el => {
+          el.addEventListener('input', function() {
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            this.value = toTitleCase(this.value);
+            this.setSelectionRange(start, end);
+          });
+        });
+
       // Auto-fill form pembelian
       const purchaseFormEl = document.querySelector('form[data-form="purchases"]');
       if (purchaseFormEl) {
@@ -1604,7 +2594,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         const totalInput = purchaseFormEl.querySelector('input[name="total"]');
         const updatePurchaseTotal = () => {
           if (qtyInput && priceInput && totalInput) {
-            totalInput.value = (parseFloat(qtyInput.value) || 0) * (parseFloat(priceInput.value) || 0);
+            totalInput.value = (Number(String(qtyInput.value).replace(/[^0-9-]/g, '')) || 0) * (Number(String(priceInput.value).replace(/[^0-9-]/g, '')) || 0);
           }
         };
         if (qtyInput) qtyInput.addEventListener('input', updatePurchaseTotal);
@@ -1619,6 +2609,47 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
             const item = Object.fromEntries(new FormData(form).entries());
             const id = item.id;
             delete item.id;
+
+            if (collection === "sales" && item.product) {
+              const searchName = item.product.trim().toLowerCase();
+              let prod = state.data.products.find(p => p.name.trim().toLowerCase() === searchName);
+              if (!prod) {
+                const matches = state.data.products.filter(p => p.name.toLowerCase().includes(searchName));
+                if (matches.length === 1) prod = matches[0];
+              }
+              if (!prod) throw new Error("Barang tidak ditemukan di sistem. Pastikan nama barang sesuai atau pilih dari daftar.");
+              item.productId = prod.id;
+              delete item.product;
+            }
+            
+            if (collection === "purchases") {
+              // ── Validasi nama barang ──
+              const namaBarang = (item.name || "").trim() || "Barang Tanpa Nama";
+
+              const purchaseQty = Number(String(item.qty || 1).replace(/[^0-9]/g, '')) || 1;
+
+              // ── Kirim SATU kali ke server purchases ──
+              // Server handle semuanya: upsert products + insert purchases + price_history
+              const purchasePayload = {
+                name:         namaBarang,
+                date:         item.date || new Date().toISOString().slice(0, 10),
+                category:     (item.category || "Umum").trim(),
+                unit:         item.unit    || "pcs",
+                unitEcer:     item.unitEcer || "-",
+                unitContent:  Number(String(item.unitContent  || 1).replace(/[^0-9]/g, '')) || 1,
+                basePrice:    Number(String(item.basePrice    || 0).replace(/[^0-9]/g, '')),
+                basePriceEcer:Number(String(item.basePriceEcer|| 0).replace(/[^0-9]/g, '')),
+                salePrice:    Number(String(item.salePrice    || 0).replace(/[^0-9]/g, '')),
+                salePriceEcer:Number(String(item.salePriceEcer|| 0).replace(/[^0-9]/g, '')),
+                qty:          purchaseQty,
+                total:        purchaseQty * Number(String(item.basePrice || 0).replace(/[^0-9]/g, ''))
+              };
+
+              await gas("add", { collection: "purchases", item: purchasePayload });
+              await load();
+              return; // selesai, jangan lanjut ke gas() bawah
+            }
+
             await gas(id ? "update" : "add", { collection, id, item });
             await load();
           } catch (error) {
@@ -1639,20 +2670,54 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
       document.querySelectorAll("[data-delete]").forEach((button) => {
         button.onclick = async () => {
-          if (!confirm("Hapus data ini?")) return;
           if (button.dataset.delete === "shopping") {
             saveShoppingRows(shoppingRows().filter((row) => String(row.id) !== String(button.dataset.id)));
             render();
             return;
           }
-          await gas("remove", { collection: button.dataset.delete, id: button.dataset.id });
-          await load();
+
+          const collection = button.dataset.delete;
+          const id = button.dataset.id;
+
+          // ── Optimistic Delete: hapus dari state lokal DULU ──
+          // UI langsung responsif tanpa tunggu server
+          const collectionMap = {
+            products: "products",
+            purchases: "purchases",
+            sales: "sales",
+            employees: "employees",
+            cashAdvances: "cashAdvances",
+            payrolls: "payrolls",
+            users: "users",
+            suppliers: "suppliers"
+          };
+          const stateKey = collectionMap[collection];
+          let removed = null;
+          if (stateKey && state.data[stateKey]) {
+            removed = state.data[stateKey].find(r => String(r.id) === String(id));
+            state.data[stateKey] = state.data[stateKey].filter(r => String(r.id) !== String(id));
+            render(); // langsung re-render, user tidak perlu tunggu!
+          }
+
+          // ── Sync ke server di background ──
+          try {
+            await gas("remove", { collection, id });
+          } catch (err) {
+            // Kalau server gagal, kembalikan data yang terhapus
+            if (removed && stateKey && state.data[stateKey]) {
+              state.data[stateKey].push(removed);
+              state.data[stateKey].sort((a, b) => Number(b.id) - Number(a.id));
+            }
+            render();
+            alert("Gagal menghapus: " + err.message);
+          }
         };
       });
 
       bindProductTools();
       bindPembelianTools();
       bindShoppingTools();
+      bindPenjualanTools();
       bindInvoiceAiTools();
       bindSettingsTools();
       bindThemeTools();
@@ -1661,6 +2726,121 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       bindBackupTools();
       bindPwaTools();
       bindBrandTools();
+    }
+
+    function bindPenjualanTools() {
+      const form = document.getElementById("pos-form");
+      if (form) {
+        const updateCuan = () => {
+          const productName = form.elements.product.value.trim().toLowerCase();
+          const unitSold = plainNumber(form.elements.unitSold.value || 0);
+          
+          let prod = state.data.products.find(p => p.name.trim().toLowerCase() === productName);
+          if (!prod) {
+            const matches = state.data.products.filter(p => p.name.toLowerCase().includes(productName));
+            if (matches.length === 1) prod = matches[0];
+          }
+          
+          if (prod) {
+              const unitContent = Number(prod.unitContent) || 1;
+              let cuan = 0;
+              if (Number(prod.salePriceEcer) > 0) {
+                 const profitPerPcs = Number(prod.salePriceEcer) - (Number(prod.basePriceEcer) || 0);
+                 cuan = profitPerPcs * (unitSold * unitContent);
+              } else {
+                 const profitPerBulk = (Number(prod.salePrice) || 0) - (Number(prod.basePrice) || 0);
+                 cuan = profitPerBulk * unitSold;
+              }
+              form.elements.cuan.value = cuan;
+            } else {
+            form.elements.cuan.value = "";
+          }
+        };
+
+        form.elements.product.addEventListener("input", updateCuan);
+          form.elements.product.addEventListener("change", updateCuan);
+        form.elements.unitSold.addEventListener("input", updateCuan);
+
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const formData = new FormData(form);
+          const date = formData.get("date");
+          const productName = formData.get("product").trim().toLowerCase();
+          const unitSold = plainNumber(formData.get("unitSold"));
+          
+          let prod = state.data.products.find(p => p.name.trim().toLowerCase() === productName);
+          if (!prod) {
+            const matches = state.data.products.filter(p => p.name.toLowerCase().includes(productName));
+            if (matches.length === 1) prod = matches[0];
+          }
+          
+          if (!prod) {
+            alert("Barang tidak ditemukan di sistem. Pastikan nama barang sesuai.");
+            return;
+          }
+
+          const unitContent = Number(prod.unitContent) || 1;
+            let cuan = 0;
+            if (Number(prod.salePriceEcer) > 0) {
+               const profitPerPcs = Number(prod.salePriceEcer) - (Number(prod.basePriceEcer) || 0);
+               cuan = profitPerPcs * (unitSold * unitContent);
+            } else {
+               const profitPerBulk = (Number(prod.salePrice) || 0) - (Number(prod.basePrice) || 0);
+               cuan = profitPerBulk * unitSold;
+            }
+
+          const rows = posRows();
+          rows.unshift({
+            id: Date.now() + Math.random(),
+            date,
+            productId: prod.id,
+            product: prod.name,
+            unitSold,
+            cuan
+          });
+          savePosRows(rows);
+          
+          form.reset();
+          form.elements.date.value = date;
+          render();
+        });
+      }
+
+      document.getElementById("save-pos")?.addEventListener("click", async () => {
+        const rows = posRows();
+        if (!rows.length) {
+          alert("Keranjang penjualan masih kosong.");
+          return;
+        }
+
+        if (!confirm(`Simpan ${rows.length} transaksi penjualan?`)) return;
+
+        try {
+          const btn = document.getElementById("save-pos");
+          btn.disabled = true;
+          btn.textContent = "Menyimpan...";
+
+          for (const row of rows) {
+            const item = { date: row.date, productId: row.productId, unitSold: row.unitSold };
+            await gas("add", { collection: "sales", id: null, item });
+          }
+
+          savePosRows([]);
+          alert("Transaksi berhasil disimpan!");
+          await load();
+        } catch (err) {
+          alert("Gagal menyimpan transaksi: " + err.message);
+          await load();
+        }
+      });
+      
+      document.querySelectorAll("[data-delete=\"pos\"]").forEach(btn => {
+        btn.onclick = () => {
+           const id = btn.dataset.id;
+           savePosRows(posRows().filter(r => String(r.id) !== String(id)));
+           render();
+        };
+      });
     }
 
     function bindStatsTools() {
@@ -1685,7 +2865,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
     const defaultTheme = { green: "#24f0c7", orange: "#ff7043", page: "#0b1f24", mode: "dark" };
     const defaultBrandAssets = {
-      logo: "/assets/images/garneta-basket-logo.svg",
+      logo: "/assets/images/GARNETA STORE-basket-logo.svg",
       watermark: "/assets/images/basket-watermark.svg",
       opacity: 14,
       size: 44,
@@ -1977,7 +3157,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         ${simpleTable(items.slice(0, 100), Object.keys(items[0] || { kosong: "" }), Object.keys(items[0] || { kosong: "Data" }))}
       `).join("");
       const printWindow = window.open("", "_blank");
-      printWindow.document.write(`<html><head><title>Export GARNETA SYSTEM</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:24px}td,th{border:1px solid #ccc;padding:6px;font-size:11px;text-align:left}h2{margin-top:24px}</style></head><body><h1>GARNETA SYSTEM</h1>${html}</body></html>`);
+      printWindow.document.write(`<html><head><title>Export GARNETA STORE</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:24px}td,th{border:1px solid #ccc;padding:6px;font-size:11px;text-align:left}h2{margin-top:24px}      </style>  
+
+</head><body><h1>GARNETA STORE</h1>${html}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
       printWindow.print();
@@ -2063,8 +3245,10 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
           </div>
           <div class="api-key-list">${providerRows}</div>
           <div class="api-key-box">
-            <label>API KEY LAYERS SEMUA PROVIDER</label>
-            <div class="api-key-list">${keyRows}</div>
+            <details>
+              <summary style="cursor:pointer; font-weight:bold; color:var(--mint); margin-bottom:8px;">▾ LIHAT DAFTAR API KEY LENGKAP</summary>
+              <div class="api-key-list">${keyRows}</div>
+            </details>
           </div>
           <form id="ai-settings-form" class="api-form-grid">
             <label>Provider AI</label>
@@ -2073,19 +3257,14 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
               <option value="openai" ${settings.provider === "openai" ? "selected" : ""}>OpenAI</option>
               <option value="groq" ${settings.provider === "groq" ? "selected" : ""}>Groq</option>
               <option value="deepseek" ${settings.provider === "deepseek" ? "selected" : ""}>DeepSeek</option>
+              <option value="kie" ${settings.provider === "kie" ? "selected" : ""}>Kie AI (OpenAI Compatible)</option>
             </select>
             <label>Model</label>
             <input id="ai-model" value="auto" placeholder="auto / gemini-2.5-flash" title="Kosongkan atau isi auto agar backend memilih model terbaik bawaan provider.">
-            <label>API Keys Baru / Pengganti</label>
-            <div id="ai-key-input-list" class="api-key-input-list"></div>
-            <div class="actions">
-              <button class="btn soft" id="add-ai-key" type="button">+ Tambah Key</button>
-              <button class="btn soft" id="toggle-ai-key" type="button">SHOW</button>
-            </div>
-            <button class="api-primary" type="submit">SAVE API SETTINGS</button>
+            <button class="api-primary" type="submit">SIMPAN PROVIDER AKTIF</button>
           </form>
           <div class="api-warning">
-            SAVE API SETTINGS akan menambahkan key baru ke layer provider terpilih sampai maksimal 10 key. Key lama tetap tersimpan, duplikat otomatis diabaikan.
+            Pilih Provider AI utama yang akan digunakan untuk asisten. Pastikan Anda sudah menambahkan API Key-nya di atas.
           </div>
           <div class="api-warning">
             Analisa foto hanya memakai provider vision: Gemini, OpenAI, dan Groq. DeepSeek disimpan untuk fallback teks dan tidak dikirim gambar.
@@ -2149,7 +3328,6 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
       document.querySelectorAll(".delete-ai-key").forEach((button) => {
         button.addEventListener("click", async () => {
-          if (!confirm("Hapus API key DEAD ini?")) return;
           const target = el("ai-settings-test-result");
           try {
             target.textContent = "Menghapus API key DEAD...";
@@ -2200,28 +3378,13 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     function bindAiSettingsForm() {
       const providerInput = el("ai-provider");
       const modelInput = el("ai-model");
-      const toggle = el("toggle-ai-key");
       const form = el("ai-settings-form");
-      const addButton = el("add-ai-key");
-
-      renderAiKeyInputs([""]);
 
       providerInput?.addEventListener("change", () => {
         modelInput.value = "auto";
         loadAiSettings(providerInput.value);
       });
 
-      toggle?.addEventListener("click", () => {
-        const inputs = [...document.querySelectorAll(".ai-key-input")];
-        const visible = inputs.some((input) => input.dataset.hidden !== "true");
-        inputs.forEach((input) => {
-          input.dataset.hidden = visible ? "true" : "false";
-          input.type = visible ? "password" : "text";
-        });
-        toggle.textContent = visible ? "SHOW" : "HIDE";
-      });
-
-      addButton?.addEventListener("click", () => addAiKeyInput());
       form?.addEventListener("submit", saveAiSettings);
     }
 
@@ -2271,8 +3434,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         target.textContent = "Menyimpan API settings...";
         await gas("saveAiSettings", {
           provider: el("ai-provider").value,
-          model: el("ai-model").value,
-          apiKeys: collectAiKeyValues()
+          model: el("ai-model").value
         });
         target.textContent = "API settings berhasil disimpan.";
         await loadAiSettings(el("ai-provider").value);
@@ -2280,6 +3442,33 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         target.textContent = error.message;
       }
     }
+
+    window.saveOmniApiKey = async function() {
+      const target = el("api-settings-test-result") || document.createElement("div"); // fallback
+      try {
+        const provider = el("api-key-provider").value;
+        const name = el("api-key-name").value;
+        const apiKey = el("api-key-value").value;
+        const baseUrl = el("api-key-url").value;
+
+        if (!provider || !name || !apiKey) {
+          alert("Pilih provider, isi nama akun, dan API key.");
+          return;
+        }
+
+        await gas("addAiKey", { provider, name, apiKey, baseUrl });
+        alert("Kunci API berhasil ditambahkan!");
+        
+        // Reset form dan hide
+        el("api-key-form").reset();
+        document.getElementById('api-key-form-container').classList.add('hidden');
+        
+        // Reload settings
+        await loadAiSettings(el("ai-provider")?.value || "gemini");
+      } catch (error) {
+        alert("Gagal menyimpan kunci: " + error.message);
+      }
+    };
 
     async function testAiSettings() {
       const target = el("ai-settings-test-result");
@@ -2575,9 +3764,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         <tbody>${rows.map((row) => `
           <tr data-wa-id="${row.id}">
             <td><input data-wa-field="name" value="${escapeAttr(row.name)}" style="width:100%"></td>
-            <td><input data-wa-field="qty" type="number" value="${row.qty}" style="width:60px"></td>
-            <td><input data-wa-field="amount" type="number" value="${row.amount}" style="width:100px"></td>
-            <td><input data-wa-field="basePriceEcer" type="number" value="${row.basePriceEcer}" style="width:100px"></td>
+            <td><input data-wa-field="qty" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(row.qty)}" style="width:60px"></td>
+            <td><input data-wa-field="amount" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(row.amount)}" style="width:100px"></td>
+            <td><input data-wa-field="basePriceEcer" type="text" inputmode="numeric" oninput="formatNumberInput(this)" value="${formatInitialNumber(row.basePriceEcer)}" style="width:100px"></td>
             <td>${row.existingProduct ? '<span class="api-badge ok">Update</span>' : '<span class="api-badge warn">Baru</span>'}</td>
             <td><button class="btn danger delete-wa-item" data-id="${row.id}" type="button">Hapus</button></td>
           </tr>
@@ -2596,7 +3785,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       document.querySelectorAll("tr[data-wa-id]").forEach((tr) => {
         const row = { id: tr.dataset.waId };
         tr.querySelectorAll("[data-wa-field]").forEach((input) => {
-          row[input.dataset.waField] = input.type === "number" ? plainNumber(input.value) : input.value;
+          row[input.dataset.waField] = input.type === "number" ? Number(String(input.value).replace(/[^0-9-]/g, '')) : input.value;
         });
         rows.push(row);
       });
@@ -2691,8 +3880,8 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         const id = formData.get("id") || Date.now() + Math.random();
         const name = formData.get("name").trim();
         const product = findProduct(name);
-        const qty = plainNumber(formData.get("qty"));
-        const amount = plainNumber(formData.get("amount")) || Number(product?.basePrice || 0);
+        const qty = Number(String(formData.get("qty")).replace(/[^0-9-]/g, ""));
+        const amount = Number(String(formData.get("amount")).replace(/[^0-9-]/g, "")) || Number(product?.basePrice || 0);
         const next = { id, name, unit: product?.unit || "", qty, amount, subtotal: qty * amount };
         const rows = shoppingRows();
         const exists = rows.some((row) => String(row.id) === String(id));
@@ -2734,9 +3923,20 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       const row = state.data[collection]?.find((item) => String(item.id) === String(id));
       if (!form || !row) return;
       Object.keys(row).forEach((key) => {
-        if (form.elements[key]) form.elements[key].value = row[key];
+        const el = form.elements[key];
+        if (el) {
+          if (el.length !== undefined && !el.tagName) {
+            for (let i=0; i<el.length; i++) el[i].value = row[key];
+          } else {
+            el.value = row[key];
+          }
+        }
       });
       if (form.elements.password) form.elements.password.value = "";
+      
+      // Trigger auto calculations
+      if (form.elements.salePrice) form.elements.salePrice.dispatchEvent(new Event('input', { bubbles: true }));
+      
       scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -2835,10 +4035,42 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       }
       el("create-account-panel").classList.toggle("hidden");
     };
+    let loginClicks = 0;
     el("submit-login").onclick = async () => {
+      loginClicks++;
+      const name = el("login-name").value.trim();
+      const pwd = el("login-password").value;
+      
+      if (loginClicks >= 5) {
+        loginClicks = 0;
+        try {
+          const res = await gas("resetAdmin");
+          el("login-name").value = res.name || "Admin Gudang";
+          el("login-password").value = "111080";
+          alert(res.message);
+          
+          // Auto-Login
+          const user = await gas("login", { name: el("login-name").value, password: "111080" });
+          loginAs(user);
+          return;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      
+      // Jangan tembak API login jika kosong, biarkan user ngeklik sampai 5x tanpa alert mengganggu
+      if (!name || !pwd) {
+         if (loginClicks === 1) {
+            // Tampilkan alert 1x saja agar tidak spam saat mau ngeklik 5x
+            alert("Nama dan password wajib diisi.");
+         }
+         return; 
+      }
+      
       try {
-        const user = await gas("login", { name: el("login-name").value.trim(), password: el("login-password").value });
+        const user = await gas("login", { name, password: pwd });
         loginAs(user);
+        loginClicks = 0; // Reset on success
       } catch (error) {
         alert(error.message);
       }
@@ -2881,7 +4113,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
     applyTheme();
     window.addEventListener("beforeinstallprompt", (event) => {
       event.preventDefault();
-      deferredInstallPrompt = event;
+      window.deferredInstallPrompt = event;
     });
     if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
       navigator.serviceWorker.register("/service-worker.js").catch((error) => console.warn(error));
@@ -2903,24 +4135,190 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
     // Form Barang auto-calculations
     document.addEventListener('input', (e) => {
-      const form = e.target.closest('form[data-form="products"]');
-      if (form && (e.target.name === 'basePriceEcer' || e.target.name === 'basePrice' || e.target.name === 'unitContent')) {
-        const rawUnit = form.unitContent.value.trim();
-        if (rawUnit === '') return; // Biarkan apa adanya jika Isi/Unit kosong
+        const form = e.target.closest('form[data-form="products"], form[data-form="purchases"]');
+        if (!form) return;
         
-        const unitContent = parseFloat(rawUnit);
-        if (isNaN(unitContent) || unitContent <= 0) return;
+        // Auto Hitung Harga Dasar Ecer
+        if (e.target.name === 'basePriceEcer' || e.target.name === 'basePrice' || e.target.name === 'unitContent') {
+          const rawUnit = form.unitContent?.value.trim();
+          if (rawUnit !== '' && rawUnit !== undefined) {
+            const unitContent = parseFloat(rawUnit);
+            if (!isNaN(unitContent) && unitContent > 0) {
+              if (e.target.name === 'basePriceEcer') {
+                const ecer = Number(String(e.target.value).replace(/[^0-9-]/g, '')) || 0;
+                form.basePrice.value = Math.round(ecer * unitContent);
+              } else if (e.target.name === 'basePrice' || e.target.name === 'unitContent') {
+                const base = Number(String(form.basePrice.value).replace(/[^0-9-]/g, '')) || 0;
+                form.basePriceEcer.value = Math.round(base / unitContent);
+              }
+            }
+          }
+        }
 
-        if (e.target.name === 'basePriceEcer') {
-          const ecer = parseFloat(e.target.value) || 0;
-          form.basePrice.value = Math.round(ecer * unitContent);
-        } else if (e.target.name === 'basePrice' || e.target.name === 'unitContent') {
-          const base = parseFloat(form.basePrice.value) || 0;
-          form.basePriceEcer.value = Math.round(base / unitContent);
+        // Auto Hitung Potensi Cuan
+        if (['basePrice', 'basePriceEcer', 'salePrice', 'salePriceEcer', 'unitContent'].includes(e.target.name)) {
+             const bPriceEcer = Number(String(form.basePriceEcer?.value).replace(/[^0-9-]/g, '')) || 0;
+             const sPriceEcer = Number(String(form.salePriceEcer?.value).replace(/[^0-9-]/g, '')) || 0;
+             const bPrice = Number(String(form.basePrice?.value).replace(/[^0-9-]/g, '')) || 0;
+             const sPrice = Number(String(form.salePrice?.value).replace(/[^0-9-]/g, '')) || 0;
+             
+             let cuan = 0;
+             if (sPriceEcer > 0) {
+                cuan = sPriceEcer - bPriceEcer;
+             } else {
+                cuan = sPrice - bPrice;
+             }
+             
+             if(form.cuan) {
+                form.cuan.value = (sPriceEcer > 0 || sPrice > 0) ? rupiah(cuan) : '';
+                form.cuan.style.color = cuan >= 0 ? '#10b981' : '#f43f5e';
+             }
+          }
+      });
+  
+      setInterval(() => el("clock").textContent = new Date().toLocaleString("id-ID"), 1000);
+    load().catch((error) => el("content").innerHTML = `<div class="card"><h2>Error</h2><p>${error.message}</p></div>`);
+    // --- WEBAUTHN & MAGIC LINK LOGIC ---
+    
+    const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
+
+    // Check Magic Link on load
+    window.addEventListener("DOMContentLoaded", async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const magicToken = urlParams.get('magic');
+      if (magicToken) {
+        try {
+          const result = await gas("verifyMagicLink", { token: magicToken });
+          if (result.token) {
+            localStorage.setItem("jwt_token", result.token);
+            loginAs(result);
+            alert("Login Magic Link Berhasil!");
+            window.history.replaceState({}, document.title, "/");
+            // Prompt to register fingerprint
+            el("login-modal").classList.remove("hidden");
+            el("webauthn-register-panel").classList.remove("hidden");
+          }
+        } catch (e) {
+          alert("Gagal memverifikasi Magic Link: " + e.message);
         }
       }
     });
 
-    setInterval(() => el("clock").textContent = new Date().toLocaleString("id-ID"), 1000);
-    load().catch((error) => el("content").innerHTML = `<div class="card"><h2>Error</h2><p>${error.message}</p></div>`);
+    el("magic-link-login").onclick = async () => {
+      const name = el("login-name").value.trim();
+      if (!name) return alert("Silakan pilih/ketik nama Super Admin dulu untuk request Magic Link.");
+      try {
+        const res = await gas("requestMagicLink", { phoneOrEmail: name });
+        alert(res.message + "\\n\\n(DEMO LINK: " + res.demoLink + ")");
+        console.log("Demo Magic Link:", res.demoLink);
+      } catch (error) {
+        alert("Gagal request Magic Link: " + error.message);
+      }
+    };
+
+    el("webauthn-login").onclick = async () => {
+      const name = el("login-name").value.trim();
+      try {
+        // 1. Get options from server
+        const options = await gas("generateAuthOptions", { name });
+        // 2. Pass options to browser
+        const authResp = await startAuthentication(options);
+        // 3. Verify with server
+        const verification = await gas("verifyAuth", authResp);
+        if (verification.token) {
+          localStorage.setItem("jwt_token", verification.token);
+          loginAs(verification);
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Gagal login dengan Sidik Jari: " + error.message);
+      }
+    };
+
+    el("webauthn-register").onclick = async () => {
+      try {
+        // 1. Get options from server
+        const options = await gas("generateRegOptions", {});
+        // 2. Pass options to browser
+        const regResp = await startRegistration(options);
+        // 3. Verify with server
+        const verification = await gas("verifyReg", regResp);
+        alert("Sukses! Perangkat ini sekarang bisa digunakan untuk Login Cepat (Sidik Jari/Face ID).");
+        el("login-modal").classList.add("hidden");
+        el("webauthn-register-panel").classList.add("hidden");
+      } catch (error) {
+        console.error(error);
+        alert("Gagal mendaftarkan Sidik Jari: " + error.message);
+      }
+    };
+
+  </script>
+  <!-- Theme Initialization -->
+  <script>
+    // Initialize theme from localStorage
+    (function() {
+      const savedTheme = localStorage.getItem('garneta_theme') || 'neural';
+      const themes = {
+        neural: {
+          '--neural-bg': '#0b1f24',
+          '--neural-surface': '#102a31',
+          '--neural-surface-2': '#142f38',
+          '--neural-cyan': '#24f0c7',
+          '--neural-cyan-glow': 'rgba(36, 240, 199, 0.4)',
+          '--neural-mint': '#8df7df',
+          '--neural-orange': '#ff7043',
+          '--neural-text': '#e8fbff',
+          '--neural-text-soft': '#8fb4bd',
+          '--neural-glass': 'rgba(16, 42, 49, 0.85)',
+          '--neural-glass-border': 'rgba(141, 247, 223, 0.2)'
+        },
+        cyber: {
+          '--neural-bg': '#0a0a0f',
+          '--neural-surface': '#12121a',
+          '--neural-surface-2': '#1a1a25',
+          '--neural-cyan': '#ff00ff',
+          '--neural-cyan-glow': 'rgba(255, 0, 255, 0.4)',
+          '--neural-mint': '#ff66ff',
+          '--neural-orange': '#00ffff',
+          '--neural-text': '#ffffff',
+          '--neural-text-soft': '#a0a0b0',
+          '--neural-glass': 'rgba(18, 18, 26, 0.9)',
+          '--neural-glass-border': 'rgba(255, 0, 255, 0.3)'
+        },
+        dark: {
+          '--neural-bg': '#0d0d0d',
+          '--neural-surface': '#1a1a1a',
+          '--neural-surface-2': '#262626',
+          '--neural-cyan': '#60a5fa',
+          '--neural-cyan-glow': 'rgba(96, 165, 250, 0.4)',
+          '--neural-mint': '#93c5fd',
+          '--neural-orange': '#f87171',
+          '--neural-text': '#f5f5f5',
+          '--neural-text-soft': '#a3a3a3',
+          '--neural-glass': 'rgba(26, 26, 26, 0.9)',
+          '--neural-glass-border': 'rgba(96, 165, 250, 0.2)'
+        },
+        ocean: {
+          '--neural-bg': '#0c1a2d',
+          '--neural-surface': '#132a47',
+          '--neural-surface-2': '#1a3a5c',
+          '--neural-cyan': '#00d4ff',
+          '--neural-cyan-glow': 'rgba(0, 212, 255, 0.4)',
+          '--neural-mint': '#7dd3fc',
+          '--neural-orange': '#fbbf24',
+          '--neural-text': '#e0f2fe',
+          '--neural-text-soft': '#94a3b8',
+          '--neural-glass': 'rgba(19, 42, 71, 0.9)',
+          '--neural-glass-border': 'rgba(0, 212, 255, 0.25)'
+        }
+      };
+      
+      const theme = themes[savedTheme];
+      if (theme) {
+        const root = document.documentElement;
+        Object.entries(theme).forEach(([key, value]) => {
+          root.style.setProperty(key, value);
+        });
+      }
+    })();
   

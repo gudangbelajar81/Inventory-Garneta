@@ -1,5 +1,5 @@
 /**
- * GARNETA SMART SEARCH + QUICK ACTION
+ * GARNETA STORE SMART SEARCH + QUICK ACTION
  * Pusat pencarian aplikasi - Compact First, Expand When Needed
  * Tidak mengubah backend, database, API, atau modul yang sudah ada
  */
@@ -85,9 +85,24 @@
       performSearch(query);
     });
 
-    // Focus shows results if has query
+    // Focus shows results if has query (with flag for click handling)
+    let justFocused = false;
     input.addEventListener('focus', function() {
+      justFocused = true;
       if (input.value.trim().length >= 2) {
+        performSearch(input.value.trim());
+      }
+      setTimeout(function() { justFocused = false; }, 200);
+    });
+
+    // Toggle on click (tutup jika terbuka, buka jika tertutup)
+    input.addEventListener('click', function() {
+      if (justFocused) return; // Abaikan jika ini klik pertama yang memicu focus
+      
+      const dropdown = document.getElementById('smart-search-dropdown');
+      if (dropdown && !dropdown.classList.contains('hidden')) {
+        closeDropdown();
+      } else if (input.value.trim().length >= 2) {
         performSearch(input.value.trim());
       }
     });
@@ -172,28 +187,26 @@
     const ecerStr = product.salePriceEcer ? formatRupiah(product.salePriceEcer) + (product.unitEcer ? ' / ' + escapeHtml(product.unitEcer) : '') : '';
     const priceDisplay = [grosirStr, ecerStr].filter(Boolean).join(' | ') || 'Harga belum diatur';
 
-    return '<div class="quick-action-card compact hover-ninja-container" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">' +
-      '<div class="hover-ninja-content">' +
-        '<div style="font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem;">📦 ' + escapeHtml(product.name) + '</div>' +
-        '<div style="font-size: 0.8rem; color: #888; margin-top: 2px;">' + priceDisplay + ' &bull; ' + escapeHtml(product.category || 'Umum') + '</div>' +
+    return '<div class="quick-action-card compact hover-ninja-container" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; gap: 8px;">' +
+      '<div class="hover-ninja-content" style="flex:1; min-width:0;">' +
+        '<div style="font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem;">📦 ' + escapeHtml(product.name) + '</div>' +
+        '<div style="font-size: 0.72rem; color: #999; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + priceDisplay + ' &bull; ' + escapeHtml(product.category || 'Umum') + '</div>' +
       '</div>' +
-      '<div class="hover-ninja-actions">' +
-        '<button class="btn primary" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px;" onclick="quickActionJual(\'' + product.id + '\')">🛒 Jual</button>' +
-        '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionEditBarang(\'' + product.id + '\')">✏️ Edit</button>' +
-        '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionLihatSupplier(\'' + product.id + '\')">🏢 Suplier</button>' +
+      '<div class="hover-ninja-actions" style="display:flex; gap:4px;">' +
+        '<button class="btn primary" style="padding: 3px 8px; font-size: 0.7rem; border-radius: 6px; min-height: unset; line-height: 1.2;" onclick="quickActionJual(\'' + product.id + '\')">🛒 Jual</button>' +
+        '<button class="btn soft" style="padding: 3px 8px; font-size: 0.7rem; border-radius: 6px; min-height: unset; line-height: 1.2; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionEditBarang(\'' + product.id + '\')">✏️ Edit</button>' +
       '</div>' +
     '</div>';
   }
 
   function renderSupplierQuickCard(supplier) {
-    return '<div class="quick-action-card compact hover-ninja-container" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">' +
-      '<div class="hover-ninja-content">' +
-        '<div style="font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem;">🏭 ' + escapeHtml(supplier.name) + '</div>' +
-        '<div style="font-size: 0.8rem; color: #888; margin-top: 2px;">' + escapeHtml(supplier.phone || '-') + '</div>' +
+    return '<div class="quick-action-card compact hover-ninja-container" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; gap: 8px;">' +
+      '<div class="hover-ninja-content" style="flex:1; min-width:0;">' +
+        '<div style="font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem;">🏭 ' + escapeHtml(supplier.name) + '</div>' +
+        '<div style="font-size: 0.72rem; color: #999; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + escapeHtml(supplier.phone || '-') + '</div>' +
       '</div>' +
-      '<div class="hover-ninja-actions">' +
-        '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionEditSupplier(\'' + supplier.id + '\')">✏️ Edit</button>' +
-        '<button class="btn soft" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionLihatBarangSupplier(\'' + supplier.id + '\')">📦 Barang</button>' +
+      '<div class="hover-ninja-actions" style="display:flex; gap:4px;">' +
+        '<button class="btn soft" style="padding: 3px 8px; font-size: 0.7rem; border-radius: 6px; min-height: unset; line-height: 1.2; background: rgba(255,255,255,0.05); color: #ccc;" onclick="quickActionEditSupplier(\'' + supplier.id + '\')">✏️ Edit</button>' +
       '</div>' +
     '</div>';
   }

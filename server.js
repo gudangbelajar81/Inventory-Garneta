@@ -4,6 +4,9 @@ const crypto = require("crypto");
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
+const bcrypt = require("bcrypt");
+const validator = require("validator");
+const helmet = require("helmet");
 const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
@@ -15,6 +18,8 @@ const errorHandler = require("./middleware/errorHandler");
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const JWT_SECRET = process.env.JWT_SECRET || "GarnetaSystemSuperSecretKey2026_Static!";
+const JWT_EXPIRY = process.env.JWT_EXPIRY || "8h";
+const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS || 12);
 const SHUTDOWN_TIMEOUT_MS = Number(process.env.SHUTDOWN_TIMEOUT_MS || 30000);
 
 let server;
@@ -64,6 +69,23 @@ const db = createDatabasePool();
 const featureModules = loadFeatureModules();
 const tableColumnCache = new Map();
 
+// [SECURITY] Helmet — pasang semua security headers sekaligus
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Longgar untuk SPA
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'"],
+    }
+  },
+  crossOriginEmbedderPolicy: false // Nonaktifkan karena bisa break PWA
+}));
+// [SECURITY] Sembunyikan X-Powered-By
+app.disable("x-powered-by");
+
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
 app.use((req, res, next) => {
   const origin = req.headers.origin || "";
@@ -82,7 +104,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use("/assets", express.static(path.join(__dirname, "assets")));
 
-// Rate limiting — max 120 request per menit per IP
+// [SECURITY] Rate limiting global — 120 request per menit per IP
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
@@ -91,6 +113,42 @@ const apiLimiter = rateLimit({
   message: { ok: false, message: "Terlalu banyak request, coba lagi dalam 1 menit." }
 });
 app.use("/api", apiLimiter);
+
+// [SECURITY] Rate limiter KHUSUS Login — max 5 percobaan per 15 menit
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, message: "Terlalu banyak percobaan login. Akun sementara dikunci 15 menit." }
+});
+
+// [SECURITY] Fonnte webhook rate limiter — 30 request per menit per IP
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { status: false, detail: "Rate limit exceeded" }
+});
+
+// [SECURITY] Helper sanitasi input — cegah Stored XSS
+function sanitizeInput(value) {
+  if (value === null || value === undefined) return value;
+  if (typeof value === "string") {
+    return validator.escape(value.trim());
+  }
+  return value;
+}
+
+// Sanitasi ringan untuk field yang mungkin mengandung karakter khusus sah (nama barang, dll)
+function sanitizeText(value) {
+  if (value === null || value === undefined) return value;
+  if (typeof value === "string") {
+    // Hapus tag HTML dan script, tapi biarkan karakter normal
+    return value.trim().replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<[^>]+>/g, "");
+  }
+  return value;
+}
 
 app.get("/", (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -150,18 +208,48 @@ app.use((req, res, next) => {
 });
 
 
-// Actions yang tidak perlu auth (public)
-const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap", "dashboard", "getSetting", "setSetting", "modules", "requestMagicLink", "verifyMagicLink", "generateAuthOptions", "verifyAuth", "resetAdmin"]);
+// [SECURITY] Actions yang tidak perlu auth (public) — DIPERKECIL
+// DIHAPUS dari public: resetAdmin (BACKDOOR!), getSetting, setSetting, modules
+const PUBLIC_ACTIONS = new Set(["login", "verifySuperAdmin", "bootstrap", "dashboard", "requestMagicLink", "verifyMagicLink", "generateAuthOptions", "verifyAuth"]);
+
+// Setting keys yang boleh dibaca publik (untuk branding toko di login screen)
+const PUBLIC_SETTING_KEYS = new Set(["STORE_NAME", "STORE_LOGO", "STORE_ADDRESS", "STORE_PHONE"]);
 const KASIR_COLLECTIONS = new Set(["products", "suppliers", "purchases", "sales", "priceHistory", "ngitungSales"]);
 
 function verifyToken(req, res, next) {
   const action = req.body?.action;
+
+  // [SECURITY] Terapkan login rate limiter khusus
+  if (action === "login") {
+    return loginLimiter(req, res, () => {
+      // Tetap lanjut tanpa token untuk action login
+      return next();
+    });
+  }
+
   if (PUBLIC_ACTIONS.has(action)) return next();
 
+  // [SECURITY] getSetting: izinkan HANYA untuk public setting keys
+  if (action === "getSetting") {
+    const key = req.body?.payload?.key;
+    if (PUBLIC_SETTING_KEYS.has(key)) return next();
+    // Kunci lain butuh auth — lanjutkan ke pengecekan token di bawah
+  }
+
   // Beri akses ke Kasir untuk collection tertentu tanpa perlu login
-  if (["list", "add", "update"].includes(action)) {
+  // [SECURITY] Tetap izinkan add/update untuk kasir, tapi list hanya field publik
+  if (["add", "update"].includes(action)) {
     const collection = req.body?.payload?.collection;
     if (KASIR_COLLECTIONS.has(collection)) {
+      return next();
+    }
+  }
+
+  // [SECURITY] list untuk kasir: tandai sebagai akses publik untuk filter field
+  if (action === "list") {
+    const collection = req.body?.payload?.collection;
+    if (KASIR_COLLECTIONS.has(collection)) {
+      req.isPublicKasir = true;
       return next();
     }
   }
@@ -178,8 +266,8 @@ function verifyToken(req, res, next) {
   }
 }
 
-// Webhook Fonnte (CS Robot Otomatis)
-app.post("/api/webhook/fonnte", async (req, res) => {
+// [SECURITY] Webhook Fonnte (CS Robot Otomatis) — dengan rate limiter
+app.post("/api/webhook/fonnte", webhookLimiter, async (req, res) => {
   try {
     const { device, sender, message, name } = req.body;
     
@@ -209,7 +297,7 @@ app.post("/api/webhook/fonnte", async (req, res) => {
       const [rows] = await db.query(sql, params);
       
       if (rows.length > 0) {
-        let reply = `🤖 *Asisten Virtual Garneta*\nHalo Kak ${name || ""}, berikut info yang dicari:\n\n`;
+        let reply = `🤖 *Asisten Virtual GARNETA STORE*\nHalo Kak ${name || ""}, berikut info yang dicari:\n\n`;
         
         for (const item of rows) {
           const statusStok = parseFloat(item.stock) > 0 ? "✅ Tersedia" : "❌ Habis";
@@ -255,8 +343,6 @@ app.post("/api", verifyToken, async (req, res) => {
     const { action, payload = {} } = req.body || {};
     if (!action) throw new Error("Action wajib dikirim.");
 
-
-
     const data = await handleAction(action, payload, req);
     res.json({ ok: true, data });
   } catch (error) {
@@ -271,7 +357,7 @@ async function handleAction(action, payload, req) {
   const coreActions = {
     bootstrap: () => bootstrap(),
     dashboard: () => dashboard(),
-    list: () => listRows(payload.collection),
+    list: () => listRows(payload.collection, req),
     add: () => addRow(payload.collection, payload.item),
     update: () => updateRow(payload.collection, payload.id, payload.item),
     remove: () => removeRow(payload.collection, payload.id),
@@ -294,18 +380,11 @@ async function handleAction(action, payload, req) {
     verifyAuth: () => verifyAuthenticationWebAuthn(payload),
     requestMagicLink: () => requestMagicLink(payload.phoneOrEmail),
     verifyMagicLink: () => verifyMagicLink(payload.token),
-    modules: () => availableModules(),
+    modules: () => availableModules(), // [SECURITY] Sekarang butuh auth
     getSetting: () => getSetting(payload.key, payload.fallback),
     setSetting: async () => { await setSetting(payload.key, payload.value); return { ok: true }; },
-    resetAdmin: async () => {
-      // Pintu Belakang Darurat
-      const defaultPassword = "111080";
-      const hashed = crypto.createHash("sha256").update(defaultPassword).digest("hex");
-      const [users] = await db.query("SELECT name FROM users WHERE role = 'Super Admin' LIMIT 1");
-      const adminName = users.length > 0 ? users[0].name : "";
-      await db.query("UPDATE users SET password_hash = ? WHERE role = 'Super Admin'", [hashed]);
-      return { message: `Password Super Admin berhasil di-reset!`, name: adminName };
-    }
+    // [SECURITY] resetAdmin DIHAPUS dari sini — tidak boleh ada endpoint public reset password!
+    // Gunakan: node scripts/reset-admin.js di server langsung jika darurat
   };
 
   if (coreActions[action]) return coreActions[action]();
@@ -484,8 +563,10 @@ async function dashboard() {
   };
 }
 
-async function listRows(collection) {
+async function listRows(collection, req = null) {
   assertCollection(collection);
+  // [SECURITY] Flag public kasir access — field sensitif disembunyikan
+  const isPublicAccess = req && req.isPublicKasir && !req.user;
 
   if (collection === "ngitungSales") {
     const [rows] = await db.query(`SELECT * FROM ngitung_sales ORDER BY created_at DESC LIMIT 200`);
@@ -493,8 +574,21 @@ async function listRows(collection) {
   }
 
   if (collection === "products") {
+    if (isPublicAccess) {
+      // [SECURITY] Akses publik — sembunyikan harga beli dan cost price
+      const [rows] = await db.query(`
+        SELECT id, category, name, unit, unit_ecer, unit_content, sale_price, sale_price_ecer, stock, barcode
+        FROM products ORDER BY id DESC
+      `);
+      return rows.map(r => ({
+        id: r.id, category: r.category, name: r.name,
+        unit: r.unit, unitEcer: r.unit_ecer, unitContent: Number(r.unit_content || 1),
+        salePrice: Number(r.sale_price || 0), salePriceEcer: Number(r.sale_price_ecer || 0),
+        stock: Number(r.stock || 0), barcode: r.barcode || ""
+      }));
+    }
     const [rows] = await db.query(`
-      SELECT id, supplier_id, category, name, unit, unit_content, base_price, base_price_ecer, cost_price, sale_price, sale_price_ecer, stock, barcode
+      SELECT id, supplier_id, category, name, unit, unit_ecer, unit_content, base_price, base_price_ecer, cost_price, sale_price, sale_price_ecer, stock, barcode
       FROM products
       ORDER BY id DESC
     `);
@@ -587,6 +681,16 @@ async function listRows(collection) {
 
 async function addRow(collection, item = {}) {
   assertCollection(collection);
+
+  // [SECURITY] Sanitasi semua input text untuk mencegah Stored XSS
+  if (item && typeof item === "object") {
+    const textFields = ["name", "notes", "address", "phone", "category", "unit", "unitEcer", "barcode", "customerName", "invoice"];
+    for (const field of textFields) {
+      if (typeof item[field] === "string") {
+        item[field] = sanitizeText(item[field]);
+      }
+    }
+  }
 
   if (collection === "ngitungSales") {
     const [result] = await db.query(
@@ -691,17 +795,25 @@ async function addRow(collection, item = {}) {
 
   if (collection === "sales") {
     const payload = await salePayload(item);
+    const quantitySold = payload.unitSold * payload.unitContent;
+
+    // [SECURITY] HIGH-002: Validasi stok sebelum penjualan — cegah negatif stok
+    const [[stockRow]] = await db.query(`SELECT stock FROM products WHERE id = ? LIMIT 1`, [payload.productId]);
+    if (!stockRow) throw new Error("Produk tidak ditemukan.");
+    if (Number(stockRow.stock) < quantitySold) {
+      throw new Error(`Stok tidak mencukupi. Stok tersedia: ${stockRow.stock}, dibutuhkan: ${quantitySold}.`);
+    }
+
     const [result] = await db.query(`
       INSERT INTO sales (user_id, product_id, sold_at, unit_sold, unit_content, cost_price, sale_price, notes)
       VALUES (:userId, :productId, :date, :unitSold, :unitContent, :costPrice, :salePrice, :notes)
     `, payload);
     
-    const quantitySold = payload.unitSold * payload.unitContent;
     await db.query(`
       UPDATE products 
       SET stock = stock - ? 
-      WHERE id = ?
-    `, [quantitySold, payload.productId]);
+      WHERE id = ? AND stock >= ?
+    `, [quantitySold, payload.productId, quantitySold]);
 
     await recordAudit(`Tambah penjualan produk ID ${payload.productId}`);
     return findRow("sales", result.insertId);
@@ -763,7 +875,7 @@ async function addRow(collection, item = {}) {
     const [result] = await db.query(`
       INSERT INTO users (name, email, password_hash, role, status)
       VALUES (:name, :email, :passwordHash, :role, :status)
-    `, userPayload(item, true));
+    `, await userPayload(item, true));
     await recordAudit(`Tambah akun Super Admin: ${item.name || "-"}`);
     return findRow("users", result.insertId);
   }
@@ -791,6 +903,16 @@ async function addRow(collection, item = {}) {
 async function updateRow(collection, id, item = {}) {
   assertCollection(collection);
   if (!id) throw new Error("ID wajib dikirim.");
+
+  // [SECURITY] Sanitasi semua input text untuk update
+  if (item && typeof item === "object") {
+    const textFields = ["name", "notes", "address", "phone", "category", "unit", "unitEcer", "barcode", "customerName", "invoice"];
+    for (const field of textFields) {
+      if (typeof item[field] === "string") {
+        item[field] = sanitizeText(item[field]);
+      }
+    }
+  }
 
   if (collection === "ngitungSales") {
     await db.query(
@@ -870,7 +992,7 @@ async function updateRow(collection, id, item = {}) {
 
     if (collection === "users") {
       const before = await findRow("users", id);
-    const payload = { ...userPayload({ ...before, ...item }, false), id };
+    const payload = { ...(await userPayload({ ...before, ...item }, false)), id };
     const passwordSql = payload.passwordHash ? ", password_hash = :passwordHash" : "";
     await db.query(`
       UPDATE users
@@ -905,29 +1027,55 @@ async function verifySuperAdmin(adminId, password) {
     LIMIT 1
   `, [adminId]);
   const user = rows[0];
-  if (!user || user.status !== "Aktif" || user.password_hash !== hashPassword(password)) {
+  // [SECURITY] Gunakan bcrypt.compare untuk verifikasi password
+  const passwordMatch = user ? await bcrypt.compare(String(password), user.password_hash).catch(() => {
+    // Fallback: coba SHA-256 untuk akun lama yang belum di-migrate
+    return user.password_hash === hashPasswordLegacy(password);
+  }) : false;
+  if (!user || user.status !== "Aktif" || !passwordMatch) {
     throw new Error("Password Super Admin salah.");
   }
-  const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, JWT_SECRET);
+  // [SECURITY] JWT dengan expiry
+  const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
   return { id: user.id, name: user.name, role: user.role, token };
 }
 
 async function loginUser(name, password) {
   if (!name || !password) throw new Error("Nama dan password wajib diisi.");
 
+  // [SECURITY] Sanitasi input login
+  const safeName = String(name).trim().substring(0, 100);
+
   const [rows] = await db.query(`
     SELECT id, name, email, role, status, password_hash
     FROM users
     WHERE name = ? AND role = 'Super Admin'
     LIMIT 1
-  `, [name]);
+  `, [safeName]);
   const user = rows[0];
 
-  if (!user || user.status !== "Aktif" || user.password_hash !== hashPassword(password)) {
-    throw new Error("Nama atau password Super Admin salah.");
+  // [SECURITY] Gunakan bcrypt.compare, fallback ke SHA-256 untuk akun lama
+  let passwordMatch = false;
+  if (user) {
+    try {
+      passwordMatch = await bcrypt.compare(String(password), user.password_hash);
+    } catch (e) {
+      // Bukan bcrypt hash — coba SHA-256 legacy
+      passwordMatch = user.password_hash === hashPasswordLegacy(password);
+    }
   }
 
-  const token = jwt.sign({ id: user.id, name: user.name, role: displayRole(user.role) }, JWT_SECRET);
+  if (!user || user.status !== "Aktif" || !passwordMatch) {
+    // [SECURITY] Pesan error generik — jangan beritahu apakah nama atau password yang salah
+    throw new Error("Nama atau password salah.");
+  }
+
+  // [SECURITY] JWT dengan expiry 8 jam
+  const token = jwt.sign(
+    { id: user.id, name: user.name, role: displayRole(user.role) },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRY }
+  );
 
   return {
     id: user.id,
@@ -1059,13 +1207,15 @@ async function salePayload(item) {
   };
 }
 
-function userPayload(item, requirePassword) {
+async function userPayload(item, requirePassword) {
   const password = item.password || "";
   if (requirePassword && !password) throw new Error("Password wajib diisi.");
+  // [SECURITY] Gunakan bcrypt untuk hash password baru
+  const passwordHash = password ? await bcrypt.hash(String(password), BCRYPT_ROUNDS) : null;
   return {
     name: required(item.name, "Nama user"),
     email: item.email || `${String(item.name || "user").toLowerCase().replace(/\s+/g, ".")}@example.com`,
-    passwordHash: password ? hashPassword(password) : null,
+    passwordHash,
     role: "Super Admin",
     status: item.status || "Aktif"
   };
@@ -1753,8 +1903,15 @@ function required(value, label) {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
 
-function hashPassword(password) {
+// [SECURITY] hashPasswordLegacy — HANYA untuk verifikasi akun LAMA yang belum di-migrate ke bcrypt
+// JANGAN gunakan ini untuk membuat password baru!
+function hashPasswordLegacy(password) {
   return crypto.createHash("sha256").update(String(password)).digest("hex");
+}
+
+// [SECURITY] hashPassword — alias ke bcrypt untuk backward compat di resetAdmin script
+async function hashPassword(password) {
+  return bcrypt.hash(String(password), BCRYPT_ROUNDS);
 }
 
 function formatDate(value) {
@@ -1818,7 +1975,7 @@ process.on("unhandledRejection", (reason) => {
 // In-memory cache for WebAuthn challenges
 const currentChallenges = {}; // userId -> challenge
 
-const rpName = "Garneta System";
+const rpName = "GARNETA STORE";
 const rpID = process.env.RP_ID || "alveza-backend-production.up.railway.app";
 const origin = process.env.ORIGIN || "https://alveza-backend-production.up.railway.app";
 
@@ -1962,7 +2119,8 @@ async function verifyAuthenticationWebAuthn(payload) {
   if (verification.verified) {
     // Update counter
     await db.query('UPDATE passkeys SET counter = ? WHERE id = ?', [verification.authenticationInfo.newCounter, dbPasskey.id]);
-    const token = jwt.sign({ id: user.id, name: user.name, role: displayRole(user.role) }, JWT_SECRET);
+    // [SECURITY] JWT dengan expiry
+    const token = jwt.sign({ id: user.id, name: user.name, role: displayRole(user.role) }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
     return { token, name: user.name, role: displayRole(user.role), isSuperAdmin: user.role === "Super Admin" };
   }
   
@@ -2033,7 +2191,8 @@ async function verifyMagicLink(token) {
   const [users] = await db.query('SELECT * FROM users WHERE id = ? LIMIT 1', [magic.user_id]);
   const user = users[0];
   
-  const jwtToken = jwt.sign({ id: user.id, name: user.name, role: displayRole(user.role) }, JWT_SECRET);
+  // [SECURITY] JWT dengan expiry
+  const jwtToken = jwt.sign({ id: user.id, name: user.name, role: displayRole(user.role) }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
   return { token: jwtToken, name: user.name, role: displayRole(user.role), isSuperAdmin: user.role === "Super Admin" };
 }
 

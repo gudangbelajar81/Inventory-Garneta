@@ -1,1 +1,15 @@
-const fs=require('fs'); const vm=require('vm'); const html=fs.readFileSync('index.html','utf8'); const scripts=html.match(/<script>(.*?)<\/script>/gs); if(!scripts){console.log('No scripts found!'); process.exit(0);} let i=0; for(const s of scripts){ const code=s.replace(/<\/?script>/g, ''); try{ new vm.Script(code); console.log('Script '+i+' OK'); }catch(e){ console.error('Script '+i+' ERROR: '+e.message); } i++; }
+const { Client } = require('ssh2');
+const conn = new Client();
+conn.on('ready', () => {
+  conn.exec("grep -A 5 'superAdminMenus =' /var/www/inventory/index.html", (err, stream) => {
+    if (err) throw err;
+    stream.on('close', () => conn.end())
+          .on('data', data => console.log(data.toString()))
+          .stderr.on('data', data => console.error(data.toString()));
+  });
+}).connect({
+  host: '76.13.16.24',
+  port: 22,
+  username: 'root',
+  password: '@Alvezadigital81'
+});

@@ -604,12 +604,12 @@ function bindGajiEvents() {
         el("content").innerHTML = `<div class="card"><h2>Akses dibatasi</h2><p class="muted">Menu ini hanya bisa diakses Super Admin.</p></div>`;
         return;
       }
-      const views = { dashboard, "neural-hub": neuralHub, barang, supplier, pembelian, ngitung, riwayatNgitung, hutangNgitung, kalkulator, penjualan, laporan, statistik, audit, users, gaji, settings };
+      const views = { dashboard, "neural-hub": GARNETA STORE, barang, supplier, pembelian, ngitung, riwayatNgitung, hutangNgitung, kalkulator, penjualan, laporan, statistik, audit, users, gaji, settings };
       el("content").innerHTML = views[state.route] ? views[state.route]() : `<div class="card"><h2>Menu tidak ditemukan</h2><p class="muted">Route: ${state.route}</p></div>`;
       bindForms();
     }
 
-    function neuralHub() {
+    function GARNETA STORE() {
     // Modul untuk Admin (hanya 4 + pembelian)
     const adminModules = [
       { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
@@ -662,8 +662,8 @@ function bindGajiEvents() {
     function dashboard() {
       // Initialize Neural Hub Dashboard
       setTimeout(function() {
-        if (window.NeuralHub) {
-          window.NeuralHub.init();
+        if (window.GARNETA STORE) {
+          window.GARNETA STORE.init();
         }
       }, 100);
       
@@ -1609,7 +1609,7 @@ Minyak Goreng 3 45000"></textarea>
           .bold { font-weight: bold; }
         </style></head><body>
         <div class="center">
-          <h2 style="margin:0;">Toko GARNETA</h2>
+          <h2 style="margin:0;">Toko GARNETA STORE</h2>
           <div style="margin-bottom:10px;">085123871118</div>
           <div>Tgl: ${new Date().toLocaleString('id-ID')}</div>
         </div>
@@ -1721,7 +1721,7 @@ Minyak Goreng 3 45000"></textarea>
             0x1b, 0x40, // init
             0x1b, 0x61, 0x01, // Center align
             0x1d, 0x21, 0x11, // Double size
-            ...encoder.encode('Toko GARNETA\n'),
+            ...encoder.encode('Toko GARNETA STORE\n'),
             0x1d, 0x21, 0x00, // Normal size
             ...encoder.encode('085123871118\n\n'),
             0x1b, 0x61, 0x00, // Left align
@@ -1839,7 +1839,7 @@ Minyak Goreng 3 45000"></textarea>
             </head>
             <body>
               <div class="header">
-                <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 2px;">Toko GARNETA</h2>
+                <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 2px;">Toko GARNETA STORE</h2>
                 <div style="font-size: 14px; margin-bottom: 5px;">085123871118</div>
                 <div>${new Date().toLocaleString('id-ID')}</div>
               </div>
@@ -3504,7 +3504,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
     const defaultTheme = { green: "#24f0c7", orange: "#ff7043", page: "#0b1f24", mode: "dark" };
     const defaultBrandAssets = {
-      logo: "/assets/images/garneta-basket-logo.svg",
+      logo: "/assets/images/GARNETA STORE-basket-logo.svg",
       watermark: "/assets/images/basket-watermark.svg",
       opacity: 14,
       size: 44,
@@ -3796,7 +3796,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         ${simpleTable(items.slice(0, 100), Object.keys(items[0] || { kosong: "" }), Object.keys(items[0] || { kosong: "Data" }))}
       `).join("");
       const printWindow = window.open("", "_blank");
-      printWindow.document.write(`<html><head><title>Export GARNETA SYSTEM</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:24px}td,th{border:1px solid #ccc;padding:6px;font-size:11px;text-align:left}h2{margin-top:24px}</style></head><body><h1>GARNETA SYSTEM</h1>${html}</body></html>`);
+      printWindow.document.write(`<html><head><title>Export GARNETA STORE</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:24px}td,th{border:1px solid #ccc;padding:6px;font-size:11px;text-align:left}h2{margin-top:24px}</style></head><body><h1>GARNETA STORE</h1>${html}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
       printWindow.print();

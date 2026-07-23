@@ -313,8 +313,8 @@ if (!code.includes('function gaji()')) {
 }
 
 // Inject 'gaji' into views object
-code = code.replace(/const views = \{ dashboard, "neural-hub": neuralHub, barang, pembelian, ngitung, kalkulator, penjualan, laporan, statistik, audit, users, settings \};/g, 
-'const views = { dashboard, "neural-hub": neuralHub, barang, pembelian, ngitung, kalkulator, penjualan, laporan, statistik, audit, users, gaji, settings };');
+code = code.replace(/const views = \{ dashboard, "neural-hub": GARNETA STORE, barang, pembelian, ngitung, kalkulator, penjualan, laporan, statistik, audit, users, settings \};/g, 
+'const views = { dashboard, "neural-hub": GARNETA STORE, barang, pembelian, ngitung, kalkulator, penjualan, laporan, statistik, audit, users, gaji, settings };');
 
 fs.writeFileSync('index.html', code);
 console.log('Fixed index.html to include gaji view and logic');

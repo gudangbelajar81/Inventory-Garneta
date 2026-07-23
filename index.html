@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0b1f24">
   <link rel="manifest" href="/manifest.webmanifest">
-  <title>GARNETA SYSTEM</title>
+  <title>GARNETA STORE</title>
   
   <link rel="stylesheet" href="/assets/css/app-updates.css?v=3">
   <link rel="stylesheet" href="/assets/css/neural-dashboard.css?v=3">
@@ -452,8 +452,8 @@
   <div class="app">
     <aside class="sidebar neural-sidebar">
       <div class="brand" onclick="if(window.toggleAppDrawer) window.toggleAppDrawer()" style="cursor: pointer;" title="Buka Menu">
-        <img class="brand-logo" id="brand-logo" src="/assets/images/garneta-basket-logo.svg" alt="Garneta basket logo">
-        <div><span class="brand-title">GARNETA<br>SYSTEM</span><span class="brand-subtitle" style="color: var(--garneta-cyan);">Neural Hub</span></div>
+        <img class="brand-logo" id="brand-logo" src="/assets/images/GARNETA STORE-basket-logo.svg" alt="GARNETA STORE basket logo">
+        <div><span class="brand-title">GARNETA STORE<br>SYSTEM</span><span class="brand-subtitle" style="color: var(--GARNETA STORE-cyan);">Neural Hub</span></div>
       </div>
       <div class="nav" id="nav" style="display:flex; gap:8px; width:100%; padding:0 12px;"></div>
     </aside>
@@ -563,7 +563,7 @@
     
     <!-- Top Logo (Click to close) -->
     <div onclick="window.toggleAppDrawer()" style="cursor: pointer; margin: 0 auto 30px auto; display: flex; justify-content: center; align-items: center; width: 72px; height: 72px; border-radius: 50%; border: 1px solid rgba(0,255,204,0.3); background: radial-gradient(circle, rgba(0,255,204,0.1) 0%, transparent 70%); box-shadow: 0 0 30px rgba(0,255,204,0.2); transition: transform 0.3s ease;">
-      <img src="/assets/images/garneta-basket-logo.svg" style="width: 44px; height: 44px; filter: drop-shadow(0 0 10px rgba(0,255,204,0.5));" alt="Close Menu">
+      <img src="/assets/images/GARNETA STORE-basket-logo.svg" style="width: 44px; height: 44px; filter: drop-shadow(0 0 10px rgba(0,255,204,0.5));" alt="Close Menu">
     </div>
 
     <!-- Grid Menu -->
@@ -1232,11 +1232,11 @@ function bindGajiEvents() {
       };
       const iconEl = document.getElementById("page-title-icon");
       if (iconEl) iconEl.textContent = routeIcons[state.route] || "📌";
-      if (["laporan", "statistik", "audit", "users"].includes(state.route) && state.role !== "Super Admin") {
+      if (["laporan", "statistik", "audit"].includes(state.route) && state.role !== "Super Admin") {
         el("content").innerHTML = `<div class="card"><h2>Akses dibatasi</h2><p class="muted">Menu ini hanya bisa diakses Super Admin.</p></div>`;
         return;
       }
-      const views = { dashboard, "neural-hub": neuralHub, barang, supplier, pembelian, ngitung, riwayat, hutang, kalkulator, penjualan, laporan, statistik, audit, users, gaji, settings };
+      const views = { dashboard, "neural-hub": GARNETA STORE, barang, supplier, pembelian, ngitung, riwayat, hutang, kalkulator, penjualan, laporan, statistik, audit, users, gaji, settings };
       
       try {
         el("content").innerHTML = views[state.route] ? views[state.route]() : `<div class="card"><h2>Menu tidak ditemukan</h2><p class="muted">Route: ${state.route}</p></div>`;
@@ -1248,7 +1248,7 @@ function bindGajiEvents() {
             <h2 style="color: #ff4757; margin-bottom: 12px;">Oops! Menu ini mengalami kendala.</h2>
             <p style="color: #aaa; margin-bottom: 24px; font-family: monospace; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px;">${err.message}</p>
             <p style="margin-bottom: 24px; color: #ccc;">Sistem berhasil mengisolasi kerusakan ini sehingga aplikasi utama tidak mati.</p>
-            <button class="btn" onclick="navigate('dashboard')" style="background: var(--garneta-cyan); color: #000; font-weight: bold; padding: 10px 24px; border-radius: 8px;">← Kembali ke Dashboard</button>
+            <button class="btn" onclick="navigate('dashboard')" style="background: var(--GARNETA STORE-cyan); color: #000; font-weight: bold; padding: 10px 24px; border-radius: 8px;">← Kembali ke Dashboard</button>
           </div>
         `;
       }
@@ -1256,7 +1256,7 @@ function bindGajiEvents() {
       bindForms();
     }
 
-    function neuralHub() {
+    function GARNETA STORE() {
     // Modul untuk Admin (hanya 4 + pembelian)
     const adminModules = [
       { id: "barang", name: "Barang", icon: "📦", desc: "Manajemen produk", core: true },
@@ -1274,7 +1274,6 @@ function bindGajiEvents() {
 
         { id: "laporan", name: "Laporan", icon: "📈", desc: "Laporan harian" },
         { id: "statistik", name: "Statistik", icon: "📊", desc: "Analisis data" },
-        { id: "users", name: "Users", icon: "👤", desc: "Manajemen user" },
         { id: "audit", name: "Audit Log", icon: "📋", desc: "Riwayat aktivitas" },
         { id: "settings", name: "Setting", icon: "⚙️", desc: "Pengaturan" }
       ];
@@ -1309,8 +1308,8 @@ function bindGajiEvents() {
     function dashboard() {
       // Initialize Neural Hub Dashboard
       setTimeout(function() {
-        if (window.NeuralHub) {
-          window.NeuralHub.init();
+        if (window.GARNETA STORE) {
+          window.GARNETA STORE.init();
         }
       }, 100);
       
@@ -1879,7 +1878,7 @@ Minyak Goreng 3 45000"></textarea>
             0x1b, 0x40, // init
             0x1b, 0x61, 0x01, // Center align
             0x1d, 0x21, 0x11, // Double size
-            ...encoder.encode('Toko GARNETA\n'),
+            ...encoder.encode('Toko GARNETA STORE\n'),
             0x1d, 0x21, 0x00, // Normal size
             ...encoder.encode('085123871118\n\n'),
             0x1b, 0x61, 0x00, // Left align
@@ -1984,7 +1983,7 @@ Minyak Goreng 3 45000"></textarea>
 </head>
             <body>
               <div class="header">
-                <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 2px;">Toko GARNETA</h2>
+                <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 2px;">Toko GARNETA STORE</h2>
                 <div style="font-size: 14px; margin-bottom: 5px;">085123871118</div>
                 <div>${new Date().toLocaleString('id-ID')}</div>
               </div>
@@ -2230,7 +2229,7 @@ Minyak Goreng 3 45000"></textarea>
             </head>
             <body>
               <div class="header">
-                <h2 style="font-size: 22px; margin-bottom: 2px;">Toko GARNETA</h2>
+                <h2 style="font-size: 22px; margin-bottom: 2px;">Toko GARNETA STORE</h2>
                 <div>085123871118</div>
                 <div>${data.date}</div>
                 <div>Pelanggan: ${data.customer}</div>
@@ -2674,7 +2673,7 @@ window.ngitungClearAll = function() {
             <td style="color: #ff4757; font-weight: bold;">Rp ${new Intl.NumberFormat('id-ID').format(h.sisaTagihan)}</td>
             <td style="font-size: 0.75rem;">${h.date}</td>
             <td style="display: flex; gap: 4px; align-items:center;">
-               <button class="btn" onclick="window.bayarHutang('${h.id}')" style="background: var(--garneta-cyan); color: #000; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; font-weight: bold;">LUNAS</button>
+               <button class="btn" onclick="window.bayarHutang('${h.id}')" style="background: var(--GARNETA STORE-cyan); color: #000; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; font-weight: bold;">LUNAS</button>
                <button class="btn" onclick="window.cicilHutang('${h.id}')" style="background: rgba(255,165,0,0.2); border: 1px solid rgba(255,165,0,0.5); color: #ffa502; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; font-weight: bold;">CICIL</button>
                <button class="btn" onclick="window.reprintHutang('${h.id}')" style="background: transparent; border: none; padding: 4px; font-size: 1.1rem;" title="Cetak Ulang">🖨️</button>
             </td>
@@ -2994,11 +2993,9 @@ Beras Premium 1"></textarea>
       const tab = localStorage.getItem("settingsTab") || "api";
       const titles = {
         api: ["Pusat API", "Kelola koneksi AI dari server Railway. Key tetap tersembunyi dan hanya dipakai backend."],
-        tema: ["Tema Dashboard", "Pilih tema Neural Hub, Cyber Dashboard, Dark Minimal, atau Ocean Deep."],
         warna: ["Warna Tampilan", "Racik warna dashboard, sidebar, topbar, dan halaman agar tidak membosankan."],
-        logo: ["Logo & Watermark", "Atur logo, gambar transparan halaman, teks watermark, dan transparansinya."],
         backup: ["Backup & Export", "Export Excel/PDF, backup database ke JSON, atau restore dari file backup."],
-        install: ["Install di HP", "Pasang GARNETA SYSTEM ke layar utama HP seperti aplikasi native."]
+        users: ["Manajemen Akun", "Kelola daftar akun Super Admin."]
       };
       const [title, description] = titles[tab] || titles.api;
       return `<section class="settings-page">
@@ -3012,26 +3009,12 @@ Beras Premium 1"></textarea>
         </div>
 
         <div class="settings-tabs">
-          ${settingsTabButton("tema", "TEMA", tab)}
+          ${settingsTabButton("users", "USERS", tab)}
           ${settingsTabButton("warna", "WARNA", tab)}
           ${settingsTabButton("api", "PUSAT API", tab)}
-          ${settingsTabButton("logo", "LOGO & WATERMARK", tab)}
           ${settingsTabButton("backup", "BACKUP", tab)}
-          ${settingsTabButton("install", "INSTALL", tab)}
         </div>
 
-        ${tab === "tema" ? `
-        <div class="theme-panel">
-          <div class="api-section-title">🎨 Tema Dashboard</div>
-          <p class="muted">Pilih tema yang sesuai dengan preferensi Anda. Tema akan diterapkan ke seluruh aplikasi.</p>
-          <div class="theme-grid" style="grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
-            ${renderThemeOption('neural', 'Neural Hub', 'Tema default dengan aksen cyan', '#0b1f24', '#24f0c7', tab)}
-            ${renderThemeOption('cyber', 'Cyber Dashboard', 'Tema futuristik dengan aksen magenta', '#0a0a0f', '#ff00ff', tab)}
-            ${renderThemeOption('dark', 'Dark Minimal', 'Tema gelap minimalis', '#0d0d0d', '#60a5fa', tab)}
-            ${renderThemeOption('ocean', 'Ocean Deep', 'Tema biru laut yang tenang', '#0c1a2d', '#00d4ff', tab)}
-          </div>
-        </div>
-        ` : ""}
 
         ${tab === "api" ? `
         <div class="api-center-card" style="max-width: 100%;">
@@ -3110,53 +3093,6 @@ Beras Premium 1"></textarea>
           <p class="muted">Warna berlaku untuk dashboard, sidebar, topbar, tombol utama, grafik, dan halaman lain.</p>
         </div>
         ` : ""}
-        ${tab === "logo" ? `
-        <div class="theme-panel">
-          <div class="api-section-title">Logo & Watermark</div>
-          <div class="brand-preview-grid">
-            <div class="asset-preview" id="logo-preview"></div>
-            <label>Upload Logo Sidebar / Dashboard
-              <input id="brand-logo-upload" type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp">
-            </label>
-          </div>
-          <div class="brand-preview-grid">
-            <div class="asset-preview" id="watermark-preview"></div>
-            <label>Upload Gambar Transparan Halaman
-              <input id="watermark-upload" type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp">
-            </label>
-          </div>
-          <label>Transparansi Gambar Halaman
-            <div class="range-row">
-              <input id="watermark-opacity" type="range" min="0" max="35" step="1">
-              <strong id="watermark-opacity-label">14%</strong>
-            </div>
-          </label>
-          <label>Ukuran Gambar Watermark
-            <div class="range-row">
-              <input id="watermark-size" type="range" min="20" max="95" step="1">
-              <strong id="watermark-size-label">44%</strong>
-            </div>
-          </label>
-          <label>Teks Watermark Manual
-            <input id="watermark-text" placeholder="Contoh: GARNETA SYSTEM">
-          </label>
-          <label>Ukuran Teks Watermark
-            <div class="range-row">
-              <input id="watermark-text-size" type="range" min="1" max="9" step=".25">
-              <strong id="watermark-text-size-label">4vw</strong>
-            </div>
-          </label>
-          <label>Warna Teks Watermark
-            <input id="watermark-text-color" type="color">
-          </label>
-          <div class="actions">
-            <button class="api-primary" id="save-brand-assets" type="button">SIMPAN LOGO</button>
-            <button class="btn danger" id="clear-watermark-text" type="button">HAPUS TEKS</button>
-            <button class="btn soft" id="reset-brand-assets" type="button">RESET GAMBAR</button>
-          </div>
-          <p class="muted">Gunakan PNG transparan atau SVG agar logo terlihat rapi. Watermark disarankan transparansi 8-18% supaya tetap enak dipandang.</p>
-        </div>
-        ` : ""}
         ${tab === "backup" ? `
         <div class="theme-panel">
           <div class="api-section-title">Backup & Export</div>
@@ -3174,11 +3110,9 @@ Beras Premium 1"></textarea>
           </div>
         </div>
         ` : ""}
-        ${tab === "install" ? `
-        <div class="theme-panel">
-          <div class="api-section-title">Install di HP</div>
-          <p class="muted">Aplikasi sudah disiapkan sebagai PWA. Buka dari browser HP, lalu pilih Add to Home Screen / Install App.</p>
-          <button class="btn soft" id="install-pwa" type="button">INSTALL APP</button>
+        ${tab === "users" ? `
+        <div class="theme-panel" style="padding-top:0;">
+          ${(state.role === "Super Admin" || superAdmins().length === 0) ? users() : `<div class="api-section-title">Akses dibatasi</div><p class="muted">Tab ini hanya bisa diakses oleh Super Admin.</p>`}
         </div>
         ` : ""}
       </section>`;
@@ -3897,7 +3831,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
       ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"], ["supplier", "🚚 Supplier"],
       ["pembelian", "🛒 Pembelian"], ["ngitung", "🧮 NGITUNG"], ["kalkulator", "📱 Kalkulator"], 
       ["penjualan", "💵 Penjualan"], ["riwayat", "🧾 Riwayat"], ["hutang", "📒 Kasbon"], ["laporan", "📊 Laporan"],
-      ["statistik", "📈 Statistik"], ["audit", "🕵️‍♂️ Audit"], ["users", "👥 Users"], ["gaji", "💸 Gaji & Bon"], ["settings", "⚙️ Setting"]
+      ["statistik", "📈 Statistik"], ["audit", "🕵️‍♂️ Audit"], ["gaji", "💸 Gaji & Bon"], ["settings", "⚙️ Setting"]
     ];
     
     // Pilih menu berdasarkan role
@@ -4279,7 +4213,7 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
 
     const defaultTheme = { green: "#24f0c7", orange: "#ff7043", page: "#0b1f24", mode: "dark" };
     const defaultBrandAssets = {
-      logo: "/assets/images/garneta-basket-logo.svg",
+      logo: "/assets/images/GARNETA STORE-basket-logo.svg",
       watermark: "/assets/images/basket-watermark.svg",
       opacity: 14,
       size: 44,
@@ -4571,9 +4505,9 @@ Payung, Tepung, sak, 25, 170000, 8500"></textarea>
         ${simpleTable(items.slice(0, 100), Object.keys(items[0] || { kosong: "" }), Object.keys(items[0] || { kosong: "Data" }))}
       `).join("");
       const printWindow = window.open("", "_blank");
-      printWindow.document.write(`<html><head><title>Export GARNETA SYSTEM</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:24px}td,th{border:1px solid #ccc;padding:6px;font-size:11px;text-align:left}h2{margin-top:24px}      </style>  
+      printWindow.document.write(`<html><head><title>Export GARNETA STORE</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:24px}td,th{border:1px solid #ccc;padding:6px;font-size:11px;text-align:left}h2{margin-top:24px}      </style>  
 
-</head><body><h1>GARNETA SYSTEM</h1>${html}</body></html>`);
+</head><body><h1>GARNETA STORE</h1>${html}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
       printWindow.print();

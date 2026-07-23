@@ -18,7 +18,9 @@ function parseDatabaseUrl(rawUrl) {
 }
 
 function databaseConfig() {
-  const base = { multipleStatements: true };
+  // [SECURITY] multipleStatements dinonaktifkan untuk mencegah multi-query injection
+  // Hanya aktifkan di migrate.js secara eksplisit
+  const base = { multipleStatements: false };
   const connectionUrl = process.env.DB_URL || process.env.DATABASE_URL;
   const parsed = parseDatabaseUrl(connectionUrl);
 

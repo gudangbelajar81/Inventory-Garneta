@@ -7,7 +7,7 @@
   'use strict';
 
   // Initialize Neural Hub
-  function initNeuralHub() {
+  function initGARNETA STORE() {
     createNeuralDashboard();
     setupEventListeners();
   }
@@ -34,7 +34,7 @@
             <!-- Scan Line -->
             <div class="logo-g-scanline"></div>
             <!-- Logo Image -->
-            <img src="/assets/images/garneta-logo-g.svg" alt="Garneta G" class="logo-g-image">
+            <img src="/assets/images/GARNETA STORE-logo-g.svg" alt="GARNETA STORE G" class="logo-g-image">
           </div>
 
           <!-- Hint -->
@@ -68,8 +68,8 @@
         <div id="pwa-install-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
           <div style="background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 30px; max-width: 380px; width: 90%; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; animation: slideUp 0.3s ease-out;">
             <button id="close-pwa-modal-btn" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #9ca3af; font-size: 28px; cursor: pointer; line-height: 1;">&times;</button>
-            <h3 style="margin: 0 0 10px 0; color: #fff; font-size: 20px;">📲 Install GARNETA</h3>
-            <p style="margin: 0 0 20px 0; font-size: 14px; color: #9ca3af; line-height: 1.5;">Jadikan GARNETA SYSTEM sebagai aplikasi utama di perangkat Anda. Akses instan dan layar penuh!</p>
+            <h3 style="margin: 0 0 10px 0; color: #fff; font-size: 20px;">📲 Install GARNETA STORE</h3>
+            <p style="margin: 0 0 20px 0; font-size: 14px; color: #9ca3af; line-height: 1.5;">Jadikan GARNETA STORE sebagai aplikasi utama di perangkat Anda. Akses instan dan layar penuh!</p>
             
             <div style="background: #fff; padding: 15px; border-radius: 16px; display: inline-block; margin-bottom: 20px;">
               <p style="margin: 0 0 8px 0; font-size: 12px; color: #333; font-weight:bold;">Scan untuk install di HP lain</p>
@@ -88,7 +88,7 @@
       <!-- Floating Menu Overlay -->
       <div class="menu-overlay" id="menu-overlay">
         <div class="menu-overlay-content">
-          <img src="/assets/images/garneta-logo-g.svg" alt="Garneta G" class="menu-overlay-logo" id="menu-close-trigger">
+          <img src="/assets/images/GARNETA STORE-logo-g.svg" alt="GARNETA STORE G" class="menu-overlay-logo" id="menu-close-trigger">
           <div class="menu-grid" id="menu-grid-container">
             <!-- Menu items akan di-render oleh setupEventListeners -->
           </div>
@@ -668,8 +668,8 @@
   }
 
   // Expose functions globally
-  window.NeuralHub = {
-    init: initNeuralHub,
+  window.GARNETA STORE = {
+    init: initGARNETA STORE,
     toggleMenu: toggleMenu,
     refresh: createNeuralDashboard,
     setLogoAnimation: setLogoAnimation,
@@ -678,7 +678,7 @@
 
   // Auto-initialize if container exists
   if (document.getElementById('neural-dashboard-container')) {
-    initNeuralHub();
+    initGARNETA STORE();
   }
 
 })();

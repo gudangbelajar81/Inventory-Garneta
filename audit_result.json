@@ -1,0 +1,223 @@
+﻿{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "body-parser": {
+      "name": "body-parser",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1123976,
+          "name": "body-parser",
+          "dependency": "body-parser",
+          "title": "body-parser vulnerable to denial of service when invalid limit value silently disables size enforcement",
+          "url": "https://github.com/advisories/GHSA-v422-hmwv-36x6",
+          "severity": "low",
+          "cwe": [
+            "CWE-770"
+          ],
+          "cvss": {
+            "score": 3.7,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L"
+          },
+          "range": ">=2.0.0 <2.3.0"
+        }
+      ],
+      "effects": [],
+      "range": "2.0.0 - 2.2.2",
+      "nodes": [
+        "node_modules/body-parser"
+      ],
+      "fixAvailable": true
+    },
+    "mysql2": {
+      "name": "mysql2",
+      "severity": "critical",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1096970,
+          "name": "mysql2",
+          "dependency": "mysql2",
+          "title": "mysql2 Remote Code Execution (RCE) via the readCodeFor function",
+          "url": "https://github.com/advisories/GHSA-fpw7-j2hg-69v5",
+          "severity": "critical",
+          "cwe": [
+            "CWE-94"
+          ],
+          "cvss": {
+            "score": 9.8,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+          },
+          "range": "<3.9.4"
+        },
+        {
+          "source": 1097180,
+          "name": "mysql2",
+          "dependency": "mysql2",
+          "title": "MySQL2 for Node Arbitrary Code Injection",
+          "url": "https://github.com/advisories/GHSA-4rch-2fh8-94vw",
+          "severity": "critical",
+          "cwe": [
+            "CWE-94"
+          ],
+          "cvss": {
+            "score": 9.8,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+          },
+          "range": "<3.9.7"
+        },
+        {
+          "source": 1097488,
+          "name": "mysql2",
+          "dependency": "mysql2",
+          "title": "mysql2 vulnerable to Prototype Pollution",
+          "url": "https://github.com/advisories/GHSA-pmh2-wpjm-fj45",
+          "severity": "high",
+          "cwe": [
+            "CWE-1321"
+          ],
+          "cvss": {
+            "score": 8.2,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:L"
+          },
+          "range": "<3.9.8"
+        },
+        {
+          "source": 1098367,
+          "name": "mysql2",
+          "dependency": "mysql2",
+          "title": "mysql2 cache poisoning vulnerability",
+          "url": "https://github.com/advisories/GHSA-mqr2-w7wj-jjgr",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-20"
+          ],
+          "cvss": {
+            "score": 6.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:L"
+          },
+          "range": "<3.9.3"
+        },
+        {
+          "source": 1098617,
+          "name": "mysql2",
+          "dependency": "mysql2",
+          "title": "mysql2 vulnerable to Prototype Poisoning",
+          "url": "https://github.com/advisories/GHSA-49j4-86m8-q2jw",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-1321"
+          ],
+          "cvss": {
+            "score": 6.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:L"
+          },
+          "range": "<3.9.4"
+        }
+      ],
+      "effects": [
+        "mysqldump"
+      ],
+      "range": "<=3.9.7",
+      "nodes": [
+        "node_modules/mysqldump/node_modules/mysql2"
+      ],
+      "fixAvailable": {
+        "name": "mysqldump",
+        "version": "1.4.2",
+        "isSemVerMajor": true
+      }
+    },
+    "mysqldump": {
+      "name": "mysqldump",
+      "severity": "critical",
+      "isDirect": true,
+      "via": [
+        "mysql2"
+      ],
+      "effects": [],
+      "range": ">=2.2.0-rc.0",
+      "nodes": [
+        "node_modules/mysqldump"
+      ],
+      "fixAvailable": {
+        "name": "mysqldump",
+        "version": "1.4.2",
+        "isSemVerMajor": true
+      }
+    },
+    "node-cron": {
+      "name": "node-cron",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "uuid"
+      ],
+      "effects": [],
+      "range": "3.0.2 - 3.0.3",
+      "nodes": [
+        "node_modules/node-cron"
+      ],
+      "fixAvailable": {
+        "name": "node-cron",
+        "version": "4.6.0",
+        "isSemVerMajor": true
+      }
+    },
+    "uuid": {
+      "name": "uuid",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1119441,
+          "name": "uuid",
+          "dependency": "uuid",
+          "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+          "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-787",
+            "CWE-1285"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
+          },
+          "range": "<11.1.1"
+        }
+      ],
+      "effects": [
+        "node-cron"
+      ],
+      "range": "<11.1.1",
+      "nodes": [
+        "node_modules/uuid"
+      ],
+      "fixAvailable": {
+        "name": "node-cron",
+        "version": "4.6.0",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 1,
+      "moderate": 2,
+      "high": 0,
+      "critical": 2,
+      "total": 5
+    },
+    "dependencies": {
+      "prod": 158,
+      "dev": 0,
+      "optional": 3,
+      "peer": 2,
+      "peerOptional": 0,
+      "total": 162
+    }
+  }
+}

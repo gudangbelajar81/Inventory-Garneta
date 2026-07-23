@@ -1,8 +1,8 @@
-# Garneta Neural Hub - UI/UX Redesign Document
+# GARNETA STORE Neural Hub - UI/UX Redesign Document
 
 ## Konsep Utama
 
-**"Garneta Neural Hub"** - Dashboard sebagai pusat sistem (AI Command Center) yang mengubah pengalaman pengguna dari sekadar aplikasi kasir menjadi pusat kendali cerdas dan modern.
+**"GARNETA STORE Neural Hub"** - Dashboard sebagai pusat sistem (AI Command Center) yang mengubah pengalaman pengguna dari sekadar aplikasi kasir menjadi pusat kendali cerdas dan modern.
 
 ---
 
@@ -231,14 +231,14 @@ Node Aktif:
 
 ```css
 /* Core Colors */
---garneta-dark-blue: #0b1f24;
---garneta-dark-green: #102a31;
---garneta-cyan: #24f0c7;
---garneta-cyan-glow: rgba(36, 240, 199, 0.4);
---garneta-orange: #ff7043;
---garneta-orange-glow: rgba(255, 112, 67, 0.4);
---garneta-white: #e8fbff;
---garneta-soft-text: #8fb4bd;
+--GARNETA STORE-dark-blue: #0b1f24;
+--GARNETA STORE-dark-green: #102a31;
+--GARNETA STORE-cyan: #24f0c7;
+--GARNETA STORE-cyan-glow: rgba(36, 240, 199, 0.4);
+--GARNETA STORE-orange: #ff7043;
+--GARNETA STORE-orange-glow: rgba(255, 112, 67, 0.4);
+--GARNETA STORE-white: #e8fbff;
+--GARNETA STORE-soft-text: #8fb4bd;
 
 /* Neural Network Colors */
 --node-core: #24f0c7;

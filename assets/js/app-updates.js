@@ -1,5 +1,5 @@
 /**
- * GARNETA STORE - UI Updates
+ * GARNETA SYSTEM - UI Updates
  * Collapse/Expand functionality and Search features
  */
 

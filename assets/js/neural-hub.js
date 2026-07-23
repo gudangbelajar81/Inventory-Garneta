@@ -1,10 +1,10 @@
 /**
- * GARNETA STORE NEURAL HUB - Interactive JavaScript
+ * GARNETA NEURAL HUB - Interactive JavaScript
  * AI Command Center Dashboard Functionality
  */
 
 // Neural Hub State Management
-const GARNETA STORE = {
+const NeuralHub = {
   role: 'Super Admin', // 'Karyawan', 'Admin', 'Super Admin'
   currentModule: 'dashboard',
   searchQuery: '',
@@ -297,8 +297,8 @@ const GARNETA STORE = {
 
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-  GARNETA STORE.init();
+  NeuralHub.init();
 });
 
 // Export for global access
-window.GARNETA STORE = GARNETA STORE;
+window.NeuralHub = NeuralHub;

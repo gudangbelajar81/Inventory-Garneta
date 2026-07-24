@@ -672,7 +672,7 @@
           body: JSON.stringify({ action, payload })
         });
       } catch (error) {
-        throw new Error("Tidak bisa terhubung ke server. Buka http://127.0.0.1:3000/ atau pastikan node server.js sedang berjalan.");
+        throw new Error("Tidak bisa terhubung ke server Backend. Pastikan koneksi internet stabil atau API sedang menyala.");
       }
 
       const text = await response.text();

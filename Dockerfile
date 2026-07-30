@@ -11,8 +11,12 @@ RUN npm ci --only=production
 # Copy all files
 COPY . .
 
+# Copy and make start script executable
+COPY start.sh ./
+RUN chmod +x start.sh
+
 # Expose port
 EXPOSE 3000
 
-# Run migrations and start server
-CMD ["sh", "-c", "node migrate.js && node scripts/add-base-price-ecer.js && node server.js"]
+# Run migrations, cron, and start server
+CMD ["./start.sh"]

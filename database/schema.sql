@@ -46,6 +46,9 @@ CREATE TABLE products (
   photo_path VARCHAR(255) NULL,
   barcode VARCHAR(120) NULL,
   qr_code VARCHAR(120) NULL,
+  discount_type ENUM('Rp', '%') NOT NULL DEFAULT 'Rp',
+  discount_value DECIMAL(14,2) NOT NULL DEFAULT 0,
+  discount_min_qty DECIMAL(14,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_products_supplier
@@ -241,6 +244,7 @@ CREATE TABLE payrolls (
   attendance_days INT NOT NULL DEFAULT 0,
   basic_salary_calculated DECIMAL(14,2) NOT NULL DEFAULT 0,
   total_deduction_bon DECIMAL(14,2) NOT NULL DEFAULT 0,
+  sisa_kasbon DECIMAL(14,2) NOT NULL DEFAULT 0,
   net_salary DECIMAL(14,2) NOT NULL DEFAULT 0,
   paid_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   notes TEXT NULL,

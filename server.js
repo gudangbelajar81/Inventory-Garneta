@@ -276,67 +276,91 @@ app.post("/api/webhook/fonnte", webhookLimiter, async (req, res) => {
     // Ignore empty or non-text messages
     if (!message || typeof message !== 'string') return res.json({ status: true });
 
-    const txt = message.toLowerCase().trim();
+    // 1. Tarik Katalog Virtual dari Database
+    const sql = `SELECT id, name, unit, unit_ecer, sale_price, sale_price_ecer, stock FROM products ORDER BY name ASC`;
+    const [rows] = await db.query(sql);
     
-    // Simple NLP: Remove common conversational words
-    let searchQuery = txt
-      .replace(/harga|berapa|stok|punya|ada|gak|ngga|tidak|min|mas|mbak|bos|bang|kak|tanya|dong/gi, "")
-      .replace(/[^a-z0-9 ]/gi, "")
-      .trim();
-      
-    // Split to find keywords > 2 chars
-    const keywords = searchQuery.split(" ").filter(w => w.length > 2);
-    
-    if (keywords.length > 0) {
-      let conditions = [];
-      let params = [];
-      for (const kw of keywords) {
-        conditions.push("name LIKE ?");
-        params.push(`%${kw}%`);
+    let catalog = "Katalog Produk:\n";
+    for (const item of rows) {
+      catalog += `- ID: ${item.id} | Nama: ${item.name} | Stok: ${parseFloat(item.stock) > 0 ? "Ada" : "Habis"} | Grosir(${item.unit || '-'}): Rp${item.sale_price} | Ecer(${item.unit_ecer || '-'}): Rp${item.sale_price_ecer}\n`;
+    }
+
+    // 2. Bangun System Prompt (God-Tier)
+    const systemPrompt = `Kamu adalah Customer Service AI yang cerdas, ramah, dan solutif untuk 'GARNETA STORE'.
+Tugasmu adalah menjawab pertanyaan pelanggan atau menerima pesanan berdasarkan katalog produk berikut:
+\n${catalog}\n
+ATURAN WAJIB:
+1. Jika pelanggan bertanya harga, KAMU WAJIB menyebutkan HARGA GROSIR dan HARGA ECER sekaligus beserta satuannya agar pelanggan tahu bedanya.
+2. Jawablah dengan bahasa Indonesia yang ramah, sopan, dan luwes (tidak kaku seperti robot).
+3. Jika pelanggan memesan barang (ada niat membeli), perhatikan ID barang dan jumlah (qty)-nya. 
+4. Jika barang tidak ada di katalog, sampaikan dengan sopan bahwa barang tersebut saat ini tidak tersedia.
+5. Balasan (reply) kamu tidak boleh menggunakan format markdown yang rumit, cukup teks WA biasa (bisa pakai * untuk tebal atau _ untuk miring).
+
+Format balasanmu HARUS berupa JSON murni (tanpa tag markdown \`\`\`json) dengan struktur:
+{
+  "intent": "inquiry" | "order",
+  "reply": "Pesan balasan ramah kamu di sini...",
+  "cart": [
+    { "id": "ID_BARANG_DARI_KATALOG", "qty": JUMLAH_ANGKA, "price": HARGA_SATUAN }
+  ]
+}
+Jika bukan pesanan, kosongkan array "cart" atau jangan sertakan.`;
+
+    // 3. Panggil Omni-API Gateway (Router)
+    let aiResponse;
+    try {
+      const { hasil } = await executeChatPrompt(systemPrompt, `Pesan dari ${name || sender}: "${message}"`);
+      // Hapus backticks jika AI bandel mengembalikan \`\`\`json ... \`\`\`
+      let cleanJson = hasil.replace(/\`\`\`json/gi, "").replace(/\`\`\`/g, "").trim();
+      aiResponse = JSON.parse(cleanJson);
+    } catch (e) {
+      logger.error("AI Router Fonnte Error:", e);
+      return res.json({ status: true }); // Biarkan lolos tanpa balasan jika AI error, agar webhook tidak nyangkut
+    }
+
+    // 4. Proses Hasil AI (Order & Reply)
+    let waReply = aiResponse.reply;
+
+    if (aiResponse.intent === "order" && Array.isArray(aiResponse.cart) && aiResponse.cart.length > 0) {
+      // Masukkan ke dalam sales sebagai DRAFT
+      // Asumsikan user_id 1 (Admin/Sistem)
+      let savedItems = 0;
+      for (const item of aiResponse.cart) {
+        if (!item.id || !item.qty) continue;
+        const notes = `DRAFT WA (Fonnte) dari ${name || sender}`;
+        // Insert per item ke sales
+        await db.query(`
+          INSERT INTO sales (user_id, product_id, sold_at, unit_sold, sale_price, notes)
+          VALUES (1, ?, NOW(), ?, ?, ?)
+        `, [item.id, item.qty, item.price || 0, notes]);
+        savedItems++;
       }
-      
-      const sql = `SELECT name, unit, unit_ecer, sale_price, sale_price_ecer, stock FROM products WHERE ${conditions.join(" AND ")} LIMIT 5`;
-      const [rows] = await db.query(sql, params);
-      
-      if (rows.length > 0) {
-        let reply = `🤖 *Asisten Virtual GARNETA STORE*\nHalo Kak ${name || ""}, berikut info yang dicari:\n\n`;
-        
-        for (const item of rows) {
-          const statusStok = parseFloat(item.stock) > 0 ? "✅ Tersedia" : "❌ Habis";
-          const hrgGrosir = parseFloat(item.sale_price) > 0 ? parseInt(item.sale_price).toLocaleString('id-ID') : null;
-          const hrgEcer = parseFloat(item.sale_price_ecer) > 0 ? parseInt(item.sale_price_ecer).toLocaleString('id-ID') : null;
-          
-          reply += `📦 *${item.name}*\n`;
-          if (hrgGrosir) reply += `💰 Grosir (${item.unit || '-'}): Rp ${hrgGrosir}\n`;
-          if (hrgEcer) reply += `💰 Ecer (${item.unit_ecer || '-'}): Rp ${hrgEcer}\n`;
-          reply += `🛒 Stok: ${statusStok}\n\n`;
-        }
-        
-        reply += `_Ketik nama barang lain jika ingin mencari lagi._`;
-        
-        // Kirim balasan via Fonnte
-        const fonnteToken = process.env.FONNTE_TOKEN;
-        if (fonnteToken) {
-          await fetch("https://api.fonnte.com/send", {
-            method: "POST",
-            headers: {
-              "Authorization": fonnteToken,
-              "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: new URLSearchParams({
-              target: sender,
-              message: reply,
-              countryCode: "62"
-            })
-          });
-        }
+      if (savedItems > 0) {
+        waReply += `\n\n*(Pesanan Kakak sudah kami catat sebagai Draft di sistem. Segera kami proses!)*`;
       }
     }
 
-    res.json({ status: true, detail: "Webhook received" });
-  } catch (err) {
-    logger.error("Fonnte Webhook Error", { error: err.message });
-    res.json({ status: false, detail: err.message });
+    // 5. Kirim Balasan ke Fonnte
+    const fonnteToken = process.env.FONNTE_TOKEN;
+    if (fonnteToken && waReply) {
+      await fetch("https://api.fonnte.com/send", {
+        method: "POST",
+        headers: {
+          "Authorization": fonnteToken,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams({
+          target: sender,
+          message: waReply
+        })
+      });
+    }
+
+    res.json({ status: true, processed: true });
+
+  } catch (error) {
+    logger.error("Error di Webhook Fonnte:", error);
+    res.json({ status: false, error: error.message });
   }
 });
 
@@ -1760,6 +1784,111 @@ async function analyzeInvoiceImage(payload = {}) {
 
   throw new Error("Semua API Provider gagal atau belum ada API key vision berstatus Alive.");
 }
+
+async function getChatProviders() {
+  const active = normalizeProvider(await getSetting("AI_PROVIDER", process.env.AI_PROVIDER || "gemini"));
+  const order = [active, ...AI_PROVIDERS].filter((provider, index, arr) => arr.indexOf(provider) === index);
+  const providers = [];
+  for (const provider of order) {
+    const [rows] = await db.query("SELECT id, provider, name, api_key AS `key`, base_url AS baseUrl, status, used_count AS usedCount FROM pi_keys_manager WHERE provider = ? AND status = 'Alive' ORDER BY id ASC", [provider]);
+    if (rows.length) {
+      const model = await getSetting(providerModelSettingKey(provider), defaultAiModel(provider));
+      providers.push({ provider, model: model === "auto" ? defaultAiModel(provider) : model, keys: rows });
+    }
+  }
+  return providers;
+}
+
+async function executeChatPrompt(systemPrompt, userPrompt) {
+  const providers = await getChatProviders();
+  for (const provider of providers) {
+    for (const key of provider.keys) {
+      try {
+        const hasil = await executeChatRequest(provider.provider, key, systemPrompt, userPrompt);
+        await db.query("UPDATE pi_keys_manager SET used_count = used_count + 1 WHERE id = ?", [key.id]);
+        return { hasil, provider: provider.provider, model: provider.model };
+      } catch (error) {
+        if (error.status === 429) {
+          logger.warn("Rate limit tercapai, merotasi key ke Limit.", { provider: provider.provider, keyId: key.id });
+          await db.query("UPDATE pi_keys_manager SET status = 'Limit' WHERE id = ?", [key.id]);
+        } else if (error.status === 401 || error.status === 403) {
+          logger.warn("Key mati/invalid, merotasi key ke Dead.", { provider: provider.provider, keyId: key.id });
+          await db.query("UPDATE pi_keys_manager SET status = 'Dead' WHERE id = ?", [key.id]);
+        } else {
+          logger.error(`AI API Error (${provider.provider}):`, { message: error.message, status: error.status });
+        }
+      }
+    }
+  }
+  throw new Error("Semua kunci API telah habis atau terkena limit (429).");
+}
+
+async function executeChatRequest(provider, keyRec, systemPrompt, userPrompt) {
+  if (provider === "gemini") return executeGeminiChat(keyRec, systemPrompt, userPrompt);
+  return executeOpenAiChat(keyRec, systemPrompt, userPrompt, provider);
+}
+
+async function executeGeminiChat(keyRec, systemPrompt, userPrompt) {
+  const model = await getSetting(providerModelSettingKey("gemini"), defaultAiModel("gemini"));
+  const base = keyRec.baseUrl || defaultBaseUrl("gemini");
+  
+  const response = await fetchWithTimeout(`${base}/v1beta/models/${model}:generateContent?key=${encodeURIComponent(keyRec.key)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }]
+    })
+  }, 30000);
+
+  if (response.ok) {
+    const data = await response.json();
+    if (data.candidates && data.candidates.length > 0) {
+      return data.candidates[0].content.parts[0].text;
+    }
+    throw new Error("Invalid response format from Gemini");
+  } else {
+    const err = new Error(`Gemini HTTP ${response.status}`);
+    err.status = response.status;
+    throw err;
+  }
+}
+
+async function executeOpenAiChat(keyRec, systemPrompt, userPrompt, provider) {
+  const base = keyRec.baseUrl || defaultBaseUrl(provider);
+  const model = await getSetting(providerModelSettingKey(provider), defaultAiModel(provider));
+  
+  let endpoint = `${base}/v1/chat/completions`;
+  if (base.endsWith("/responses") || base.endsWith("/messages") || base.endsWith("/completions")) {
+    endpoint = base;
+  }
+  
+  const response = await fetchWithTimeout(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${keyRec.key}` },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      max_tokens: 2000
+    })
+  }, 30000);
+
+  if (response.ok) {
+    const data = await response.json();
+    if (data.choices && data.choices.length > 0) {
+      return data.choices[0].message.content;
+    }
+    throw new Error("Invalid response format from OpenAI API");
+  } else {
+    const err = new Error(`${providerLabel(provider)} HTTP ${response.status}`);
+    err.status = response.status;
+    throw err;
+  }
+}
+
 
 async function getVisionProviders() {
   const active = normalizeProvider(await getSetting("AI_PROVIDER", process.env.AI_PROVIDER || "gemini"));

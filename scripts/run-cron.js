@@ -5,6 +5,7 @@ const mysql = require("mysql2/promise");
 const { databaseConfig } = require("../config/database");
 const logger = require("../config/logger");
 const { checkLowStock } = require("./jobs/low-stock-check");
+const { checkPayday } = require("./jobs/payday-check");
 
 const dbConfig = databaseConfig();
 const db = mysql.createPool({
@@ -56,6 +57,7 @@ if (process.env.CRON_ENABLED === "false") {
 }
 
 registerJob("low-stock-check", process.env.LOW_STOCK_CRON || "0 8 * * *", checkLowStock);
+registerJob("payday-check", process.env.PAYDAY_CRON || "0 8,12,16 * * *", checkPayday);
 
 logger.info("Cron runner aktif. Tekan Ctrl+C untuk berhenti.");
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GARNETA SMART SEARCH + QUICK ACTION
  * Pusat pencarian aplikasi - Compact First, Expand When Needed
  * Tidak mengubah backend, database, API, atau modul yang sudah ada
@@ -78,16 +78,30 @@
     // Realtime search
     input.addEventListener('input', function(e) {
       const query = e.target.value.trim();
-      if (query.length < 2) {
+      if (query.length < 1) {
         closeDropdown();
         return;
       }
       performSearch(query);
     });
 
+    let justFocused = false;
     // Focus shows results if has query
     input.addEventListener('focus', function() {
-      if (input.value.trim().length >= 2) {
+      justFocused = true;
+      if (input.value.trim().length >= 1) {
+        performSearch(input.value.trim());
+      }
+      setTimeout(function() { justFocused = false; }, 200);
+    });
+
+    // Click toggles the dropdown
+    input.addEventListener('click', function() {
+      if (justFocused) return;
+      const dropdown = document.getElementById('smart-search-dropdown');
+      if (dropdown && !dropdown.classList.contains('hidden')) {
+        closeDropdown();
+      } else if (input.value.trim().length >= 1) {
         performSearch(input.value.trim());
       }
     });

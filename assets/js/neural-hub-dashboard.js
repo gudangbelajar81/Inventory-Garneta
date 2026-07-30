@@ -133,16 +133,19 @@
     const adminMenus = [
       ["dashboard", "🏠 Dashboard"],
       ["barang", "📦 Barang"],
-      ["supplier", "🚚 Supplier"],
       ["pembelian", "🛒 Pembelian"],
+      ["kalkulator", "⚡ Xpres"],
       ["ngitung", "🧮 NGITUNG"],
-      ["penjualan", "💵 Penjualan"]
+      ["riwayat", "🧾 Riwayat & Bon"],
+      ["kasbon", "💸 Kasbon"]
     ];
-    
+
     const superAdminMenus = [
-      ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"], ["supplier", "🚚 Supplier"],
-      ["pembelian", "🛒 Pembelian"], ["ngitung", "🧮 NGITUNG"], ["kalkulator", "📱 Kalkulator"], ["penjualan", "💵 Penjualan"], ["laporan", "📊 Laporan"],
-      ["statistik", "📈 Statistik"], ["audit", "🕵️‍♂️ Audit"], ["gaji", "💸 Gaji & Bon"], ["settings", "⚙️ Setting"]
+      ["dashboard", "🏠 Dashboard"], ["barang", "📦 Barang"],
+      ["pembelian", "🛒 Pembelian"], ["ngitung", "🧮 NGITUNG"], ["kalkulator", "⚡ Xpres"], 
+      ["riwayat", "🧾 Riwayat & Bon"],
+      ["kasbon", "💸 Kasbon"],
+      ["settings", "⚙️ Setting"]
     ];
 
     const menus = isSuperAdmin() ? superAdminMenus : adminMenus;
